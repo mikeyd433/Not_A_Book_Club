@@ -156,8 +156,10 @@ export type Database = {
           book_id: string
           chapter_id: string
           created_at: string
+          flagged: boolean
           id: string
           made_during_reread: boolean
+          no_spoilers: boolean
           parent_id: string | null
           updated_at: string
           user_id: string
@@ -167,8 +169,10 @@ export type Database = {
           book_id: string
           chapter_id: string
           created_at?: string
+          flagged?: boolean
           id?: string
           made_during_reread?: boolean
+          no_spoilers?: boolean
           parent_id?: string | null
           updated_at?: string
           user_id: string
@@ -178,8 +182,10 @@ export type Database = {
           book_id?: string
           chapter_id?: string
           created_at?: string
+          flagged?: boolean
           id?: string
           made_during_reread?: boolean
+          no_spoilers?: boolean
           parent_id?: string | null
           updated_at?: string
           user_id?: string
@@ -346,6 +352,42 @@ export type Database = {
         }
         Relationships: []
       }
+      reactions: {
+        Row: {
+          comment_id: string
+          created_at: string
+          emoji: string
+          user_id: string
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string
+          emoji: string
+          user_id: string
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string
+          emoji?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reactions_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shelf_entries: {
         Row: {
           book_id: string
@@ -426,6 +468,58 @@ export type Database = {
           },
         ]
       }
+      spoiler_blocks: {
+        Row: {
+          book_id: string
+          chapter_id: string
+          comment_id: string
+          content: string
+          created_at: string
+          id: string
+          ordinal: number
+        }
+        Insert: {
+          book_id: string
+          chapter_id: string
+          comment_id: string
+          content: string
+          created_at?: string
+          id?: string
+          ordinal: number
+        }
+        Update: {
+          book_id?: string
+          chapter_id?: string
+          comment_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          ordinal?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spoiler_blocks_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spoiler_blocks_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spoiler_blocks_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -441,6 +535,7 @@ export type Database = {
           name: string
         }
       }
+      flag_comment: { Args: { p_comment_id: string }; Returns: undefined }
       generate_invite_code: { Args: never; Returns: string }
       has_full_access: {
         Args: { p_book_id: string; p_user_id: string }
@@ -451,7 +546,6 @@ export type Database = {
         Returns: boolean
       }
       is_currently_reading: { Args: { p_book_id: string }; Returns: boolean }
-      locked_comment_count: { Args: { p_book_id: string }; Returns: number }
       is_group_admin: { Args: { p_group_id: string }; Returns: boolean }
       is_group_member: { Args: { p_group_id: string }; Returns: boolean }
       join_group_by_code: {
@@ -463,6 +557,11 @@ export type Database = {
           invite_code: string
           name: string
         }
+      }
+      locked_comment_count: { Args: { p_book_id: string }; Returns: number }
+      resolve_comment_flag: {
+        Args: { p_comment_id: string; p_new_chapter_id?: string }
+        Returns: undefined
       }
       set_default_cover: {
         Args: { p_book_id: string; p_cover_id: string }
