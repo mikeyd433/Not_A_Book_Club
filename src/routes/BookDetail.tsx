@@ -65,6 +65,12 @@ export default function BookDetail({ group }: { group: MyGroup }) {
             >
               Discussion
             </Link>
+            <Link
+              to={`/book/${book.id}/predictions`}
+              className="min-h-9 rounded-full border border-border px-3 py-2 text-xs leading-tight"
+            >
+              🔮 Predictions
+            </Link>
           </div>
         </div>
       </div>

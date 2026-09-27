@@ -92,6 +92,21 @@ get there.
   a Finished book, fresh chapter-lock position, "view full thread anyway"
   toggle (reuses `spoil_me`), 🔁 badge on comments posted during a reread.
   See the Reread Mode feature section below for the RLS details.
+- **Predictions:** a separate `/book/:id/predictions` page (`Predictions.tsx`),
+  new `predictions` table. Hidden from everyone but the author until
+  self-resolved (✅/❌/🤷); tamper-proof (body/chapter immutable, verdict
+  locked once set) via a `before update` guard trigger rather than RLS
+  alone, since RLS can't express "only this column, only while it's still
+  null." Not available while rereading (blocked at insert, same as the
+  Reread Mode section says). Per-book scoreboard (`prediction_scoreboard()`
+  RPC) aggregates resolved predictions per reader, gated on
+  `has_full_access()` server-side -- deliberately stricter than per-row
+  chapter-unlock, so comparing scores can't itself be a pacing/plot-intensity
+  signal to someone still reading. Verified against the live DB the same
+  way as the reread-mode RLS change: unresolved hidden from a second
+  member, visible once resolved and unlocked, verdict/body immutability
+  enforced by the trigger, insert blocked for a rereader, scoreboard empty
+  without full access and populated with it.
 - **Mobile formatting** is a standing cross-cutting requirement (not in the
   original spec, added later): every `<input>`/`<select>`/`<textarea>` is
   16px+ (prevents iOS Safari auto-zoom on focus), every tappable control
@@ -103,7 +118,6 @@ get there.
 ### Not built yet
 
 Roughly in spec order:
-- **Predictions** (🔮 post type, tamper-proof, self-resolved, scoreboard).
 - **Finishing extras** (star ratings + group average, reviews, chapter
   reaction heatmap, prediction scoreboard).
 - **Achievements** (participation-based, hidden ones, `achievements_earned`
@@ -267,15 +281,15 @@ Include a `group_id` on all group-scoped tables from day one. The app ships with
 - Inline spoiler blocks — **done**
 - Flag as spoiler — **done**
 
-### Predictions — not built
-- 🔮 post type, hidden by default, tamper-proof, self-resolved (✅/❌/🤷), locked verdict, scoreboard after finishing, not available in reread mode.
+### Predictions — done
+- 🔮 post type, hidden by default, tamper-proof, self-resolved (✅/❌/🤷), locked verdict, scoreboard after finishing, not available in reread mode — **done**, see the Predictions bullet under Project Status above for the RLS/trigger details. `Predictions.tsx` + `src/lib/predictions/queries.ts`.
 
-### Finishing Extras — not built
-- Star ratings with group average, DNF handled separately, reread rating history
-- Reviews, locked until finished
-- Chapter reaction heatmap, visible only after finishing
-- Prediction scoreboard, visible after finishing
-- DNF with "Spoil me" unlocks all of the above
+### Finishing Extras — mostly not built
+- Star ratings with group average, DNF handled separately, reread rating history — not built
+- Reviews, locked until finished — not built
+- Chapter reaction heatmap, visible only after finishing — not built
+- Prediction scoreboard, visible after finishing — **done**, built as part of Predictions (`prediction_scoreboard()` RPC, gated on `has_full_access()`)
+- DNF with "Spoil me" unlocks all of the above — not built (n/a until the rest of this section exists; already true for the scoreboard, which reuses `has_full_access()`)
 
 ### Achievements — not built
 - Participation-based, never speed-based; some hidden until earned
@@ -308,6 +322,7 @@ a summary, and migrations are the source of truth if it ever drifts.
 | `comments` | `parent_id` self-reference, `flagged`, `no_spoilers`, `made_during_reread` |
 | `reactions` | (comment_id, user_id, emoji) composite PK |
 | `spoiler_blocks` | (comment_id, ordinal) unique; own chapter tag per block |
+| `predictions` | `verdict` null until self-resolved; `resolved_at` set by the guard trigger, not the client |
 
 **Visibility check (implemented as `is_chapter_unlocked()` in
 `0004_shelf_entries.sql`, reused everywhere):**

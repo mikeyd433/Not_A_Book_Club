@@ -331,6 +331,61 @@ export type Database = {
           },
         ]
       }
+      predictions: {
+        Row: {
+          body: string
+          book_id: string
+          chapter_id: string
+          created_at: string
+          id: string
+          resolved_at: string | null
+          user_id: string
+          verdict: string | null
+        }
+        Insert: {
+          body: string
+          book_id: string
+          chapter_id: string
+          created_at?: string
+          id?: string
+          resolved_at?: string | null
+          user_id: string
+          verdict?: string | null
+        }
+        Update: {
+          body?: string
+          book_id?: string
+          chapter_id?: string
+          created_at?: string
+          id?: string
+          resolved_at?: string | null
+          user_id?: string
+          verdict?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "predictions_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "predictions_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "predictions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -559,6 +614,17 @@ export type Database = {
         }
       }
       locked_comment_count: { Args: { p_book_id: string }; Returns: number }
+      prediction_scoreboard: {
+        Args: { p_book_id: string }
+        Returns: {
+          correct: number
+          display_name: string
+          incorrect: number
+          total: number
+          unclear: number
+          user_id: string
+        }[]
+      }
       resolve_comment_flag: {
         Args: { p_comment_id: string; p_new_chapter_id?: string }
         Returns: undefined
