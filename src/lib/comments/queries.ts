@@ -52,6 +52,7 @@ export function usePostComment(bookId: string) {
       parentId?: string | null
       noSpoilers?: boolean
       spoilerBlocks?: PendingSpoilerBlock[]
+      madeDuringReread?: boolean
     }) => {
       if (!user) throw new Error('Not signed in')
 
@@ -63,6 +64,7 @@ export function usePostComment(bookId: string) {
           body: input.body,
           parent_id: input.parentId ?? null,
           no_spoilers: input.noSpoilers ?? false,
+          made_during_reread: input.madeDuringReread ?? false,
           user_id: user.id,
         })
         .select()

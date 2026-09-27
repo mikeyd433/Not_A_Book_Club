@@ -34,7 +34,7 @@ get there.
     (`get_project_url`, `get_publishable_keys`) or from `.env.example`.
 - **Repos:**
   - `mikeyd433/Not_A_Book_Club` — this repo, the app itself. Working
-    branch: `claude/confident-cray-qvmr29`.
+    branch: `claude/magical-sagan-9pmk6q`.
   - `mikeyd433/dabingabongo` (aka `Dabingabongo`) — the personal site that
     serves this app at `/nabc`. Branch `add-nabc-integration` (not yet
     merged to `main` as of this writing) adds a build.sh block that clones
@@ -88,6 +88,10 @@ get there.
   position, confirm the other can't see/react to/post ahead of locked
   content, confirm it unlocks at the right threshold) — not just unit-level
   reasoning about the policy SQL.
+- **Reread mode:** "Start a reread"/"Finish reread" on `BookDetail.tsx` for
+  a Finished book, fresh chapter-lock position, "view full thread anyway"
+  toggle (reuses `spoil_me`), 🔁 badge on comments posted during a reread.
+  See the Reread Mode feature section below for the RLS details.
 - **Mobile formatting** is a standing cross-cutting requirement (not in the
   original spec, added later): every `<input>`/`<select>`/`<textarea>` is
   16px+ (prevents iOS Safari auto-zoom on focus), every tappable control
@@ -99,9 +103,6 @@ get there.
 ### Not built yet
 
 Roughly in spec order:
-- **Reread mode** (fresh reading position, original review kept, 🔁 badge —
-  the `comments.made_during_reread` column and badge rendering exist as a
-  placeholder, but there's no actual "start a reread" flow yet).
 - **Predictions** (🔮 post type, tamper-proof, self-resolved, scoreboard).
 - **Finishing extras** (star ratings + group average, reviews, chapter
   reaction heatmap, prediction scoreboard).
@@ -216,12 +217,12 @@ Include a `group_id` on all group-scoped tables from day one. The app ships with
 - Home screen shows your current books, each with a progress bar, unlocked-comment count, and quick progress update — **done**
 - Everyone can see everyone's progress — **done**
 
-### Reread Mode — not built
-- "Start reread" gives you a fresh reading position; your original Finished status and review are kept
-- Locks apply as if it's your first read, with a toggle to view the full thread
-- Comments made during a reread show a 🔁 badge — badge rendering exists, nothing sets it yet
-- Rereaders cannot create predictions
-- When you finish a reread, you can optionally update your rating (see Finishing Extras)
+### Reread Mode — mostly done
+- "Start reread" gives you a fresh reading position; your original Finished status and review are kept — **done** (status stays `finished`; `is_rereading=true` + `current_chapter_id` reset to null on start, in `BookDetail.tsx`)
+- Locks apply as if it's your first read, with a toggle to view the full thread — **done**. `has_full_access()` (`0017_reread_mode.sql`) no longer treats `status = 'finished'` as an unconditional grant when `is_rereading` is true; it falls through to the normal position-based check unless `spoil_me` is on. `spoil_me` is repurposed as the "view full thread anyway" toggle during a reread (same column, condition-dependent label in the UI) — reused rather than adding a new column since the semantics ("unlock full access anyway") already matched. Verified against the live DB with seeded accounts the same way the original flagging bug was (reread + spoil_me off → chapter ahead of position stays locked; spoil_me on → unlocks; a `finished`-but-not-rereading reader is unaffected).
+- Comments made during a reread show a 🔁 badge — **done**, `usePostComment` now takes `madeDuringReread` and `Thread.tsx` passes `myEntry.is_rereading` on every post/reply
+- Rereaders cannot create predictions — **n/a for now**: predictions aren't built yet; revisit when they are
+- When you finish a reread, you can optionally update your rating (see Finishing Extras) — **n/a for now**: ratings aren't built yet ("Finish reread" just flips `is_rereading` back off); revisit when Finishing Extras lands
 
 ### Covers — done
 - Anyone can upload multiple covers per book (camera, photo library, or image URL) — **done**

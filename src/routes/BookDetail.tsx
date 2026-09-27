@@ -113,7 +113,36 @@ export default function BookDetail({ group }: { group: MyGroup }) {
         </div>
       )}
 
-      {myEntry?.status === 'dnf' && (
+      {myEntry?.status === 'finished' && (
+        <div className="rounded-card bg-surface p-3">
+          {myEntry.is_rereading ? (
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-semibold">🔁 Rereading</span>
+              <button
+                onClick={() => upsert.mutate({ is_rereading: false })}
+                className="min-h-9 rounded-full border border-border px-3 py-2 text-xs font-medium leading-tight"
+              >
+                Finish reread
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() =>
+                upsert.mutate({
+                  is_rereading: true,
+                  current_chapter_id: null,
+                  spoil_me: false,
+                })
+              }
+              className="min-h-9 w-full rounded-full border border-border px-3 py-2 text-xs font-medium leading-tight"
+            >
+              🔁 Start a reread
+            </button>
+          )}
+        </div>
+      )}
+
+      {(myEntry?.status === 'dnf' || myEntry?.is_rereading) && (
         <label className="flex min-h-11 items-center gap-2 py-2 text-sm">
           <input
             type="checkbox"
@@ -121,7 +150,9 @@ export default function BookDetail({ group }: { group: MyGroup }) {
             onChange={(e) => upsert.mutate({ spoil_me: e.target.checked })}
             className="size-5"
           />
-          Spoil me — unlock full access anyway
+          {myEntry.is_rereading
+            ? 'View full thread anyway — see comments ahead of your reread position'
+            : 'Spoil me — unlock full access anyway'}
         </label>
       )}
 
@@ -140,7 +171,7 @@ export default function BookDetail({ group }: { group: MyGroup }) {
               >
                 <span>{entry.profiles?.display_name ?? 'Someone'}</span>
                 <span className="text-muted">
-                  {SHELF_STATUS_LABELS[entry.status as ShelfStatus]}
+                  {entry.is_rereading ? '🔁 Rereading' : SHELF_STATUS_LABELS[entry.status as ShelfStatus]}
                   {pos ? ` · Ch. ${pos}` : ''}
                 </span>
               </li>

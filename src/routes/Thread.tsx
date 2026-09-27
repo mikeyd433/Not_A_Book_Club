@@ -49,8 +49,8 @@ export default function Thread({ group }: { group: MyGroup }) {
   const taggableChapters = useMemo<ChapterOption[]>(() => {
     if (!chapters || !myEntry) return []
     const fullAccess =
-      myEntry.status === 'finished' ||
       myEntry.status === 'read_before_joining' ||
+      (myEntry.status === 'finished' && (!myEntry.is_rereading || myEntry.spoil_me)) ||
       (myEntry.status === 'dnf' && myEntry.spoil_me)
 
     if (fullAccess) return chapters
@@ -98,7 +98,9 @@ export default function Thread({ group }: { group: MyGroup }) {
         <Composer
           chapters={taggableChapters}
           defaultChapterId={myEntry.current_chapter_id}
-          onSubmit={(input) => postComment.mutate(input)}
+          onSubmit={(input) =>
+            postComment.mutate({ ...input, madeDuringReread: myEntry.is_rereading })
+          }
         />
       ) : (
         <p className="rounded-lg bg-surface-alt p-3 text-xs text-muted">
@@ -116,7 +118,12 @@ export default function Thread({ group }: { group: MyGroup }) {
             isAdmin={isAdmin}
             bookId={bookId!}
             onReply={(chapterId, body, parentId) =>
-              postComment.mutate({ chapterId, body, parentId })
+              postComment.mutate({
+                chapterId,
+                body,
+                parentId,
+                madeDuringReread: myEntry.is_rereading,
+              })
             }
           />
         ))}
