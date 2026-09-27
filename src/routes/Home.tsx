@@ -64,7 +64,11 @@ function BookRow({
       to={`/book/${book.id}`}
       className="flex gap-3 rounded-card bg-surface p-3"
     >
-      <CoverThumb book={book} className="w-14 flex-shrink-0" />
+      <CoverThumb
+        book={book}
+        personalCoverPath={entry?.personal_cover?.storage_path}
+        className="w-14 flex-shrink-0"
+      />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold">{book.title}</p>
         <p className="truncate text-xs text-muted">{book.author}</p>

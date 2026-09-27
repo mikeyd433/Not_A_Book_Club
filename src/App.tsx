@@ -4,12 +4,14 @@ import { useMyGroup } from '@/lib/group/useMyGroup'
 import Login from '@/routes/Login'
 import JoinOrCreateGroup from '@/routes/JoinOrCreateGroup'
 import Layout from '@/components/Layout'
+import BookLayout from '@/components/BookLayout'
 import Home from '@/routes/Home'
 import AddBook from '@/routes/AddBook'
 import BookDetail from '@/routes/BookDetail'
 import ChaptersEditor from '@/routes/ChaptersEditor'
 import Thread from '@/routes/Thread'
 import Settings from '@/routes/Settings'
+import CoverGallery from '@/routes/CoverGallery'
 
 export default function App() {
   const { user, loading: authLoading } = useAuth()
@@ -36,12 +38,21 @@ export default function App() {
       <Route element={<Layout group={group} />}>
         <Route path="/" element={<Home group={group} />} />
         <Route path="/add-book" element={<AddBook group={group} />} />
-        <Route path="/book/:bookId" element={<BookDetail group={group} />} />
-        <Route
-          path="/book/:bookId/chapters"
-          element={<ChaptersEditor group={group} />}
-        />
-        <Route path="/book/:bookId/thread" element={<Thread group={group} />} />
+        <Route element={<BookLayout />}>
+          <Route path="/book/:bookId" element={<BookDetail group={group} />} />
+          <Route
+            path="/book/:bookId/chapters"
+            element={<ChaptersEditor group={group} />}
+          />
+          <Route
+            path="/book/:bookId/thread"
+            element={<Thread group={group} />}
+          />
+          <Route
+            path="/book/:bookId/covers"
+            element={<CoverGallery group={group} />}
+          />
+        </Route>
         <Route path="/settings" element={<Settings group={group} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

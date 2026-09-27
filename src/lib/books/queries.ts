@@ -159,7 +159,9 @@ export function useMyShelfEntry(bookId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('shelf_entries')
-        .select('*')
+        .select(
+          '*, personal_cover:covers!shelf_entries_personal_cover_id_fkey(storage_path)',
+        )
         .eq('book_id', bookId)
         .eq('user_id', user!.id)
         .maybeSingle()

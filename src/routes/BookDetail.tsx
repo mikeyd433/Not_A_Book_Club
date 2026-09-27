@@ -37,11 +37,22 @@ export default function BookDetail({ group }: { group: MyGroup }) {
   return (
     <div className="space-y-5">
       <div className="flex gap-4">
-        <CoverThumb book={book} className="w-24 flex-shrink-0" />
+        <Link to={`/book/${book.id}/covers`} className="w-24 flex-shrink-0">
+          <CoverThumb
+            book={book}
+            personalCoverPath={myEntry?.personal_cover?.storage_path}
+          />
+        </Link>
         <div className="min-w-0">
           <h1 className="break-words text-lg font-bold">{book.title}</h1>
           <p className="break-words text-sm text-muted">{book.author}</p>
           <div className="mt-2 flex flex-wrap gap-2">
+            <Link
+              to={`/book/${book.id}/covers`}
+              className="min-h-9 rounded-full border border-border px-3 py-2 text-xs leading-tight"
+            >
+              Covers
+            </Link>
             <Link
               to={`/book/${book.id}/chapters`}
               className="min-h-9 rounded-full border border-border px-3 py-2 text-xs leading-tight"

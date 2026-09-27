@@ -8,14 +8,18 @@ type CoverBook = {
 
 export default function CoverThumb({
   book,
+  personalCoverPath,
   className = '',
 }: {
   book: CoverBook
+  personalCoverPath?: string | null
   className?: string
 }) {
-  const src = book.default_cover
-    ? coverPublicUrl(book.default_cover.storage_path)
-    : book.open_library_cover_url
+  const src = personalCoverPath
+    ? coverPublicUrl(personalCoverPath)
+    : book.default_cover
+      ? coverPublicUrl(book.default_cover.storage_path)
+      : book.open_library_cover_url
 
   if (src) {
     return (
