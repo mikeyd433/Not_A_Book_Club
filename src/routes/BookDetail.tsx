@@ -38,19 +38,19 @@ export default function BookDetail({ group }: { group: MyGroup }) {
     <div className="space-y-5">
       <div className="flex gap-4">
         <CoverThumb book={book} className="w-24 flex-shrink-0" />
-        <div>
-          <h1 className="text-lg font-bold">{book.title}</h1>
-          <p className="text-sm text-muted">{book.author}</p>
-          <div className="mt-2 flex gap-2">
+        <div className="min-w-0">
+          <h1 className="break-words text-lg font-bold">{book.title}</h1>
+          <p className="break-words text-sm text-muted">{book.author}</p>
+          <div className="mt-2 flex flex-wrap gap-2">
             <Link
               to={`/book/${book.id}/chapters`}
-              className="rounded-full border border-border px-3 py-1 text-xs"
+              className="min-h-9 rounded-full border border-border px-3 py-2 text-xs leading-tight"
             >
               Chapters ({chapters?.length ?? 0})
             </Link>
             <Link
               to={`/book/${book.id}/thread`}
-              className="rounded-full bg-accent px-3 py-1 text-xs text-accent-contrast"
+              className="min-h-9 rounded-full bg-accent px-3 py-2 text-xs leading-tight text-accent-contrast"
             >
               Discussion
             </Link>
@@ -65,7 +65,7 @@ export default function BookDetail({ group }: { group: MyGroup }) {
             <button
               key={status}
               onClick={() => upsert.mutate({ status })}
-              className={`rounded-full px-3 py-1 text-xs font-medium ${
+              className={`min-h-9 rounded-full px-3 py-2 text-xs font-medium leading-tight ${
                 myEntry?.status === status
                   ? 'bg-accent text-accent-contrast'
                   : 'border border-border text-muted'
@@ -103,11 +103,12 @@ export default function BookDetail({ group }: { group: MyGroup }) {
       )}
 
       {myEntry?.status === 'dnf' && (
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex min-h-11 items-center gap-2 py-2 text-sm">
           <input
             type="checkbox"
             checked={myEntry.spoil_me}
             onChange={(e) => upsert.mutate({ spoil_me: e.target.checked })}
+            className="size-5"
           />
           Spoil me — unlock full access anyway
         </label>

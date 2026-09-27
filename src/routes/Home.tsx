@@ -20,7 +20,10 @@ export default function Home({ group }: { group: MyGroup }) {
     return (
       <div className="rounded-card bg-surface p-6 text-center">
         <p className="text-sm text-muted">No books yet.</p>
-        <Link to="/add-book" className="mt-2 inline-block text-sm text-accent">
+        <Link
+          to="/add-book"
+          className="mt-2 inline-block min-h-11 rounded-lg px-3 py-2 text-sm font-semibold text-accent active:bg-surface-alt"
+        >
           Add your first book
         </Link>
       </div>
@@ -62,9 +65,9 @@ function BookRow({
       className="flex gap-3 rounded-card bg-surface p-3"
     >
       <CoverThumb book={book} className="w-14 flex-shrink-0" />
-      <div className="flex-1">
-        <p className="text-sm font-semibold">{book.title}</p>
-        <p className="text-xs text-muted">{book.author}</p>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold">{book.title}</p>
+        <p className="truncate text-xs text-muted">{book.author}</p>
         <p className="mt-1 text-xs font-medium text-accent">
           {entry ? SHELF_STATUS_LABELS[entry.status as ShelfStatus] : 'Not on your shelf'}
         </p>

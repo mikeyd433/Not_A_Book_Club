@@ -49,12 +49,12 @@ export default function Login() {
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-3 text-base outline-none focus:border-accent"
             />
             <button
               type="submit"
               disabled={status === 'sending'}
-              className="w-full rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-accent-contrast disabled:opacity-60"
+              className="min-h-11 w-full rounded-lg bg-accent px-3 py-3 text-base font-semibold text-accent-contrast disabled:opacity-60"
             >
               {status === 'sending' ? 'Sending link…' : 'Send magic link'}
             </button>

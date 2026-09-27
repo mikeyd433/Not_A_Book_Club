@@ -33,13 +33,13 @@ export default function Settings({ group }: { group: MyGroup }) {
       <div>
         <h1 className="text-lg font-bold">{group.name}</h1>
         <p className="text-sm text-muted">Invite code</p>
-        <div className="mt-1 flex items-center gap-2">
-          <code className="rounded-lg bg-surface-alt px-3 py-2 text-sm font-bold tracking-wide">
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          <code className="min-h-11 rounded-lg bg-surface-alt px-3 py-2 text-sm font-bold leading-7 tracking-wide">
             {group.invite_code}
           </code>
           <button
             onClick={() => navigator.clipboard.writeText(inviteUrl)}
-            className="rounded-lg border border-border px-3 py-2 text-xs"
+            className="min-h-11 rounded-lg border border-border px-3 py-2 text-xs"
           >
             Copy invite link
           </button>
@@ -52,15 +52,17 @@ export default function Settings({ group }: { group: MyGroup }) {
           {members?.map((m) => (
             <li
               key={m.user_id}
-              className="flex items-center justify-between rounded-lg bg-surface px-3 py-2 text-sm"
+              className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-surface px-3 py-2 text-sm"
             >
-              <span>{m.profiles?.display_name ?? 'Someone'}</span>
+              <span className="min-w-0 truncate">
+                {m.profiles?.display_name ?? 'Someone'}
+              </span>
               <span className="flex items-center gap-2">
                 <span className="text-xs text-muted">{m.role}</span>
                 {group.role === 'admin' && m.role !== 'admin' && (
                   <button
                     onClick={() => promote(m.user_id)}
-                    className="rounded-full border border-accent px-2 py-0.5 text-xs text-accent"
+                    className="min-h-9 rounded-full border border-accent px-3 py-1.5 text-xs text-accent"
                   >
                     Make admin
                   </button>

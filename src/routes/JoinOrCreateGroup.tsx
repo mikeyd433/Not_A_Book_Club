@@ -64,12 +64,12 @@ export default function JoinOrCreateGroup() {
               placeholder="Invite code"
               value={inviteCode}
               onChange={(e) => setInviteCode(e.target.value)}
-              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm uppercase outline-none focus:border-accent"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-3 text-base uppercase outline-none focus:border-accent"
             />
             <button
               type="submit"
               disabled={busy}
-              className="w-full rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-accent-contrast disabled:opacity-60"
+              className="min-h-11 w-full rounded-lg bg-accent px-3 py-3 text-base font-semibold text-accent-contrast disabled:opacity-60"
             >
               Join with code
             </button>
@@ -87,12 +87,12 @@ export default function JoinOrCreateGroup() {
               placeholder="Group name"
               value={groupName}
               onChange={(e) => setGroupName(e.target.value)}
-              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-3 text-base outline-none focus:border-accent"
             />
             <button
               type="submit"
               disabled={busy}
-              className="w-full rounded-lg border border-accent px-3 py-2 text-sm font-semibold text-accent disabled:opacity-60"
+              className="min-h-11 w-full rounded-lg border border-accent px-3 py-3 text-base font-semibold text-accent disabled:opacity-60"
             >
               Create group
             </button>

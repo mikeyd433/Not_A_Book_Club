@@ -67,7 +67,7 @@ export default function Thread({ group: _group }: { group: MyGroup }) {
           onChange={(e) =>
             upsertShelf.mutate({ sort_pref: e.target.value as SortPref })
           }
-          className="rounded-lg border border-border bg-surface px-2 py-1 text-xs"
+          className="min-h-11 rounded-lg border border-border bg-surface px-2 py-2 text-base"
         >
           {Object.entries(SORT_LABELS).map(([value, label]) => (
             <option key={value} value={value}>
@@ -189,10 +189,12 @@ function CommentNode({
             )}
           </span>
         </div>
-        <p className="mt-1 text-sm">{comment.body}</p>
+        <p className="mt-1 whitespace-pre-wrap break-words text-sm">
+          {comment.body}
+        </p>
         <button
           onClick={() => setReplying((r) => !r)}
-          className="mt-1 text-xs text-accent"
+          className="-ml-2 min-h-9 rounded-md px-2 py-1.5 text-xs text-accent active:bg-surface-alt"
         >
           Reply
         </button>
@@ -256,7 +258,7 @@ function Composer({
         <select
           value={chapterId}
           onChange={(e) => setChapterId(e.target.value)}
-          className="rounded-lg border border-border bg-surface px-2 py-1 text-xs"
+          className="min-h-11 rounded-lg border border-border bg-surface px-2 py-2 text-base"
         >
           {chapters.map((c) => (
             <option key={c.id} value={c.id}>
@@ -269,12 +271,12 @@ function Composer({
         value={body}
         onChange={(e) => setBody(e.target.value)}
         placeholder="Share a thought…"
-        className="mt-2 w-full rounded-lg border border-border p-2 text-sm"
+        className="mt-2 w-full rounded-lg border border-border p-2 text-base"
         rows={compact ? 2 : 3}
       />
       <button
         onClick={handleSubmit}
-        className="mt-1 rounded-lg bg-accent px-3 py-1 text-xs font-semibold text-accent-contrast"
+        className="mt-1 min-h-10 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-contrast"
       >
         Post
       </button>

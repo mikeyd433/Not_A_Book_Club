@@ -3,17 +3,17 @@ import type { MyGroup } from '@/lib/group/useMyGroup'
 
 export default function Layout({ group }: { group: MyGroup }) {
   return (
-    <div className="min-h-screen bg-bg pb-20">
-      <header className="flex items-center justify-between border-b border-border bg-surface px-4 py-3">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-muted">
+    <div className="min-h-screen bg-bg pb-24">
+      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-surface px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+        <div className="min-w-0">
+          <p className="truncate text-xs uppercase tracking-wide text-muted">
             {group.name}
           </p>
           <p className="text-lg font-bold text-accent">Not A Book Club</p>
         </div>
         <NavLink
           to="/settings"
-          className="rounded-full border border-border px-3 py-1 text-sm"
+          className="flex min-h-11 min-w-11 flex-shrink-0 items-center justify-center rounded-full border border-border text-lg"
         >
           ⚙️
         </NavLink>
@@ -23,7 +23,7 @@ export default function Layout({ group }: { group: MyGroup }) {
         <Outlet />
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 flex border-t border-border bg-surface">
+      <nav className="fixed inset-x-0 bottom-0 z-10 flex border-t border-border bg-surface pb-[env(safe-area-inset-bottom)]">
         <NavTab to="/" label="Home" />
         <NavTab to="/add-book" label="Add Book" />
       </nav>
@@ -37,7 +37,7 @@ function NavTab({ to, label }: { to: string; label: string }) {
       to={to}
       end
       className={({ isActive }) =>
-        `flex-1 py-3 text-center text-sm font-medium ${
+        `min-h-12 flex-1 py-3 text-center text-sm font-medium ${
           isActive ? 'text-accent' : 'text-muted'
         }`
       }

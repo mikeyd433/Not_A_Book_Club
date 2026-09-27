@@ -113,23 +113,33 @@ export default function ChaptersEditor({ group: _group }: { group: MyGroup }) {
         {chapters?.map((chapter) => (
           <li
             key={chapter.id}
-            className="flex items-center justify-between rounded-lg bg-surface px-3 py-2"
+            className="flex flex-col gap-1 rounded-lg bg-surface px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
           >
-            <div>
+            <div className="min-w-0">
               {chapter.part_label && (
-                <p className="text-xs uppercase text-muted">{chapter.part_label}</p>
+                <p className="truncate text-xs uppercase text-muted">
+                  {chapter.part_label}
+                </p>
               )}
-              <p className="text-sm">{chapter.label}</p>
+              <p className="truncate text-sm">{chapter.label}</p>
             </div>
             {canEdit && (
-              <div className="flex gap-2 text-xs text-muted">
-                <button onClick={() => handleInsertBefore(chapter)}>
+              <div className="-mx-2 flex flex-wrap text-xs text-muted">
+                <button
+                  onClick={() => handleInsertBefore(chapter)}
+                  className="min-h-9 rounded-md px-2 py-1.5 active:bg-surface-alt"
+                >
                   Insert before
                 </button>
-                <button onClick={() => handleRename(chapter)}>Rename</button>
+                <button
+                  onClick={() => handleRename(chapter)}
+                  className="min-h-9 rounded-md px-2 py-1.5 active:bg-surface-alt"
+                >
+                  Rename
+                </button>
                 <button
                   onClick={() => handleDelete(chapter)}
-                  className="text-red-600"
+                  className="min-h-9 rounded-md px-2 py-1.5 text-red-600 active:bg-surface-alt"
                 >
                   Remove
                 </button>
@@ -143,17 +153,17 @@ export default function ChaptersEditor({ group: _group }: { group: MyGroup }) {
         <>
           <div className="rounded-card bg-surface p-3">
             <p className="text-sm font-semibold">Quick fill</p>
-            <div className="mt-2 flex gap-2">
+            <div className="mt-2 flex flex-wrap gap-2">
               <input
                 type="number"
                 min={1}
                 value={quickFillCount}
                 onChange={(e) => setQuickFillCount(Number(e.target.value))}
-                className="w-20 rounded-lg border border-border px-2 py-1 text-sm"
+                className="min-h-11 w-20 rounded-lg border border-border px-2 py-2 text-base"
               />
               <button
                 onClick={handleQuickFill}
-                className="rounded-lg bg-accent px-3 py-1 text-sm font-semibold text-accent-contrast"
+                className="min-h-11 flex-1 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-accent-contrast"
               >
                 Add {quickFillCount} chapters
               </button>
@@ -166,11 +176,11 @@ export default function ChaptersEditor({ group: _group }: { group: MyGroup }) {
               value={bulkText}
               onChange={(e) => setBulkText(e.target.value)}
               placeholder={'One chapter label per line, e.g.\nPrologue\nChapter 1\nChapter 2'}
-              className="mt-2 h-28 w-full rounded-lg border border-border p-2 text-sm"
+              className="mt-2 h-28 w-full rounded-lg border border-border p-2 text-base"
             />
             <button
               onClick={handleBulkPaste}
-              className="mt-2 rounded-lg bg-accent px-3 py-1 text-sm font-semibold text-accent-contrast"
+              className="mt-2 min-h-11 w-full rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-accent-contrast"
             >
               Append pasted chapters
             </button>
@@ -180,7 +190,7 @@ export default function ChaptersEditor({ group: _group }: { group: MyGroup }) {
 
       <button
         onClick={() => setShowHistory((s) => !s)}
-        className="text-xs text-muted underline"
+        className="min-h-9 text-xs text-muted underline"
       >
         {showHistory ? 'Hide' : 'Show'} edit history
       </button>
@@ -268,7 +278,7 @@ function ChapterEditHistory({
           {canEdit && (
             <button
               onClick={() => revert(edit.snapshot as unknown as Chapter[])}
-              className="mt-1 text-accent underline"
+              className="-mx-2 mt-1 inline-block min-h-9 rounded-md px-2 py-1.5 text-accent underline active:bg-surface"
             >
               Revert to this version
             </button>

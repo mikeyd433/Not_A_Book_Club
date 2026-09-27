@@ -13,7 +13,22 @@
   --color-accent-contrast: #ffffff;
 }
 
+html {
+  /* Prevent iOS Safari from auto-zooming the page on input focus and from
+     bouncing the whole page horizontally if something briefly overflows. */
+  -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
+}
+
 body {
   background-color: var(--color-bg);
   color: var(--color-text);
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
+}
+
+/* Chrome/Safari scrollbar hiding for the chapter wheel picker; Firefox is
+   handled with the `scrollbar-width: none` utility class at the call site. */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }

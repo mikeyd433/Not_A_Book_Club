@@ -55,8 +55,8 @@ export default function ChapterWheelPicker({
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="h-full snap-y snap-mandatory overflow-y-scroll [scrollbar-width:none]"
-        style={{ paddingBlock: PADDING }}
+        className="no-scrollbar h-full snap-y snap-mandatory overflow-y-scroll [scrollbar-width:none]"
+        style={{ paddingBlock: PADDING, WebkitOverflowScrolling: 'touch' }}
       >
         {items.map((item) => (
           <div
