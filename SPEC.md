@@ -107,6 +107,30 @@ get there.
   member, visible once resolved and unlocked, verdict/body immutability
   enforced by the trigger, insert blocked for a rereader, scoreboard empty
   without full access and populated with it.
+- **Finishing Extras:** a separate `/book/:id/reviews` page (`Reviews.tsx`),
+  new `ratings` table (stars 1-5 + optional review text). One row per
+  "attempt" rather than a column on `shelf_entries`, so a reread can add a
+  fresh rating (`is_reread`) without overwriting the original -- that's the
+  spec's "reread rating history". `is_dnf` mirrors shelf status at rating
+  time so the group average can exclude DNF ratings ("DNF handled
+  separately") without joining back to a `shelf_entries` row whose status
+  keeps changing. No guard trigger here (unlike predictions) -- a personal
+  opinion isn't a competitive/tamper-proof mechanic, so plain owner-scoped
+  update/delete is enough. Both read and write are gated on
+  `has_full_access()` alone (not per-chapter unlock), same reasoning as the
+  prediction scoreboard -- "Reviews, locked until finished" holds on both
+  ends. The chapter reaction heatmap and the prediction scoreboard being
+  visible "after finishing" needed no new RPC: a full-access reader's
+  existing comments/reactions query already returns everything unfiltered
+  (`is_chapter_unlocked()` already resolves true once `has_full_access()`
+  does), so the heatmap is computed client-side from data already fetched
+  for the Discussion page, gated on the same `fullAccess` check used
+  everywhere else on this page. "DNF with Spoil me unlocks all of the
+  above" falls out for free, since `has_full_access()` already includes
+  that case. Verified against the live DB with seeded accounts: a reader
+  without full access is rejected on insert; a full-access reader's own
+  rating is visible to them immediately; a second, still-reading member
+  can't see it until they too reach full access.
 - **Mobile formatting** is a standing cross-cutting requirement (not in the
   original spec, added later): every `<input>`/`<select>`/`<textarea>` is
   16px+ (prevents iOS Safari auto-zoom on focus), every tappable control
@@ -118,8 +142,6 @@ get there.
 ### Not built yet
 
 Roughly in spec order:
-- **Finishing extras** (star ratings + group average, reviews, chapter
-  reaction heatmap, prediction scoreboard).
 - **Achievements** (participation-based, hidden ones, `achievements_earned`
   table).
 - **Push notifications** (per-book mute, quiet hours with batching — the
@@ -284,12 +306,12 @@ Include a `group_id` on all group-scoped tables from day one. The app ships with
 ### Predictions — done
 - 🔮 post type, hidden by default, tamper-proof, self-resolved (✅/❌/🤷), locked verdict, scoreboard after finishing, not available in reread mode — **done**, see the Predictions bullet under Project Status above for the RLS/trigger details. `Predictions.tsx` + `src/lib/predictions/queries.ts`.
 
-### Finishing Extras — mostly not built
-- Star ratings with group average, DNF handled separately, reread rating history — not built
-- Reviews, locked until finished — not built
-- Chapter reaction heatmap, visible only after finishing — not built
+### Finishing Extras — done
+- Star ratings with group average, DNF handled separately, reread rating history — **done**, see the Finishing Extras bullet under Project Status above. `Reviews.tsx` + `src/lib/ratings/queries.ts`.
+- Reviews, locked until finished — **done**, same page; gated on `has_full_access()` for both reading and writing.
+- Chapter reaction heatmap, visible only after finishing — **done**, computed client-side from the existing comments/reactions query, gated on the same full-access check.
 - Prediction scoreboard, visible after finishing — **done**, built as part of Predictions (`prediction_scoreboard()` RPC, gated on `has_full_access()`)
-- DNF with "Spoil me" unlocks all of the above — not built (n/a until the rest of this section exists; already true for the scoreboard, which reuses `has_full_access()`)
+- DNF with "Spoil me" unlocks all of the above — **done**, falls out of reusing `has_full_access()` everywhere in this section
 
 ### Achievements — not built
 - Participation-based, never speed-based; some hidden until earned
@@ -323,6 +345,7 @@ a summary, and migrations are the source of truth if it ever drifts.
 | `reactions` | (comment_id, user_id, emoji) composite PK |
 | `spoiler_blocks` | (comment_id, ordinal) unique; own chapter tag per block |
 | `predictions` | `verdict` null until self-resolved; `resolved_at` set by the guard trigger, not the client |
+| `ratings` | one row per rating "attempt" (not a `shelf_entries` column), so a reread can add a new one and keep history; `is_dnf`/`is_reread` are point-in-time snapshots taken at rating time |
 
 **Visibility check (implemented as `is_chapter_unlocked()` in
 `0004_shelf_entries.sql`, reused everywhere):**

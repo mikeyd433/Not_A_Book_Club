@@ -407,6 +407,54 @@ export type Database = {
         }
         Relationships: []
       }
+      ratings: {
+        Row: {
+          book_id: string
+          created_at: string
+          id: string
+          is_dnf: boolean
+          is_reread: boolean
+          review: string | null
+          stars: number
+          user_id: string
+        }
+        Insert: {
+          book_id: string
+          created_at?: string
+          id?: string
+          is_dnf?: boolean
+          is_reread?: boolean
+          review?: string | null
+          stars: number
+          user_id: string
+        }
+        Update: {
+          book_id?: string
+          created_at?: string
+          id?: string
+          is_dnf?: boolean
+          is_reread?: boolean
+          review?: string | null
+          stars?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ratings_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ratings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reactions: {
         Row: {
           comment_id: string
