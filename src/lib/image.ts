@@ -134,6 +134,35 @@ export async function computeAccentColor(
   return { accent, contrast: contrastForHex(accent) }
 }
 
+// Downscales a photo attachment to a reasonable upload size, preserving
+// aspect ratio (unlike the cover pipeline above, there's no fixed frame to
+// crop to — a comment photo is just a photo).
+export async function resizeForUpload(
+  file: File,
+  maxDim = 1600,
+  quality = 0.85,
+): Promise<Blob> {
+  const dataUrl = await fileToDataUrl(file)
+  const image = await loadImage(dataUrl)
+  const scale = Math.min(1, maxDim / Math.max(image.width, image.height))
+  const width = Math.round(image.width * scale)
+  const height = Math.round(image.height * scale)
+
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')!
+  ctx.drawImage(image, 0, 0, width, height)
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error('Export failed.'))),
+      'image/jpeg',
+      quality,
+    )
+  })
+}
+
 // A readable text color for a given background hex, computed from the hex
 // alone — used to theme a book's pages from its stored accent_color without
 // re-fetching the cover image.

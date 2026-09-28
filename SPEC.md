@@ -253,9 +253,14 @@ get there.
 
 ### Not built yet
 
-Roughly in spec order:
-- Photo/GIF attachments on comments (only text + inline spoiler blocks
-  exist; the spec's "Content: text, photos, and GIFs" is partially done).
+- **GIFs on comments** — deferred, needs a third-party API key (Giphy/Tenor)
+  that isn't part of this project's stack. Photo attachments are done (see
+  Project Status below); this is what's left of the spec's "Content: text,
+  photos, and GIFs".
+
+Everything else in the original spec below is built. This section is the
+one to check first in a new session — if it's short, most of the app is
+done.
 
 ### A real Postgres/RLS gotcha worth knowing before touching comment moderation
 
@@ -392,7 +397,7 @@ Include a `group_id` on all group-scoped tables from day one. The app ships with
 - One thread per book — **done**
 - Every comment tagged to a chosen chapter, capped at the poster's own position — **done**
 - Replies default to parent's chapter, retaggable to later (locks separately) — **done**
-- Content: text — **done**; photos and GIFs — **not built**
+- Content: text — **done**; photos — **done** (see Project Status above); GIFs — **not built** (deferred, needs a third-party API key)
 - Sort options (chapter/newest/recently-unlocked/most-reactions), remembered per user per book — **done**, except "most reactions" isn't in the UI yet (schema-ready, `sort_pref` check constraint already allows it)
 - Non-chapter sorts show a small chapter tag instead of headers — **done**
 - Replies stay nested under their parent in every sort — **done**
@@ -422,7 +427,7 @@ Include a `group_id` on all group-scoped tables from day one. The app ships with
 - Shown on profiles and announced in the feed, book-specific details hidden until the viewer has finished that book — **done as a `/achievements` page** (not per-profile and not a general activity feed, neither of which exist elsewhere in the app yet) showing your own catalog progress plus a group-wide "recently earned" list; book details masked via `achievements_feed()`
 - `achievements_earned` table; computed by triggers or a daily job — **done** via triggers (`0020_achievements.sql`, `0021` fixes a bookworm-threshold bug in the shelf trigger)
 
-### Style — partially done
+### Style — done
 - Playful and colorful — **done** (Tailwind theme, accent colors)
 - Per-book accent colors pulled from covers — **done**
 - A chunky, satisfying wheel picker — **done**
@@ -438,6 +443,29 @@ Include a `group_id` on all group-scoped tables from day one. The app ships with
   this has something to diff against promptly, rather than needing every
   achievement-triggering mutation (post a comment/rating/prediction,
   finish a book, ...) to remember to invalidate it.
+- **Photo attachments on comments** (`0025_comment_attachments.sql`, new
+  `comment_attachments` table + a `comment-attachments` storage bucket).
+  Unlike covers -- a public bucket, since book art isn't a spoiler -- an
+  attached photo is exactly as spoiler-sensitive as the comment it's on,
+  so this needed the full `is_chapter_unlocked()` gate all the way down to
+  the storage layer: the bucket is **private**, and `storage.objects` RLS
+  mirrors the table policy by matching the object's path back to its
+  `comment_attachments` row. The client reads via `createSignedUrl()`
+  (`AttachmentImage.tsx`), never `getPublicUrl()`, since a public URL would
+  bypass RLS entirely regardless of what's set on the bucket. Photos are
+  resized client-side before upload (`resizeForUpload()` in `image.ts`, max
+  1600px, no fixed aspect ratio -- unlike the cover crop pipeline, there's
+  no frame to crop to). One photo per comment (composer has a 📷 picker,
+  same flow as inline spoiler blocks: uploaded and inserted right after the
+  comment itself, in the same mutation). GIFs are still deferred -- they
+  need a third-party API key (Giphy/Tenor) that isn't part of this
+  project's stack.
+  Verified against the live DB with seeded accounts, including the storage
+  layer itself (inserting directly into `storage.objects`, which exercises
+  the same RLS the real Storage API enforces): a reader who hasn't unlocked
+  the chapter sees neither the `comment_attachments` row nor the
+  `storage.objects` row for a photo on it; both become visible once they
+  unlock it; a user can't attach a photo to someone else's comment.
 
 ---
 
@@ -459,6 +487,7 @@ a summary, and migrations are the source of truth if it ever drifts.
 | `comments` | `parent_id` self-reference, `flagged`, `no_spoilers`, `made_during_reread` |
 | `reactions` | (comment_id, user_id, emoji) composite PK |
 | `spoiler_blocks` | (comment_id, ordinal) unique; own chapter tag per block |
+| `comment_attachments` | denormalized `book_id`/`chapter_id` like `spoiler_blocks`; `storage_path` points into the private `comment-attachments` bucket, whose `storage.objects` RLS mirrors this table's |
 | `predictions` | `verdict` null until self-resolved; `resolved_at` set by the guard trigger, not the client |
 | `ratings` | one row per rating "attempt" (not a `shelf_entries` column), so a reread can add a new one and keep history; `is_dnf`/`is_reread` are point-in-time snapshots taken at rating time |
 | `achievements` | static catalog (key/name/description/hidden); `hidden` is a client-side rendering hint only |

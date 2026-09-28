@@ -12,6 +12,7 @@ import {
   type PendingSpoilerBlock,
 } from '@/lib/comments/queries'
 import { useAuth } from '@/lib/auth/AuthProvider'
+import AttachmentImage from '@/components/AttachmentImage'
 import type { MyGroup } from '@/lib/group/useMyGroup'
 import type { SortPref } from '@/types/domain'
 import type { Tables } from '@/types/database'
@@ -23,6 +24,7 @@ type Comment = Tables<'comments'> & {
   chapters: { label: string; position: number } | null
   reactions: { user_id: string; emoji: string }[]
   spoiler_blocks: { id: string; ordinal: number; content: string }[]
+  comment_attachments: { id: string; storage_path: string }[]
 }
 
 const SORT_LABELS: Record<Exclude<SortPref, 'most_reactions'>, string> = {
@@ -117,11 +119,12 @@ export default function Thread({ group }: { group: MyGroup }) {
             taggableChapters={taggableChapters}
             isAdmin={isAdmin}
             bookId={bookId!}
-            onReply={(chapterId, body, parentId) =>
+            onReply={(chapterId, body, parentId, photo) =>
               postComment.mutate({
                 chapterId,
                 body,
                 parentId,
+                photo,
                 madeDuringReread: myEntry.is_rereading,
               })
             }
@@ -240,7 +243,7 @@ function CommentNode({
   taggableChapters: ChapterOption[]
   isAdmin: boolean
   bookId: string
-  onReply: (chapterId: string, body: string, parentId: string) => void
+  onReply: (chapterId: string, body: string, parentId: string, photo?: File | null) => void
   depth?: number
 }) {
   const { user } = useAuth()
@@ -349,6 +352,10 @@ function CommentNode({
           {renderBody(comment.body, comment.spoiler_blocks)}
         </p>
 
+        {comment.comment_attachments.map((a) => (
+          <AttachmentImage key={a.id} path={a.storage_path} />
+        ))}
+
         <div className="mt-2 flex flex-wrap items-center gap-1">
           {reactionCounts.map(({ emoji, count, mine }) => (
             <button
@@ -405,7 +412,7 @@ function CommentNode({
               chapters={replyChapters}
               defaultChapterId={comment.chapter_id}
               onSubmit={(input) => {
-                onReply(input.chapterId, input.body, comment.id)
+                onReply(input.chapterId, input.body, comment.id, input.photo)
                 setReplying(false)
               }}
               compact
@@ -438,6 +445,7 @@ type ComposerSubmit = {
   body: string
   noSpoilers?: boolean
   spoilerBlocks?: PendingSpoilerBlock[]
+  photo?: File | null
 }
 
 function Composer({
@@ -460,6 +468,8 @@ function Composer({
   const [addingSpoiler, setAddingSpoiler] = useState(false)
   const [spoilerChapterId, setSpoilerChapterId] = useState(chapterId)
   const [spoilerText, setSpoilerText] = useState('')
+  const [photo, setPhoto] = useState<File | null>(null)
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null)
 
   function handleInsertSpoiler() {
     if (!spoilerText.trim()) return
@@ -475,10 +485,19 @@ function Composer({
 
   function handleSubmit() {
     if (!body.trim() || !chapterId) return
-    onSubmit({ chapterId, body: body.trim(), noSpoilers, spoilerBlocks })
+    onSubmit({ chapterId, body: body.trim(), noSpoilers, spoilerBlocks, photo })
     setBody('')
     setNoSpoilers(false)
     setSpoilerBlocks([])
+    setPhoto(null)
+    if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl)
+    setPhotoPreviewUrl(null)
+  }
+
+  function handlePhotoChange(file: File | null) {
+    if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl)
+    setPhoto(file)
+    setPhotoPreviewUrl(file ? URL.createObjectURL(file) : null)
   }
 
   return (
@@ -545,6 +564,18 @@ function Composer({
         </div>
       )}
 
+      {photoPreviewUrl && (
+        <div className="relative mt-2 inline-block">
+          <img src={photoPreviewUrl} alt="" className="max-h-40 rounded-lg" />
+          <button
+            onClick={() => handlePhotoChange(null)}
+            className="absolute right-1 top-1 flex size-7 items-center justify-center rounded-full bg-black/60 text-xs text-white"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
         <label className="flex min-h-9 items-center gap-1.5 text-xs text-muted">
           <input
@@ -555,12 +586,23 @@ function Composer({
           />
           ❓ No spoilers please
         </label>
-        <button
-          onClick={() => setAddingSpoiler((a) => !a)}
-          className="min-h-9 rounded-md px-2 py-1.5 text-xs text-accent"
-        >
-          🙈 Insert spoiler
-        </button>
+        <div className="flex items-center gap-2">
+          <label className="min-h-9 cursor-pointer rounded-md px-2 py-1.5 text-xs text-accent">
+            📷 Photo
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => handlePhotoChange(e.target.files?.[0] ?? null)}
+              className="hidden"
+            />
+          </label>
+          <button
+            onClick={() => setAddingSpoiler((a) => !a)}
+            className="min-h-9 rounded-md px-2 py-1.5 text-xs text-accent"
+          >
+            🙈 Insert spoiler
+          </button>
+        </div>
       </div>
 
       <button

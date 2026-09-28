@@ -217,6 +217,55 @@ export type Database = {
           },
         ]
       }
+      comment_attachments: {
+        Row: {
+          book_id: string
+          chapter_id: string
+          comment_id: string
+          created_at: string
+          id: string
+          storage_path: string
+        }
+        Insert: {
+          book_id: string
+          chapter_id: string
+          comment_id: string
+          created_at?: string
+          id?: string
+          storage_path: string
+        }
+        Update: {
+          book_id?: string
+          chapter_id?: string
+          comment_id?: string
+          created_at?: string
+          id?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_attachments_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_attachments_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_attachments_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           body: string

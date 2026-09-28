@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth/AuthProvider'
+import { resizeForUpload } from '@/lib/image'
 
 export function useComments(bookId: string) {
   return useQuery({
@@ -11,7 +12,7 @@ export function useComments(bookId: string) {
       const { data, error } = await supabase
         .from('comments')
         .select(
-          '*, profiles(display_name), chapters(label, position), reactions(user_id, emoji), spoiler_blocks(id, ordinal, content)',
+          '*, profiles(display_name), chapters(label, position), reactions(user_id, emoji), spoiler_blocks(id, ordinal, content), comment_attachments(id, storage_path)',
         )
         .eq('book_id', bookId)
         .order('created_at', { ascending: true })
@@ -53,6 +54,7 @@ export function usePostComment(bookId: string) {
       noSpoilers?: boolean
       spoilerBlocks?: PendingSpoilerBlock[]
       madeDuringReread?: boolean
+      photo?: File | null
     }) => {
       if (!user) throw new Error('Not signed in')
 
@@ -85,6 +87,26 @@ export function usePostComment(bookId: string) {
             })),
           )
         if (blocksError) throw blocksError
+      }
+
+      if (input.photo) {
+        const resized = await resizeForUpload(input.photo)
+        const path = `${comment.id}/${crypto.randomUUID()}.jpg`
+
+        const { error: uploadError } = await supabase.storage
+          .from('comment-attachments')
+          .upload(path, resized, { contentType: 'image/jpeg' })
+        if (uploadError) throw uploadError
+
+        const { error: attachError } = await supabase
+          .from('comment_attachments')
+          .insert({
+            comment_id: comment.id,
+            book_id: bookId,
+            chapter_id: input.chapterId,
+            storage_path: path,
+          })
+        if (attachError) throw attachError
       }
 
       return comment
