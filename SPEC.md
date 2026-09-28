@@ -131,6 +131,45 @@ get there.
   without full access is rejected on insert; a full-access reader's own
   rating is visible to them immediately; a second, still-reading member
   can't see it until they too reach full access.
+- **Achievements:** a top-level `/achievements` page (`Achievements.tsx`,
+  a new bottom-nav tab, not nested under `/book/:id/*` since it isn't
+  book-scoped), new `achievements`/`achievements_earned` tables
+  (`0020_achievements.sql`, fixed in `0021` -- see below). Ten
+  participation-based achievements, deliberately none "first in the group
+  to X" (never speed-based, per spec): seven visible ones for a first
+  shelf add/finish/comment/prediction/rating/reread and for creating the
+  group, plus three hidden cumulative ones (5 books finished, 25 comments,
+  5 correct predictions) whose name/description show as "???" client-side
+  until earned. Every award happens via a `SECURITY DEFINER` trigger on
+  the table that already tracks the underlying activity (shelf_entries,
+  comments, predictions, ratings, groups) -- same
+  `handle_new_user()`-provisions-a-profile pattern as signup, not a daily
+  job, since the triggering row already exists. `achievements_earned` has
+  RLS enabled with **no policies at all**: it's unreachable directly via
+  PostgREST for any client role, and both every write (the triggers) and
+  every read (`achievements_feed()`) go through `SECURITY DEFINER`
+  functions instead. The read side is why: "book-specific details hidden
+  until the viewer has finished that book" needs to null out `book_id`/
+  `book_title` per viewer per row, which is a column-level mask RLS can't
+  express (RLS filters whole rows) -- and it can't be done by resolving
+  the title through the normal books query either, since book titles
+  aren't spoiler-gated at all (any group member can read any book's title
+  regardless of their own progress, see `0002`), so that path would leak
+  exactly the detail meant to be hidden. `achievements_feed()` does the
+  masking itself with a `case` on `has_full_access()`.
+  **A real bug caught here, worth knowing:** 0020's shelf-achievement
+  trigger only checked the "just became finished" condition (and so the
+  5-book `bookworm` threshold) inside its `UPDATE` branch, on the
+  assumption a shelf entry always starts as something else and transitions
+  to `finished` later. But `BookDetail.tsx`'s shelf-status buttons let the
+  very first status pick for a book be Finished directly (e.g. logging a
+  book read before this feature existed) -- an `INSERT`, not an `UPDATE`
+  -- so a reader who reached 5 finishes partly or wholly that way would
+  silently never unlock `bookworm`. Fixed in `0021` by checking "just
+  finished" the same way regardless of `tg_op`. Caught with the same
+  seeded-account method as everything else here, by literally reaching
+  the threshold and finding the achievement missing -- not by reading the
+  trigger and reasoning about it.
 - **Mobile formatting** is a standing cross-cutting requirement (not in the
   original spec, added later): every `<input>`/`<select>`/`<textarea>` is
   16px+ (prevents iOS Safari auto-zoom on focus), every tappable control
@@ -142,8 +181,6 @@ get there.
 ### Not built yet
 
 Roughly in spec order:
-- **Achievements** (participation-based, hidden ones, `achievements_earned`
-  table).
 - **Push notifications** (per-book mute, quiet hours with batching — the
   onboarding flow's "allow notifications" step, and `group_members.
   notification_prefs`, are schema-ready but nothing sends anything yet;
@@ -313,10 +350,10 @@ Include a `group_id` on all group-scoped tables from day one. The app ships with
 - Prediction scoreboard, visible after finishing — **done**, built as part of Predictions (`prediction_scoreboard()` RPC, gated on `has_full_access()`)
 - DNF with "Spoil me" unlocks all of the above — **done**, falls out of reusing `has_full_access()` everywhere in this section
 
-### Achievements — not built
-- Participation-based, never speed-based; some hidden until earned
-- Shown on profiles and announced in the feed, book-specific details hidden until the viewer has finished that book
-- `achievements_earned` table; computed by triggers or a daily job
+### Achievements — done
+- Participation-based, never speed-based; some hidden until earned — **done**, ten achievements, see the Achievements bullet under Project Status above
+- Shown on profiles and announced in the feed, book-specific details hidden until the viewer has finished that book — **done as a `/achievements` page** (not per-profile and not a general activity feed, neither of which exist elsewhere in the app yet) showing your own catalog progress plus a group-wide "recently earned" list; book details masked via `achievements_feed()`
+- `achievements_earned` table; computed by triggers or a daily job — **done** via triggers (`0020_achievements.sql`, `0021` fixes a bookworm-threshold bug in the shelf trigger)
 
 ### Style — partially done
 - Playful and colorful — **done** (Tailwind theme, accent colors)
@@ -346,6 +383,8 @@ a summary, and migrations are the source of truth if it ever drifts.
 | `spoiler_blocks` | (comment_id, ordinal) unique; own chapter tag per block |
 | `predictions` | `verdict` null until self-resolved; `resolved_at` set by the guard trigger, not the client |
 | `ratings` | one row per rating "attempt" (not a `shelf_entries` column), so a reread can add a new one and keep history; `is_dnf`/`is_reread` are point-in-time snapshots taken at rating time |
+| `achievements` | static catalog (key/name/description/hidden); `hidden` is a client-side rendering hint only |
+| `achievements_earned` | RLS enabled, **no policies** -- unreachable directly via PostgREST; every write is a `SECURITY DEFINER` trigger, every read goes through `achievements_feed()` |
 
 **Visibility check (implemented as `is_chapter_unlocked()` in
 `0004_shelf_entries.sql`, reused everywhere):**

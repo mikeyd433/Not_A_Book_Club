@@ -6,6 +6,7 @@ import JoinOrCreateGroup from '@/routes/JoinOrCreateGroup'
 import Layout from '@/components/Layout'
 import BookLayout from '@/components/BookLayout'
 import Home from '@/routes/Home'
+import Achievements from '@/routes/Achievements'
 import AddBook from '@/routes/AddBook'
 import BookDetail from '@/routes/BookDetail'
 import ChaptersEditor from '@/routes/ChaptersEditor'
@@ -39,6 +40,7 @@ export default function App() {
     <Routes>
       <Route element={<Layout group={group} />}>
         <Route path="/" element={<Home group={group} />} />
+        <Route path="/achievements" element={<Achievements />} />
         <Route path="/add-book" element={<AddBook group={group} />} />
         <Route element={<BookLayout />}>
           <Route path="/book/:bookId" element={<BookDetail group={group} />} />

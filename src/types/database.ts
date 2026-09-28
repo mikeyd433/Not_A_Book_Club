@@ -15,6 +15,73 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          description: string
+          hidden: boolean
+          key: string
+          name: string
+        }
+        Insert: {
+          description: string
+          hidden?: boolean
+          key: string
+          name: string
+        }
+        Update: {
+          description?: string
+          hidden?: boolean
+          key?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      achievements_earned: {
+        Row: {
+          achievement_key: string
+          book_id: string | null
+          earned_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          achievement_key: string
+          book_id?: string | null
+          earned_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          achievement_key?: string
+          book_id?: string | null
+          earned_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "achievements_earned_achievement_key_fkey"
+            columns: ["achievement_key"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "achievements_earned_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "achievements_earned_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       books: {
         Row: {
           accent_color: string | null
@@ -628,6 +695,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      achievements_feed: {
+        Args: never
+        Returns: {
+          achievement_key: string
+          book_id: string | null
+          book_title: string | null
+          description: string
+          display_name: string
+          earned_at: string
+          hidden: boolean
+          id: string
+          name: string
+          user_id: string
+        }[]
+      }
+      award_achievement: {
+        Args: { p_book_id?: string; p_key: string; p_user_id: string }
+        Returns: undefined
+      }
       create_group: {
         Args: { p_name: string }
         Returns: {

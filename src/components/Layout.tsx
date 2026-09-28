@@ -25,6 +25,7 @@ export default function Layout({ group }: { group: MyGroup }) {
 
       <nav className="fixed inset-x-0 bottom-0 z-10 flex border-t border-border bg-surface pb-[env(safe-area-inset-bottom)]">
         <NavTab to="/" label="Home" />
+        <NavTab to="/achievements" label="🏆 Achievements" />
         <NavTab to="/add-book" label="Add Book" />
       </nav>
     </div>
