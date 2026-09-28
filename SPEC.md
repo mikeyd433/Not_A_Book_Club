@@ -239,6 +239,10 @@ get there.
     is actually built/deployed (already in `.env.example` here, since the
     public key isn't sensitive) -- the deployed Netlify site needs the
     same value for the integration to work at all in production.
+- **Celebrations:** confetti (`canvas-confetti`) on forward reading
+  progress and on newly earned achievements. See the Style section
+  further down for the two trigger points and why the achievement one
+  polls rather than needing per-mutation invalidation.
 - **Mobile formatting** is a standing cross-cutting requirement (not in the
   original spec, added later): every `<input>`/`<select>`/`<textarea>` is
   16px+ (prevents iOS Safari auto-zoom on focus), every tappable control
@@ -250,8 +254,6 @@ get there.
 ### Not built yet
 
 Roughly in spec order:
-- **Style polish:** confetti/celebration moments on unlock/achievement are
-  not implemented.
 - Photo/GIF attachments on comments (only text + inline spoiler blocks
   exist; the spec's "Content: text, photos, and GIFs" is partially done).
 
@@ -424,7 +426,18 @@ Include a `group_id` on all group-scoped tables from day one. The app ships with
 - Playful and colorful — **done** (Tailwind theme, accent colors)
 - Per-book accent colors pulled from covers — **done**
 - A chunky, satisfying wheel picker — **done**
-- Small celebrations (confetti) on unlock/achievement — **not built**
+- Small celebrations (confetti) on unlock/achievement — **done**
+  (`src/lib/celebrate.ts`, a thin `canvas-confetti` wrapper that respects
+  `prefers-reduced-motion`). Fires on forward chapter-position progress in
+  `BookDetail.tsx`'s wheel picker (not on correcting backward), and on a
+  newly earned achievement via `AchievementWatcher.tsx` -- mounted once in
+  `Layout.tsx` so it fires regardless of which screen you're on, diffing
+  `achievements_feed()`'s keys against the previous fetch rather than a
+  fixed list (works for every achievement, including future ones, with no
+  per-achievement code). That feed now polls every 20s specifically so
+  this has something to diff against promptly, rather than needing every
+  achievement-triggering mutation (post a comment/rating/prediction,
+  finish a book, ...) to remember to invalidate it.
 
 ---
 

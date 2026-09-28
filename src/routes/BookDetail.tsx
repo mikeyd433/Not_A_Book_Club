@@ -9,6 +9,7 @@ import {
 } from '@/lib/books/queries'
 import CoverThumb from '@/components/CoverThumb'
 import ChapterWheelPicker from '@/components/ChapterWheelPicker'
+import { celebrate } from '@/lib/celebrate'
 import { SHELF_STATUS_LABELS, type ShelfStatus } from '@/types/domain'
 import type { MyGroup } from '@/lib/group/useMyGroup'
 
@@ -128,9 +129,14 @@ export default function BookDetail({ group }: { group: MyGroup }) {
               <ChapterWheelPicker
                 items={(chapters ?? []).map((c) => ({ id: c.id, label: c.label }))}
                 value={myEntry.current_chapter_id}
-                onChange={(chapterId) =>
+                onChange={(chapterId) => {
+                  const newPosition = chapters?.find((c) => c.id === chapterId)?.position
+                  const oldPosition = currentChapter?.position
+                  if (newPosition !== undefined && (oldPosition === undefined || newPosition > oldPosition)) {
+                    celebrate()
+                  }
                   upsert.mutate({ current_chapter_id: chapterId })
-                }
+                }}
               />
             </div>
           )}
