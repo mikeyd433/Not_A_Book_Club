@@ -22,6 +22,11 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
+        // Pulled into the generated sw.js verbatim (same scope, same file
+        // set) so push/notificationclick handling doesn't require
+        // switching to injectManifest and hand-rewriting the precaching
+        // config above. See public/push-sw.js.
+        importScripts: ['push-sw.js'],
         navigateFallback: `${BASE}index.html`,
         // Never hijack the SW script itself, Supabase auth/api round-trips, or
         // Supabase Storage (cover uploads).

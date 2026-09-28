@@ -398,6 +398,54 @@ export type Database = {
           },
         ]
       }
+      notification_outbox: {
+        Row: {
+          body: string
+          book_id: string | null
+          created_at: string
+          id: string
+          sent_at: string | null
+          title: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          body: string
+          book_id?: string | null
+          created_at?: string
+          id?: string
+          sent_at?: string | null
+          title: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          body?: string
+          book_id?: string | null
+          created_at?: string
+          id?: string
+          sent_at?: string | null
+          title?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_outbox_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_outbox_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       predictions: {
         Row: {
           body: string
@@ -473,6 +521,41 @@ export type Database = {
           id?: string
         }
         Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ratings: {
         Row: {
@@ -724,8 +807,10 @@ export type Database = {
           name: string
         }
       }
+      dispatch_notifications: { Args: never; Returns: undefined }
       flag_comment: { Args: { p_comment_id: string }; Returns: undefined }
       generate_invite_code: { Args: never; Returns: string }
+      get_app_secret: { Args: { p_name: string }; Returns: string }
       has_full_access: {
         Args: { p_book_id: string; p_user_id: string }
         Returns: boolean
@@ -737,6 +822,7 @@ export type Database = {
       is_currently_reading: { Args: { p_book_id: string }; Returns: boolean }
       is_group_admin: { Args: { p_group_id: string }; Returns: boolean }
       is_group_member: { Args: { p_group_id: string }; Returns: boolean }
+      is_quiet_hours: { Args: { p_user_id: string }; Returns: boolean }
       join_group_by_code: {
         Args: { p_invite_code: string }
         Returns: {

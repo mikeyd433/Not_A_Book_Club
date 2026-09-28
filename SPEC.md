@@ -28,7 +28,10 @@ get there.
   unrelated static SPAs (Stroke Off, The Delve, etc.) — none of them run a
   Node server, so Next's SSR/API routes didn't fit. Everything the spec
   needs is doable client-side against Supabase directly.
-- **Backend:** Supabase — Postgres + RLS, Auth (magic link), Storage.
+- **Backend:** Supabase — Postgres + RLS, Auth (magic link), Storage, an
+  Edge Function (`send-push`), Vault (VAPID keys + a dispatch shared
+  secret — see Push Notifications below), and `pg_cron`/`pg_net` for the
+  notification dispatch job.
   - Project ref: `dpflpwoivvpfvainzwgd` (org "The Jackie Chan Fan Club",
     region us-east-1). Get URL/keys with the Supabase MCP tools
     (`get_project_url`, `get_publishable_keys`) or from `.env.example`.
@@ -170,6 +173,72 @@ get there.
   seeded-account method as everything else here, by literally reaching
   the threshold and finding the achievement missing -- not by reading the
   trigger and reasoning about it.
+- **Push notifications:** per-book mute (`shelf_entries.muted` -- the
+  column already existed but was never exposed in the UI; now a toggle on
+  `BookDetail.tsx`) and quiet hours with batching (a `notification_prefs`
+  section in `Settings.tsx`; during quiet hours a notification is left
+  unsent and picked up by a later dispatch run, never dropped). Full
+  pipeline, not a stub:
+  - An `AFTER INSERT` trigger on `comments` (`0022_push_notifications.sql`)
+    enqueues one `notification_outbox` row per eligible recipient --
+    someone `reading`/`paused` that book, not muted, and who already has
+    that chapter unlocked (`is_chapter_unlocked()`) so the notification
+    itself can't be a spoiler signal.
+  - `pg_cron` runs `dispatch_notifications()` every 5 minutes. It skips
+    any user currently in quiet hours (`is_quiet_hours()`, timezone-aware
+    via `notification_prefs.timezone`) -- their rows stay unsent for the
+    next run -- and otherwise batches that user's pending rows into one
+    push and calls the `send-push` edge function via `pg_net`.
+  - VAPID keys and a shared secret live in **Supabase Vault**, not a
+    Postgres/Netlify env var (nothing in this migration process can set an
+    edge function secret directly): `get_app_secret()` reads
+    `vault.decrypted_secrets`, revoked from everyone but `postgres`/
+    `service_role`. The edge function is deployed with `verify_jwt=false`
+    (pg_net is calling it, not a user session) and instead checks the
+    shared secret as a custom header -- the documented escape hatch for
+    disabling JWT verification, since nothing else in this call path could
+    supply a real user/service-role JWT.
+  - `send-push` (`supabase/functions/send-push/index.ts`) does the actual
+    VAPID-signed, encrypted Web Push send via the `web-push` npm package
+    (via Deno's npm compatibility) -- RFC 8291/8292 crypto is deliberately
+    not hand-rolled; a subtly wrong implementation would still return
+    "success" to Postgres while silently never producing a real
+    notification, which is exactly the kind of bug that's hard to notice
+    without a live device.
+  - Client: `src/lib/notifications/push.ts` (permission + subscribe/
+    unsubscribe via `pushManager`), a `Notifications` section in
+    `Settings.tsx`. The generated Workbox service worker gets its push/
+    notificationclick listeners via `workbox.importScripts` pointing at
+    `public/push-sw.js`, rather than switching to `injectManifest` and
+    hand-rewriting the existing precache/runtime-caching config -- verified
+    (`pnpm build` + `pnpm preview` + headless Chromium) that the service
+    worker still registers and activates cleanly with the import in place,
+    with the same precache manifest as before plus the new file.
+  - **A real RLS gap found and fixed along the way**
+    (`0024_group_member_self_update_notification_prefs.sql`):
+    `group_members` had only one UPDATE policy, written for the
+    promote-to-admin action and scoped to admins only -- so a regular
+    member had no way to update their own `notification_prefs` at all.
+    Added a self-update policy, guarded by a trigger (same pattern as
+    `guard_default_cover_change` in `0002`) so a non-admin can't sneak a
+    `role` change through that same path; verified all three cases against
+    the live DB (self-update of prefs succeeds, self-promotion to admin is
+    rejected, the original admin-promotes-someone-else flow still works).
+  - Verified end-to-end against the live DB and the deployed edge function
+    itself: mute and chapter-lock correctly gate who gets enqueued; quiet
+    hours correctly defers a batch and a later run correctly sends it
+    (confirmed via `net._http_response`, since `pg_net` is async); the
+    edge function, called for real (not mocked) via `pg_net`, resolves its
+    npm imports, rejects a wrong shared secret with 401, and returns a
+    clean 200 for a real user with zero subscriptions on file.
+  - **What isn't and can't be verified from here:** an actual browser
+    subscribing and receiving a real push notification on a real device --
+    that requires a live user gesture (notification permission prompt)
+    and a real push service endpoint, neither of which exist in this
+    environment. Also needs `VITE_VAPID_PUBLIC_KEY` set wherever the site
+    is actually built/deployed (already in `.env.example` here, since the
+    public key isn't sensitive) -- the deployed Netlify site needs the
+    same value for the integration to work at all in production.
 - **Mobile formatting** is a standing cross-cutting requirement (not in the
   original spec, added later): every `<input>`/`<select>`/`<textarea>` is
   16px+ (prevents iOS Safari auto-zoom on focus), every tappable control
@@ -181,10 +250,6 @@ get there.
 ### Not built yet
 
 Roughly in spec order:
-- **Push notifications** (per-book mute, quiet hours with batching — the
-  onboarding flow's "allow notifications" step, and `group_members.
-  notification_prefs`, are schema-ready but nothing sends anything yet;
-  needs a Supabase Edge Function + web push).
 - **Style polish:** confetti/celebration moments on unlock/achievement are
   not implemented.
 - Photo/GIF attachments on comments (only text + inline spoiler blocks
@@ -274,11 +339,11 @@ Include a `group_id` on all group-scoped tables from day one. The app ships with
 - One private, invite-only group (invite link or code) — **done**
 - Magic-link login, no passwords — **done**
 - Admin role: the group creator is admin and can promote others — **done**
-- Push notifications, with per-book mute and quiet hours (notifications during quiet hours are batched and delivered afterward, not dropped) — **not built**
+- Push notifications, with per-book mute and quiet hours (notifications during quiet hours are batched and delivered afterward, not dropped) — **done**, see the Push Notifications bullet under Project Status above
 - Onboarding flow:
   1. Open the invite link, then log in with email — **done**
   2. "Add to Home Screen" prompt, with iPhone-specific steps — **not built**
-  3. Allow notifications — **not built**
+  3. Allow notifications — **done, but not as a dedicated onboarding step**: there's no onboarding wizard in this app at all (steps 2 and 5 below aren't a guided flow either), so this lives as an "enable notifications" toggle in `Settings.tsx` instead of a step reached automatically after joining
   4. Add current books and set progress — **done**
   5. Optionally add "read before joining" books — **done** (shelf status exists; no dedicated onboarding step)
   6. Land on the home screen — **done**
@@ -385,6 +450,8 @@ a summary, and migrations are the source of truth if it ever drifts.
 | `ratings` | one row per rating "attempt" (not a `shelf_entries` column), so a reread can add a new one and keep history; `is_dnf`/`is_reread` are point-in-time snapshots taken at rating time |
 | `achievements` | static catalog (key/name/description/hidden); `hidden` is a client-side rendering hint only |
 | `achievements_earned` | RLS enabled, **no policies** -- unreachable directly via PostgREST; every write is a `SECURITY DEFINER` trigger, every read goes through `achievements_feed()` |
+| `push_subscriptions` | one row per browser/device; unique on `endpoint` so re-subscribing upserts cleanly |
+| `notification_outbox` | RLS enabled, **no policies** -- same "internal only" shape as `achievements_earned`; written by the comment-insert trigger, read/updated only by `dispatch_notifications()` |
 
 **Visibility check (implemented as `is_chapter_unlocked()` in
 `0004_shelf_entries.sql`, reused everywhere):**

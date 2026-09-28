@@ -100,6 +100,18 @@ export default function BookDetail({ group }: { group: MyGroup }) {
         </div>
       </div>
 
+      {myEntry && (
+        <label className="flex min-h-11 items-center gap-2 py-2 text-sm">
+          <input
+            type="checkbox"
+            checked={myEntry.muted}
+            onChange={(e) => upsert.mutate({ muted: e.target.checked })}
+            className="size-5"
+          />
+          🔕 Mute notifications for this book
+        </label>
+      )}
+
       {myEntry && (chapters?.length ?? 0) > 0 && (
         <div>
           <button
