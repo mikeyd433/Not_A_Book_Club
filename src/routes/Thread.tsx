@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState, type ReactNode } from 'react'
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
 import { useChapters, useMyShelfEntry, useUpsertShelfEntry } from '@/lib/books/queries'
 import {
@@ -12,6 +12,7 @@ import {
   type PendingSpoilerBlock,
 } from '@/lib/comments/queries'
 import { useAuth } from '@/lib/auth/AuthProvider'
+import { useSearchGifs } from '@/lib/gifs/queries'
 import AttachmentImage from '@/components/AttachmentImage'
 import type { MyGroup } from '@/lib/group/useMyGroup'
 import type { SortPref } from '@/types/domain'
@@ -24,7 +25,7 @@ type Comment = Tables<'comments'> & {
   chapters: { label: string; position: number } | null
   reactions: { user_id: string; emoji: string }[]
   spoiler_blocks: { id: string; ordinal: number; content: string }[]
-  comment_attachments: { id: string; storage_path: string }[]
+  comment_attachments: { id: string; storage_path: string | null; gif_url: string | null }[]
 }
 
 const SORT_LABELS: Record<Exclude<SortPref, 'most_reactions'>, string> = {
@@ -119,12 +120,13 @@ export default function Thread({ group }: { group: MyGroup }) {
             taggableChapters={taggableChapters}
             isAdmin={isAdmin}
             bookId={bookId!}
-            onReply={(chapterId, body, parentId, photo) =>
+            onReply={(chapterId, body, parentId, photo, gifUrl) =>
               postComment.mutate({
                 chapterId,
                 body,
                 parentId,
                 photo,
+                gifUrl,
                 madeDuringReread: myEntry.is_rereading,
               })
             }
@@ -243,7 +245,13 @@ function CommentNode({
   taggableChapters: ChapterOption[]
   isAdmin: boolean
   bookId: string
-  onReply: (chapterId: string, body: string, parentId: string, photo?: File | null) => void
+  onReply: (
+    chapterId: string,
+    body: string,
+    parentId: string,
+    photo?: File | null,
+    gifUrl?: string | null,
+  ) => void
   depth?: number
 }) {
   const { user } = useAuth()
@@ -353,7 +361,7 @@ function CommentNode({
         </p>
 
         {comment.comment_attachments.map((a) => (
-          <AttachmentImage key={a.id} path={a.storage_path} />
+          <AttachmentImage key={a.id} path={a.storage_path} gifUrl={a.gif_url} />
         ))}
 
         <div className="mt-2 flex flex-wrap items-center gap-1">
@@ -412,7 +420,7 @@ function CommentNode({
               chapters={replyChapters}
               defaultChapterId={comment.chapter_id}
               onSubmit={(input) => {
-                onReply(input.chapterId, input.body, comment.id, input.photo)
+                onReply(input.chapterId, input.body, comment.id, input.photo, input.gifUrl)
                 setReplying(false)
               }}
               compact
@@ -446,6 +454,7 @@ type ComposerSubmit = {
   noSpoilers?: boolean
   spoilerBlocks?: PendingSpoilerBlock[]
   photo?: File | null
+  gifUrl?: string | null
 }
 
 function Composer({
@@ -470,6 +479,8 @@ function Composer({
   const [spoilerText, setSpoilerText] = useState('')
   const [photo, setPhoto] = useState<File | null>(null)
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null)
+  const [gifUrl, setGifUrl] = useState<string | null>(null)
+  const [pickingGif, setPickingGif] = useState(false)
 
   function handleInsertSpoiler() {
     if (!spoilerText.trim()) return
@@ -485,19 +496,27 @@ function Composer({
 
   function handleSubmit() {
     if (!body.trim() || !chapterId) return
-    onSubmit({ chapterId, body: body.trim(), noSpoilers, spoilerBlocks, photo })
+    onSubmit({ chapterId, body: body.trim(), noSpoilers, spoilerBlocks, photo, gifUrl })
     setBody('')
     setNoSpoilers(false)
     setSpoilerBlocks([])
     setPhoto(null)
     if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl)
     setPhotoPreviewUrl(null)
+    setGifUrl(null)
   }
 
   function handlePhotoChange(file: File | null) {
     if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl)
     setPhoto(file)
     setPhotoPreviewUrl(file ? URL.createObjectURL(file) : null)
+    if (file) setGifUrl(null) // one attachment per comment
+  }
+
+  function handlePickGif(url: string) {
+    setGifUrl(url)
+    handlePhotoChange(null)
+    setPickingGif(false)
   }
 
   return (
@@ -576,6 +595,22 @@ function Composer({
         </div>
       )}
 
+      {gifUrl && (
+        <div className="relative mt-2 inline-block">
+          <img src={gifUrl} alt="" className="max-h-40 rounded-lg" />
+          <button
+            onClick={() => setGifUrl(null)}
+            className="absolute right-1 top-1 flex size-7 items-center justify-center rounded-full bg-black/60 text-xs text-white"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {pickingGif && (
+        <GifPicker onPick={handlePickGif} onCancel={() => setPickingGif(false)} />
+      )}
+
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
         <label className="flex min-h-9 items-center gap-1.5 text-xs text-muted">
           <input
@@ -597,6 +632,12 @@ function Composer({
             />
           </label>
           <button
+            onClick={() => setPickingGif((p) => !p)}
+            className="min-h-9 rounded-md px-2 py-1.5 text-xs text-accent"
+          >
+            🎬 GIF
+          </button>
+          <button
             onClick={() => setAddingSpoiler((a) => !a)}
             className="min-h-9 rounded-md px-2 py-1.5 text-xs text-accent"
           >
@@ -611,6 +652,70 @@ function Composer({
       >
         Post
       </button>
+    </div>
+  )
+}
+
+function GifPicker({
+  onPick,
+  onCancel,
+}: {
+  onPick: (url: string) => void
+  onCancel: () => void
+}) {
+  const [query, setQuery] = useState('')
+  const [debounced, setDebounced] = useState('')
+
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(query), 400)
+    return () => clearTimeout(id)
+  }, [query])
+
+  const { data: results, isFetching } = useSearchGifs(debounced)
+
+  return (
+    <div className="mt-2 rounded-lg bg-surface-alt p-2">
+      <div className="flex items-center gap-2">
+        <input
+          type="text"
+          autoFocus
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search GIFs…"
+          className="min-h-11 flex-1 rounded-lg border border-border bg-surface px-2 py-2 text-base"
+        />
+        <button
+          onClick={onCancel}
+          className="min-h-9 rounded-md border border-border px-2 py-1.5 text-xs font-semibold"
+        >
+          Cancel
+        </button>
+      </div>
+
+      {isFetching && <p className="mt-2 text-xs text-muted">Searching…</p>}
+
+      {!isFetching && debounced && results?.length === 0 && (
+        <p className="mt-2 text-xs text-muted">No GIFs found.</p>
+      )}
+
+      {results && results.length > 0 && (
+        <div className="mt-2 grid max-h-60 grid-cols-3 gap-1.5 overflow-y-auto">
+          {results.map((g) => (
+            <button
+              key={g.id}
+              onClick={() => onPick(g.fullUrl)}
+              className="overflow-hidden rounded-lg"
+            >
+              <img
+                src={g.previewUrl}
+                alt=""
+                loading="lazy"
+                className="h-20 w-full object-cover"
+              />
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

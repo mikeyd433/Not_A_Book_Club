@@ -253,14 +253,13 @@ get there.
 
 ### Not built yet
 
-- **GIFs on comments** — deferred, needs a third-party API key (Giphy/Tenor)
-  that isn't part of this project's stack. Photo attachments are done (see
-  Project Status below); this is what's left of the spec's "Content: text,
-  photos, and GIFs".
-
-Everything else in the original spec below is built. This section is the
-one to check first in a new session — if it's short, most of the app is
-done.
+Nothing — every item from the original spec is built. See the GIF
+Attachments bullet under Project Status below for the last one (GIFs on
+comments), and the section further down for a couple of small
+already-documented gaps that were never re-opened as "not built" items
+(the "most reactions" sort option in the UI, and comment-editing/history
+niceties under Open Decisions). This section is the one to check first in
+a new session — if it's empty or short, most of the app is done.
 
 ### A real Postgres/RLS gotcha worth knowing before touching comment moderation
 
@@ -397,7 +396,7 @@ Include a `group_id` on all group-scoped tables from day one. The app ships with
 - One thread per book — **done**
 - Every comment tagged to a chosen chapter, capped at the poster's own position — **done**
 - Replies default to parent's chapter, retaggable to later (locks separately) — **done**
-- Content: text — **done**; photos — **done** (see Project Status above); GIFs — **not built** (deferred, needs a third-party API key)
+- Content: text — **done**; photos — **done**; GIFs — **done** (see Project Status above for both)
 - Sort options (chapter/newest/recently-unlocked/most-reactions), remembered per user per book — **done**, except "most reactions" isn't in the UI yet (schema-ready, `sort_pref` check constraint already allows it)
 - Non-chapter sorts show a small chapter tag instead of headers — **done**
 - Replies stay nested under their parent in every sort — **done**
@@ -457,15 +456,52 @@ Include a `group_id` on all group-scoped tables from day one. The app ships with
   1600px, no fixed aspect ratio -- unlike the cover crop pipeline, there's
   no frame to crop to). One photo per comment (composer has a 📷 picker,
   same flow as inline spoiler blocks: uploaded and inserted right after the
-  comment itself, in the same mutation). GIFs are still deferred -- they
-  need a third-party API key (Giphy/Tenor) that isn't part of this
-  project's stack.
+  comment itself, in the same mutation).
   Verified against the live DB with seeded accounts, including the storage
   layer itself (inserting directly into `storage.objects`, which exercises
   the same RLS the real Storage API enforces): a reader who hasn't unlocked
   the chapter sees neither the `comment_attachments` row nor the
   `storage.objects` row for a photo on it; both become visible once they
   unlock it; a user can't attach a photo to someone else's comment.
+- **GIF attachments on comments** (`0026_gif_attachments.sql`): reuses
+  `comment_attachments` rather than a new table -- a GIF is exactly as
+  spoiler-sensitive as a photo, and the same `is_chapter_unlocked()`-gated
+  RLS already does the right thing regardless of which kind of attachment
+  a row is. `storage_path` is now nullable, a new `gif_url` column holds
+  the Giphy CDN URL directly (no file to upload, no storage bucket
+  involved), and a check constraint enforces exactly one of the two is
+  set. Serving a bare external URL through this row is enough security-wise
+  -- the property that matters is "don't let the client learn this URL
+  before they're authorized," which the existing table RLS already
+  provides; the URL itself doesn't need to stay secret once the row is
+  visible, same reasoning as Open Library cover URLs or the public covers
+  bucket.
+  Search is proxied through a new `search-gifs` edge function so the Giphy
+  API key never reaches the client (the original spec's "Suggested Stack"
+  called this out explicitly). Unlike `send-push`, this one *is* called
+  directly from a browser session, so it keeps the default `verify_jwt`
+  instead of a shared-secret header -- but since `verify_jwt` alone would
+  also accept the bare anon key (itself a validly-signed JWT), the function
+  additionally resolves the token to a real user via `auth.getUser()`,
+  rejecting anonymous callers. The API key itself lives in Vault
+  (`giphy_api_key`), read via the same `get_app_secret()` used for VAPID
+  keys.
+  **Worth knowing:** Giphy's widely-documented public "beta" test key
+  (`dc6zaTOxFJmzC`) turned out to be dead -- confirmed directly against
+  Giphy's API (`{"status":403,"msg":"BANNED"}`), almost certainly from
+  years of being copy-pasted into tutorials. The key actually in Vault now
+  is a real one from the project owner's own Giphy developer account
+  ("Not A Book Club", Web platform, 100 requests/hour on the free tier).
+  Verified for real end-to-end at the network level: `net.http_post`
+  against Giphy's own search endpoint with this key returns real GIF
+  results; the deployed `search-gifs` function was confirmed to reject a
+  request carrying only the anon key (401, proving the `auth.getUser()`
+  check runs, not just gateway-level JWT validation) and to reject one
+  with no `Authorization` header at all. Not verified from here: a real
+  browser session calling the deployed function and getting back live
+  search results end-to-end -- same category of gap as push notifications'
+  "can't subscribe from a real browser," since minting a genuine signed-in
+  session token isn't possible without an actual magic-link login.
 
 ---
 

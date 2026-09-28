@@ -2,22 +2,35 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 
 // comment-attachments is a private bucket (unlike covers) since a photo is
-// exactly as spoiler-sensitive as the comment it's on — so this resolves a
-// signed URL through the same RLS-gated path as any other read, rather
-// than a public getPublicUrl() that would bypass it entirely.
-export default function AttachmentImage({ path }: { path: string }) {
-  const { data: url } = useQuery({
+// exactly as spoiler-sensitive as the comment it's on — so an uploaded
+// photo resolves a signed URL through the same RLS-gated path as any other
+// read, rather than a public getPublicUrl() that would bypass it entirely.
+// A GIF has no such bucket at all — it's hosted on Giphy's CDN, and the
+// row carrying its URL is already gated by the same table RLS, so once a
+// caller is allowed to see the row, the URL itself needs no further
+// gating (same reasoning as Open Library cover URLs or the public covers
+// bucket).
+export default function AttachmentImage({
+  path,
+  gifUrl,
+}: {
+  path?: string | null
+  gifUrl?: string | null
+}) {
+  const { data: signedUrl } = useQuery({
     queryKey: ['attachment-url', path],
+    enabled: Boolean(path),
     queryFn: async () => {
       const { data, error } = await supabase.storage
         .from('comment-attachments')
-        .createSignedUrl(path, 3600)
+        .createSignedUrl(path!, 3600)
       if (error) throw error
       return data.signedUrl
     },
     staleTime: 50 * 60 * 1000,
   })
 
+  const url = gifUrl ?? signedUrl
   if (!url) return null
 
   return (

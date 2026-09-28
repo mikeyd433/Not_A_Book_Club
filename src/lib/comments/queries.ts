@@ -12,7 +12,7 @@ export function useComments(bookId: string) {
       const { data, error } = await supabase
         .from('comments')
         .select(
-          '*, profiles(display_name), chapters(label, position), reactions(user_id, emoji), spoiler_blocks(id, ordinal, content), comment_attachments(id, storage_path)',
+          '*, profiles(display_name), chapters(label, position), reactions(user_id, emoji), spoiler_blocks(id, ordinal, content), comment_attachments(id, storage_path, gif_url)',
         )
         .eq('book_id', bookId)
         .order('created_at', { ascending: true })
@@ -55,6 +55,7 @@ export function usePostComment(bookId: string) {
       spoilerBlocks?: PendingSpoilerBlock[]
       madeDuringReread?: boolean
       photo?: File | null
+      gifUrl?: string | null
     }) => {
       if (!user) throw new Error('Not signed in')
 
@@ -105,6 +106,16 @@ export function usePostComment(bookId: string) {
             book_id: bookId,
             chapter_id: input.chapterId,
             storage_path: path,
+          })
+        if (attachError) throw attachError
+      } else if (input.gifUrl) {
+        const { error: attachError } = await supabase
+          .from('comment_attachments')
+          .insert({
+            comment_id: comment.id,
+            book_id: bookId,
+            chapter_id: input.chapterId,
+            gif_url: input.gifUrl,
           })
         if (attachError) throw attachError
       }

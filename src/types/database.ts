@@ -223,24 +223,27 @@ export type Database = {
           chapter_id: string
           comment_id: string
           created_at: string
+          gif_url: string | null
           id: string
-          storage_path: string
+          storage_path: string | null
         }
         Insert: {
           book_id: string
           chapter_id: string
           comment_id: string
           created_at?: string
+          gif_url?: string | null
           id?: string
-          storage_path: string
+          storage_path?: string | null
         }
         Update: {
           book_id?: string
           chapter_id?: string
           comment_id?: string
           created_at?: string
+          gif_url?: string | null
           id?: string
-          storage_path?: string
+          storage_path?: string | null
         }
         Relationships: [
           {
