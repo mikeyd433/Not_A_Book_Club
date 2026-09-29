@@ -519,6 +519,7 @@ function Composer({
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null)
   const [gifUrl, setGifUrl] = useState<string | null>(null)
   const [pickingGif, setPickingGif] = useState(false)
+  const [showAttachMenu, setShowAttachMenu] = useState(false)
 
   function handleInsertSpoiler() {
     if (!spoilerText.trim()) return
@@ -542,6 +543,7 @@ function Composer({
     if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl)
     setPhotoPreviewUrl(null)
     setGifUrl(null)
+    setShowAttachMenu(false)
   }
 
   function handlePhotoChange(file: File | null) {
@@ -660,21 +662,45 @@ function Composer({
           ❓ No spoilers please
         </label>
         <div className="flex items-center gap-2">
-          <label className="min-h-9 cursor-pointer rounded-md px-2 py-1.5 text-xs text-accent">
-            📷 Photo
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => handlePhotoChange(e.target.files?.[0] ?? null)}
-              className="hidden"
-            />
-          </label>
-          <button
-            onClick={() => setPickingGif((p) => !p)}
-            className="min-h-9 rounded-md px-2 py-1.5 text-xs text-accent"
-          >
-            🎬 GIF
-          </button>
+          {showAttachMenu ? (
+            <>
+              <label className="min-h-9 cursor-pointer rounded-md px-2 py-1.5 text-xs text-accent">
+                📷 Photo
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    handlePhotoChange(e.target.files?.[0] ?? null)
+                    setShowAttachMenu(false)
+                  }}
+                  className="hidden"
+                />
+              </label>
+              <button
+                onClick={() => {
+                  setPickingGif((p) => !p)
+                  setShowAttachMenu(false)
+                }}
+                className="min-h-9 rounded-md px-2 py-1.5 text-xs text-accent"
+              >
+                🎬 GIF
+              </button>
+              <button
+                onClick={() => setShowAttachMenu(false)}
+                className="min-h-9 rounded-md px-2 py-1.5 text-xs text-muted"
+                aria-label="Cancel attach"
+              >
+                ✕
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => setShowAttachMenu(true)}
+              className="min-h-9 rounded-md px-2 py-1.5 text-xs text-accent"
+            >
+              📎 Attach
+            </button>
+          )}
           <button
             onClick={() => setAddingSpoiler((a) => !a)}
             className="min-h-9 rounded-md px-2 py-1.5 text-xs text-accent"

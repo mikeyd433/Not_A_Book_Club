@@ -36,6 +36,63 @@ function StarPicker({ value, onChange }: { value: number; onChange: (v: number) 
   )
 }
 
+// Shared by all three places a rating gets written (first rating, editing
+// one, re-rating after a reread) -- previously each had its own near-
+// identical star-picker + textarea + save button block.
+function RatingForm({
+  title,
+  note,
+  initialStars,
+  initialReview,
+  saveLabel = 'Save',
+  onCancel,
+  onSave,
+}: {
+  title?: string
+  note?: string
+  initialStars: number
+  initialReview: string
+  saveLabel?: string
+  onCancel?: () => void
+  onSave: (stars: number, review: string) => void
+}) {
+  const [stars, setStars] = useState(initialStars)
+  const [review, setReview] = useState(initialReview)
+
+  return (
+    <div className="rounded-card bg-surface p-3">
+      {title && <p className="text-sm font-semibold">{title}</p>}
+      {note && <p className="text-xs text-muted">{note}</p>}
+      <div className={title || note ? 'mt-2' : ''}>
+        <StarPicker value={stars} onChange={setStars} />
+      </div>
+      <textarea
+        value={review}
+        onChange={(e) => setReview(e.target.value)}
+        placeholder="Write a review (optional)…"
+        rows={3}
+        className="mt-2 w-full rounded-lg border border-border p-2 text-base"
+      />
+      <div className="mt-2 flex gap-2">
+        {onCancel && (
+          <button
+            onClick={onCancel}
+            className="min-h-10 flex-1 rounded-lg border border-border text-sm font-semibold"
+          >
+            Cancel
+          </button>
+        )}
+        <button
+          onClick={() => onSave(stars, review)}
+          className={`min-h-10 ${onCancel ? 'flex-1' : 'w-full'} rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-contrast`}
+        >
+          {saveLabel}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function Reviews({ group: _group }: { group: MyGroup }) {
   const { bookId } = useParams<{ bookId: string }>()
   const { user } = useAuth()
@@ -48,8 +105,6 @@ export default function Reviews({ group: _group }: { group: MyGroup }) {
   const deleteRating = useDeleteRating(bookId!)
 
   const [formMode, setFormMode] = useState<'closed' | 'edit' | 'new'>('closed')
-  const [stars, setStars] = useState(5)
-  const [review, setReview] = useState('')
 
   const fullAccess = Boolean(
     myEntry &&
@@ -98,31 +153,19 @@ export default function Reviews({ group: _group }: { group: MyGroup }) {
     return rows.map((r) => ({ ...r, pct: Math.round((r.count / max) * 100) }))
   }, [chapters, comments])
 
-  function startEdit() {
-    if (latestMine) {
-      setStars(latestMine.stars)
-      setReview(latestMine.review ?? '')
-    }
-    setFormMode('edit')
+  function handleSaveNew(stars: number, review: string) {
+    postRating.mutate({
+      stars,
+      review: review.trim() || null,
+      isDnf: myEntry?.status === 'dnf',
+      isReread: Boolean(myEntry?.is_rereading),
+    })
+    setFormMode('closed')
   }
 
-  function startNew() {
-    setStars(5)
-    setReview('')
-    setFormMode('new')
-  }
-
-  function handleSave() {
-    if (formMode === 'edit' && latestMine) {
-      updateRating.mutate({ ratingId: latestMine.id, stars, review: review.trim() || null })
-    } else {
-      postRating.mutate({
-        stars,
-        review: review.trim() || null,
-        isDnf: myEntry?.status === 'dnf',
-        isReread: Boolean(myEntry?.is_rereading),
-      })
-    }
+  function handleSaveEdit(stars: number, review: string) {
+    if (!latestMine) return
+    updateRating.mutate({ ratingId: latestMine.id, stars, review: review.trim() || null })
     setFormMode('closed')
   }
 
@@ -143,36 +186,25 @@ export default function Reviews({ group: _group }: { group: MyGroup }) {
           Finish the book (or DNF with "Spoil me") to rate and review it, and
           to see everyone else's.
         </p>
-      ) : formMode !== 'closed' ? (
-        <div className="rounded-card bg-surface p-3">
-          <p className="text-xs text-muted">
-            {formMode === 'new' && latestMine
+      ) : formMode === 'edit' && latestMine ? (
+        <RatingForm
+          initialStars={latestMine.stars}
+          initialReview={latestMine.review ?? ''}
+          onCancel={() => setFormMode('closed')}
+          onSave={handleSaveEdit}
+        />
+      ) : formMode === 'new' ? (
+        <RatingForm
+          note={
+            latestMine
               ? "Starting a fresh entry — your earlier rating is kept."
-              : null}
-          </p>
-          <StarPicker value={stars} onChange={setStars} />
-          <textarea
-            value={review}
-            onChange={(e) => setReview(e.target.value)}
-            placeholder="Write a review (optional)…"
-            rows={3}
-            className="mt-2 w-full rounded-lg border border-border p-2 text-base"
-          />
-          <div className="mt-2 flex gap-2">
-            <button
-              onClick={() => setFormMode('closed')}
-              className="min-h-10 flex-1 rounded-lg border border-border text-sm font-semibold"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              className="min-h-10 flex-1 rounded-lg bg-accent text-sm font-semibold text-accent-contrast"
-            >
-              Save
-            </button>
-          </div>
-        </div>
+              : undefined
+          }
+          initialStars={5}
+          initialReview=""
+          onCancel={() => setFormMode('closed')}
+          onSave={handleSaveNew}
+        />
       ) : latestMine ? (
         <div className="rounded-card bg-surface p-3">
           <div className="flex items-center justify-between">
@@ -193,14 +225,14 @@ export default function Reviews({ group: _group }: { group: MyGroup }) {
           )}
           <div className="mt-2 flex flex-wrap gap-2">
             <button
-              onClick={startEdit}
+              onClick={() => setFormMode('edit')}
               className="min-h-9 rounded-full border border-border px-3 py-1.5 text-xs font-medium"
             >
               Edit
             </button>
             {myEntry.is_rereading && (
               <button
-                onClick={startNew}
+                onClick={() => setFormMode('new')}
                 className="min-h-9 rounded-full border border-border px-3 py-1.5 text-xs font-medium"
               >
                 🔁 Rate again after this reread
@@ -219,33 +251,13 @@ export default function Reviews({ group: _group }: { group: MyGroup }) {
           </div>
         </div>
       ) : (
-        <div className="rounded-card bg-surface p-3">
-          <p className="text-sm font-semibold">Rate this book</p>
-          <div className="mt-2">
-            <StarPicker value={stars} onChange={setStars} />
-          </div>
-          <textarea
-            value={review}
-            onChange={(e) => setReview(e.target.value)}
-            placeholder="Write a review (optional)…"
-            rows={3}
-            className="mt-2 w-full rounded-lg border border-border p-2 text-base"
-          />
-          <button
-            onClick={() => {
-              postRating.mutate({
-                stars,
-                review: review.trim() || null,
-                isDnf: myEntry.status === 'dnf',
-                isReread: Boolean(myEntry.is_rereading),
-              })
-              setReview('')
-            }}
-            className="mt-2 min-h-10 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-contrast"
-          >
-            Save rating
-          </button>
-        </div>
+        <RatingForm
+          title="Rate this book"
+          initialStars={5}
+          initialReview=""
+          saveLabel="Save rating"
+          onSave={handleSaveNew}
+        />
       )}
 
       {fullAccess && (

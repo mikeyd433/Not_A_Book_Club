@@ -150,42 +150,43 @@ export default function ChaptersEditor({ group: _group }: { group: MyGroup }) {
       </ul>
 
       {canEdit && (
-        <>
-          <div className="rounded-card bg-surface p-3">
-            <p className="text-sm font-semibold">Quick fill</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <input
-                type="number"
-                min={1}
-                value={quickFillCount}
-                onChange={(e) => setQuickFillCount(Number(e.target.value))}
-                className="min-h-11 w-20 rounded-lg border border-border px-2 py-2 text-base"
-              />
-              <button
-                onClick={handleQuickFill}
-                className="min-h-11 flex-1 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-accent-contrast"
-              >
-                Add {quickFillCount} chapters
-              </button>
-            </div>
-          </div>
+        <div className="rounded-card bg-surface p-3">
+          <p className="text-sm font-semibold">Add chapters</p>
+          <p className="mt-1 text-xs text-muted">
+            Paste a table of contents (one label per line), or just add
+            generic "Chapter N" placeholders to fill in later.
+          </p>
+          <textarea
+            value={bulkText}
+            onChange={(e) => setBulkText(e.target.value)}
+            placeholder={'One chapter label per line, e.g.\nPrologue\nChapter 1\nChapter 2'}
+            className="mt-2 h-28 w-full rounded-lg border border-border p-2 text-base"
+          />
+          <button
+            onClick={handleBulkPaste}
+            disabled={!bulkText.trim()}
+            className="mt-2 min-h-11 w-full rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-accent-contrast disabled:opacity-60"
+          >
+            Append pasted chapters
+          </button>
 
-          <div className="rounded-card bg-surface p-3">
-            <p className="text-sm font-semibold">Bulk paste table of contents</p>
-            <textarea
-              value={bulkText}
-              onChange={(e) => setBulkText(e.target.value)}
-              placeholder={'One chapter label per line, e.g.\nPrologue\nChapter 1\nChapter 2'}
-              className="mt-2 h-28 w-full rounded-lg border border-border p-2 text-base"
+          <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
+            <span className="text-xs text-muted">or add</span>
+            <input
+              type="number"
+              min={1}
+              value={quickFillCount}
+              onChange={(e) => setQuickFillCount(Number(e.target.value))}
+              className="min-h-11 w-20 rounded-lg border border-border px-2 py-2 text-base"
             />
             <button
-              onClick={handleBulkPaste}
-              className="mt-2 min-h-11 w-full rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-accent-contrast"
+              onClick={handleQuickFill}
+              className="min-h-11 flex-1 rounded-lg border border-border px-3 py-2 text-sm font-semibold"
             >
-              Append pasted chapters
+              generic "Chapter N" placeholders
             </button>
           </div>
-        </>
+        </div>
       )}
 
       <button

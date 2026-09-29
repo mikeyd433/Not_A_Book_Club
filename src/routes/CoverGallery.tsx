@@ -30,8 +30,7 @@ export default function CoverGallery({ group }: { group: MyGroup }) {
   const [cropSrc, setCropSrc] = useState<string | null>(null)
   const [urlInput, setUrlInput] = useState('')
   const [error, setError] = useState('')
-  const cameraInputRef = useRef<HTMLInputElement>(null)
-  const libraryInputRef = useRef<HTMLInputElement>(null)
+  const photoInputRef = useRef<HTMLInputElement>(null)
 
   async function handleFileChosen(file: File | undefined) {
     if (!file) return
@@ -83,31 +82,14 @@ export default function CoverGallery({ group }: { group: MyGroup }) {
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <button
-            onClick={() => cameraInputRef.current?.click()}
+            onClick={() => photoInputRef.current?.click()}
             className="min-h-11 rounded-lg border border-border px-3 py-2 text-sm font-semibold"
           >
-            📷 Take photo
-          </button>
-          <button
-            onClick={() => libraryInputRef.current?.click()}
-            className="min-h-11 rounded-lg border border-border px-3 py-2 text-sm font-semibold"
-          >
-            🖼️ Photo library
+            📷 Add photo
           </button>
         </div>
         <input
-          ref={cameraInputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          className="hidden"
-          onChange={(e) => {
-            void handleFileChosen(e.target.files?.[0])
-            e.target.value = ''
-          }}
-        />
-        <input
-          ref={libraryInputRef}
+          ref={photoInputRef}
           type="file"
           accept="image/*"
           className="hidden"
