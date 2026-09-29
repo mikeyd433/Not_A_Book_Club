@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -5,6 +6,8 @@ import {
   useGroupBooks,
   useMyShelfEntry,
 } from '@/lib/books/queries'
+import { useAchievementsCatalog, useAchievementsFeed } from '@/lib/achievements/queries'
+import { useAuth } from '@/lib/auth/AuthProvider'
 import { supabase } from '@/lib/supabase'
 import CoverThumb from '@/components/CoverThumb'
 import ProgressBar from '@/components/ProgressBar'
@@ -33,10 +36,39 @@ export default function Home({ group }: { group: MyGroup }) {
   return (
     <div className="space-y-3">
       <h1 className="text-lg font-bold">Your shelf</h1>
+      <AchievementsStrip />
       {books.map((book) => (
         <BookRow key={book.id} book={book} />
       ))}
     </div>
+  )
+}
+
+// Achievements no longer gets a permanent bottom-nav tab -- it's a
+// celebratory side feature, not something worth checking every visit --
+// but a one-line summary here keeps it one tap away for anyone curious.
+function AchievementsStrip() {
+  const { user } = useAuth()
+  const { data: catalog } = useAchievementsCatalog()
+  const { data: feed } = useAchievementsFeed()
+
+  const earnedCount = useMemo(
+    () => new Set((feed ?? []).filter((f) => f.user_id === user?.id).map((f) => f.achievement_key)).size,
+    [feed, user?.id],
+  )
+
+  if (!catalog) return null
+
+  return (
+    <Link
+      to="/achievements"
+      className="flex min-h-11 items-center justify-between rounded-card bg-surface px-3 py-2 text-sm active:bg-surface-alt"
+    >
+      <span className="font-medium">🏆 Achievements</span>
+      <span className="text-muted">
+        {earnedCount} / {catalog.length} earned →
+      </span>
+    </Link>
   )
 }
 
@@ -53,7 +85,7 @@ function BookRow({
 }) {
   const { data: chapters } = useChapters(book.id)
   const { data: entry } = useMyShelfEntry(book.id)
-  const { data: unlockedCount } = useUnlockedCommentCount(book.id)
+  const { data: activity } = useUnlockedCommentActivity(book.id)
 
   const currentPosition = chapters?.find(
     (c) => c.id === entry?.current_chapter_id,
@@ -83,9 +115,10 @@ function BookRow({
             />
           </div>
         )}
-        {typeof unlockedCount === 'number' && unlockedCount > 0 && (
+        {activity && activity.count > 0 && (
           <p className="mt-1 text-xs text-muted">
-            💬 {unlockedCount} unlocked comment{unlockedCount === 1 ? '' : 's'}
+            💬 {activity.count} unlocked comment{activity.count === 1 ? '' : 's'}
+            {activity.lastAt && ` · ${formatRelativeTime(activity.lastAt)}`}
           </p>
         )}
       </div>
@@ -93,17 +126,31 @@ function BookRow({
   )
 }
 
-function useUnlockedCommentCount(bookId: string) {
+function useUnlockedCommentActivity(bookId: string) {
   return useQuery({
-    queryKey: ['unlocked-comment-count', bookId],
+    queryKey: ['unlocked-comment-activity', bookId],
     queryFn: async () => {
-      const { count, error } = await supabase
+      const { data, error, count } = await supabase
         .from('comments')
-        .select('id', { count: 'exact', head: true })
+        .select('created_at', { count: 'exact' })
         .eq('book_id', bookId)
+        .order('created_at', { ascending: false })
+        .limit(1)
 
       if (error) throw error
-      return count ?? 0
+      return { count: count ?? 0, lastAt: data?.[0]?.created_at ?? null }
     },
   })
+}
+
+function formatRelativeTime(isoTimestamp: string): string {
+  const diffMs = Date.now() - new Date(isoTimestamp).getTime()
+  const minutes = Math.floor(diffMs / 60_000)
+  if (minutes < 1) return 'just now'
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `${days}d ago`
+  return new Date(isoTimestamp).toLocaleDateString()
 }

@@ -14,6 +14,7 @@ import {
 import { useAuth } from '@/lib/auth/AuthProvider'
 import { useSearchGifs } from '@/lib/gifs/queries'
 import AttachmentImage from '@/components/AttachmentImage'
+import PredictionsPanel from '@/components/PredictionsPanel'
 import type { MyGroup } from '@/lib/group/useMyGroup'
 import type { SortPref } from '@/types/domain'
 import type { Tables } from '@/types/database'
@@ -48,6 +49,7 @@ export default function Thread({ group }: { group: MyGroup }) {
 
   const sortPref = (myEntry?.sort_pref ?? 'chapter') as SortPref
   const isAdmin = group.role === 'admin'
+  const [tab, setTab] = useState<'discussion' | 'predictions'>('discussion')
 
   const taggableChapters = useMemo<ChapterOption[]>(() => {
     if (!chapters || !myEntry) return []
@@ -80,67 +82,103 @@ export default function Thread({ group }: { group: MyGroup }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-bold">Discussion</h1>
-        <select
-          value={sortPref}
-          onChange={(e) =>
-            upsertShelf.mutate({ sort_pref: e.target.value as SortPref })
-          }
-          className="min-h-11 rounded-lg border border-border bg-surface px-2 py-2 text-base"
-        >
-          {Object.entries(SORT_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex rounded-lg border border-border p-0.5">
+          <TabButton active={tab === 'discussion'} onClick={() => setTab('discussion')}>
+            Discussion
+          </TabButton>
+          <TabButton active={tab === 'predictions'} onClick={() => setTab('predictions')}>
+            🔮 Predictions
+          </TabButton>
+        </div>
+        {tab === 'discussion' && (
+          <select
+            value={sortPref}
+            onChange={(e) =>
+              upsertShelf.mutate({ sort_pref: e.target.value as SortPref })
+            }
+            className="min-h-11 rounded-lg border border-border bg-surface px-2 py-2 text-base"
+          >
+            {Object.entries(SORT_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
-      {taggableChapters.length > 0 ? (
-        <Composer
-          chapters={taggableChapters}
-          defaultChapterId={myEntry.current_chapter_id}
-          onSubmit={(input) =>
-            postComment.mutate({ ...input, madeDuringReread: myEntry.is_rereading })
-          }
-        />
+      {tab === 'predictions' ? (
+        <PredictionsPanel bookId={bookId!} />
       ) : (
-        <p className="rounded-lg bg-surface-alt p-3 text-xs text-muted">
-          Set your current chapter to start commenting.
-        </p>
-      )}
+        <>
+          {taggableChapters.length > 0 ? (
+            <Composer
+              chapters={taggableChapters}
+              defaultChapterId={myEntry.current_chapter_id}
+              onSubmit={(input) =>
+                postComment.mutate({ ...input, madeDuringReread: myEntry.is_rereading })
+              }
+            />
+          ) : (
+            <p className="rounded-lg bg-surface-alt p-3 text-xs text-muted">
+              Set your current chapter to start commenting.
+            </p>
+          )}
 
-      <ul className="space-y-3">
-        {tree.map((node) => (
-          <CommentNode
-            key={node.comment.id}
-            node={node}
-            showChapterTag={sortPref !== 'chapter'}
-            taggableChapters={taggableChapters}
-            isAdmin={isAdmin}
-            bookId={bookId!}
-            onReply={(chapterId, body, parentId, photo, gifUrl) =>
-              postComment.mutate({
-                chapterId,
-                body,
-                parentId,
-                photo,
-                gifUrl,
-                madeDuringReread: myEntry.is_rereading,
-              })
-            }
-          />
-        ))}
-      </ul>
+          <ul className="space-y-3">
+            {tree.map((node) => (
+              <CommentNode
+                key={node.comment.id}
+                node={node}
+                showChapterTag={sortPref !== 'chapter'}
+                taggableChapters={taggableChapters}
+                isAdmin={isAdmin}
+                bookId={bookId!}
+                onReply={(chapterId, body, parentId, photo, gifUrl) =>
+                  postComment.mutate({
+                    chapterId,
+                    body,
+                    parentId,
+                    photo,
+                    gifUrl,
+                    madeDuringReread: myEntry.is_rereading,
+                  })
+                }
+              />
+            ))}
+          </ul>
 
-      {Boolean(lockedCount) && (
-        <p className="rounded-lg bg-surface-alt p-3 text-center text-xs text-muted">
-          🔒 {lockedCount} comment{lockedCount === 1 ? '' : 's'} ahead — keep
-          reading to unlock
-        </p>
+          {Boolean(lockedCount) && (
+            <p className="rounded-lg bg-surface-alt p-3 text-center text-xs text-muted">
+              🔒 {lockedCount} comment{lockedCount === 1 ? '' : 's'} ahead — keep
+              reading to unlock
+            </p>
+          )}
+        </>
       )}
     </div>
+  )
+}
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean
+  onClick: () => void
+  children: ReactNode
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`min-h-9 rounded-md px-3 py-1.5 text-sm font-medium ${
+        active ? 'bg-accent text-accent-contrast' : 'text-muted'
+      }`}
+    >
+      {children}
+    </button>
   )
 }
 

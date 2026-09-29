@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
 import { useChapters, useMyShelfEntry } from '@/lib/books/queries'
 import {
   useDeletePrediction,
@@ -9,7 +8,6 @@ import {
   useResolvePrediction,
 } from '@/lib/predictions/queries'
 import { useAuth } from '@/lib/auth/AuthProvider'
-import type { MyGroup } from '@/lib/group/useMyGroup'
 import type { Tables } from '@/types/database'
 
 type ChapterOption = { id: string; label: string; position: number }
@@ -25,16 +23,18 @@ const VERDICT_LABELS: Record<string, string> = {
   unclear: '🤷 Unclear',
 }
 
-export default function Predictions({ group: _group }: { group: MyGroup }) {
-  const { bookId } = useParams<{ bookId: string }>()
+// Rendered as a tab within the Discussion thread rather than its own
+// route -- predictions are used infrequently enough that a whole
+// dedicated page/nav entry was more chrome than the feature earned.
+export default function PredictionsPanel({ bookId }: { bookId: string }) {
   const { user } = useAuth()
-  const { data: chapters } = useChapters(bookId!)
-  const { data: myEntry } = useMyShelfEntry(bookId!)
-  const { data: predictions } = usePredictions(bookId!)
-  const { data: scoreboard } = usePredictionScoreboard(bookId!)
-  const postPrediction = usePostPrediction(bookId!)
-  const resolvePrediction = useResolvePrediction(bookId!)
-  const deletePrediction = useDeletePrediction(bookId!)
+  const { data: chapters } = useChapters(bookId)
+  const { data: myEntry } = useMyShelfEntry(bookId)
+  const { data: predictions } = usePredictions(bookId)
+  const { data: scoreboard } = usePredictionScoreboard(bookId)
+  const postPrediction = usePostPrediction(bookId)
+  const resolvePrediction = useResolvePrediction(bookId)
+  const deletePrediction = useDeletePrediction(bookId)
 
   const [chapterId, setChapterId] = useState('')
   const [body, setBody] = useState('')
@@ -76,8 +76,6 @@ export default function Predictions({ group: _group }: { group: MyGroup }) {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-bold">🔮 Predictions</h1>
-
       {myEntry.is_rereading ? (
         <p className="rounded-lg bg-surface-alt p-3 text-xs text-muted">
           Predictions aren't available while rereading — you already know how

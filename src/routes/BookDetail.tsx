@@ -67,12 +67,6 @@ export default function BookDetail({ group }: { group: MyGroup }) {
               Discussion
             </Link>
             <Link
-              to={`/book/${book.id}/predictions`}
-              className="min-h-9 rounded-full border border-border px-3 py-2 text-xs leading-tight"
-            >
-              🔮 Predictions
-            </Link>
-            <Link
               to={`/book/${book.id}/reviews`}
               className="min-h-9 rounded-full border border-border px-3 py-2 text-xs leading-tight"
             >
@@ -84,34 +78,19 @@ export default function BookDetail({ group }: { group: MyGroup }) {
 
       <div>
         <h2 className="text-sm font-semibold text-muted">Your shelf</h2>
-        <div className="mt-2 flex flex-wrap gap-2">
+        <select
+          value={myEntry?.status ?? ''}
+          onChange={(e) => upsert.mutate({ status: e.target.value as ShelfStatus })}
+          className="mt-2 min-h-11 w-full rounded-lg border border-border bg-surface px-2 py-2 text-base"
+        >
+          {!myEntry && <option value="" disabled>Not on your shelf</option>}
           {STATUSES.map((status) => (
-            <button
-              key={status}
-              onClick={() => upsert.mutate({ status })}
-              className={`min-h-9 rounded-full px-3 py-2 text-xs font-medium leading-tight ${
-                myEntry?.status === status
-                  ? 'bg-accent text-accent-contrast'
-                  : 'border border-border text-muted'
-              }`}
-            >
+            <option key={status} value={status}>
               {SHELF_STATUS_LABELS[status]}
-            </button>
+            </option>
           ))}
-        </div>
+        </select>
       </div>
-
-      {myEntry && (
-        <label className="flex min-h-11 items-center gap-2 py-2 text-sm">
-          <input
-            type="checkbox"
-            checked={myEntry.muted}
-            onChange={(e) => upsert.mutate({ muted: e.target.checked })}
-            className="size-5"
-          />
-          🔕 Mute notifications for this book
-        </label>
-      )}
 
       {myEntry && (chapters?.length ?? 0) > 0 && (
         <div>
@@ -143,47 +122,66 @@ export default function BookDetail({ group }: { group: MyGroup }) {
         </div>
       )}
 
-      {myEntry?.status === 'finished' && (
-        <div className="rounded-card bg-surface p-3">
-          {myEntry.is_rereading ? (
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-semibold">🔁 Rereading</span>
-              <button
-                onClick={() => upsert.mutate({ is_rereading: false })}
-                className="min-h-9 rounded-full border border-border px-3 py-2 text-xs font-medium leading-tight"
-              >
-                Finish reread
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() =>
-                upsert.mutate({
-                  is_rereading: true,
-                  current_chapter_id: null,
-                  spoil_me: false,
-                })
-              }
-              className="min-h-9 w-full rounded-full border border-border px-3 py-2 text-xs font-medium leading-tight"
-            >
-              🔁 Start a reread
-            </button>
-          )}
-        </div>
-      )}
+      {myEntry && (
+        <details className="rounded-card bg-surface p-3">
+          <summary className="min-h-9 cursor-pointer text-sm font-semibold text-muted">
+            More options
+          </summary>
+          <div className="mt-3 space-y-3">
+            <label className="flex min-h-11 items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={myEntry.muted}
+                onChange={(e) => upsert.mutate({ muted: e.target.checked })}
+                className="size-5"
+              />
+              🔕 Mute notifications for this book
+            </label>
 
-      {(myEntry?.status === 'dnf' || myEntry?.is_rereading) && (
-        <label className="flex min-h-11 items-center gap-2 py-2 text-sm">
-          <input
-            type="checkbox"
-            checked={myEntry.spoil_me}
-            onChange={(e) => upsert.mutate({ spoil_me: e.target.checked })}
-            className="size-5"
-          />
-          {myEntry.is_rereading
-            ? 'View full thread anyway — see comments ahead of your reread position'
-            : 'Spoil me — unlock full access anyway'}
-        </label>
+            {myEntry.status === 'finished' && (
+              <div>
+                {myEntry.is_rereading ? (
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-semibold">🔁 Rereading</span>
+                    <button
+                      onClick={() => upsert.mutate({ is_rereading: false })}
+                      className="min-h-9 rounded-full border border-border px-3 py-2 text-xs font-medium leading-tight"
+                    >
+                      Finish reread
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() =>
+                      upsert.mutate({
+                        is_rereading: true,
+                        current_chapter_id: null,
+                        spoil_me: false,
+                      })
+                    }
+                    className="min-h-9 w-full rounded-full border border-border px-3 py-2 text-xs font-medium leading-tight"
+                  >
+                    🔁 Start a reread
+                  </button>
+                )}
+              </div>
+            )}
+
+            {(myEntry.status === 'dnf' || myEntry.is_rereading) && (
+              <label className="flex min-h-11 items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={myEntry.spoil_me}
+                  onChange={(e) => upsert.mutate({ spoil_me: e.target.checked })}
+                  className="size-5"
+                />
+                {myEntry.is_rereading
+                  ? 'View full thread anyway — see comments ahead of your reread position'
+                  : 'Spoil me — unlock full access anyway'}
+              </label>
+            )}
+          </div>
+        </details>
       )}
 
       <div>

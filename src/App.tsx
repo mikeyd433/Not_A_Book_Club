@@ -11,7 +11,6 @@ import AddBook from '@/routes/AddBook'
 import BookDetail from '@/routes/BookDetail'
 import ChaptersEditor from '@/routes/ChaptersEditor'
 import Thread from '@/routes/Thread'
-import Predictions from '@/routes/Predictions'
 import Reviews from '@/routes/Reviews'
 import Settings from '@/routes/Settings'
 import CoverGallery from '@/routes/CoverGallery'
@@ -51,10 +50,6 @@ export default function App() {
           <Route
             path="/book/:bookId/thread"
             element={<Thread group={group} />}
-          />
-          <Route
-            path="/book/:bookId/predictions"
-            element={<Predictions group={group} />}
           />
           <Route
             path="/book/:bookId/reviews"
