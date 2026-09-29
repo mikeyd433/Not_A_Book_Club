@@ -1,12 +1,25 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/lib/auth/AuthProvider'
 
 export default function Login() {
+  const { authError } = useAuth()
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>(
     'idle',
   )
   const [errorMessage, setErrorMessage] = useState('')
+
+  // A stale/expired/reused magic link redirects back here with an error in
+  // the URL hash (AuthProvider reads it and clears the hash) rather than
+  // ever reaching onAuthStateChange -- surface it instead of silently
+  // dumping the user back on this same form with no explanation.
+  useEffect(() => {
+    if (authError) {
+      setStatus('error')
+      setErrorMessage(authError)
+    }
+  }, [authError])
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
