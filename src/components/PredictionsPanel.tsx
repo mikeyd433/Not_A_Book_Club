@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { useChapters, useMyShelfEntry } from '@/lib/books/queries'
+import { useState } from 'react'
+import { useFullAccess, useMyShelfEntry, useTaggableChapters } from '@/lib/books/queries'
 import {
   useDeletePrediction,
   usePostPrediction,
@@ -9,8 +9,6 @@ import {
 } from '@/lib/predictions/queries'
 import { useAuth } from '@/lib/auth/AuthProvider'
 import type { Tables } from '@/types/database'
-
-type ChapterOption = { id: string; label: string; position: number }
 
 type Prediction = Tables<'predictions'> & {
   profiles: { display_name: string } | null
@@ -28,34 +26,17 @@ const VERDICT_LABELS: Record<string, string> = {
 // dedicated page/nav entry was more chrome than the feature earned.
 export default function PredictionsPanel({ bookId }: { bookId: string }) {
   const { user } = useAuth()
-  const { data: chapters } = useChapters(bookId)
   const { data: myEntry } = useMyShelfEntry(bookId)
   const { data: predictions } = usePredictions(bookId)
   const { data: scoreboard } = usePredictionScoreboard(bookId)
   const postPrediction = usePostPrediction(bookId)
   const resolvePrediction = useResolvePrediction(bookId)
   const deletePrediction = useDeletePrediction(bookId)
+  const fullAccess = useFullAccess(bookId)
+  const taggableChapters = useTaggableChapters(bookId)
 
   const [chapterId, setChapterId] = useState('')
   const [body, setBody] = useState('')
-
-  const fullAccess = Boolean(
-    myEntry &&
-      (myEntry.status === 'read_before_joining' ||
-        (myEntry.status === 'finished' && (!myEntry.is_rereading || myEntry.spoil_me)) ||
-        (myEntry.status === 'dnf' && myEntry.spoil_me)),
-  )
-
-  const taggableChapters = useMemo<ChapterOption[]>(() => {
-    if (!chapters || !myEntry) return []
-    if (fullAccess) return chapters
-
-    const currentPosition = chapters.find(
-      (c) => c.id === myEntry.current_chapter_id,
-    )?.position
-    if (currentPosition === undefined) return []
-    return chapters.filter((c) => c.position <= currentPosition)
-  }, [chapters, myEntry, fullAccess])
 
   const activeChapterId = chapterId || taggableChapters[taggableChapters.length - 1]?.id || ''
 

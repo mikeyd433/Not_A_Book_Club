@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth/AuthProvider'
@@ -185,6 +186,45 @@ export function useBookShelfEntries(bookId: string) {
       return data
     },
   })
+}
+
+// The spoiler-gate rule for the whole app: whether this member can see a
+// book's full, unlocked content rather than just up to their current
+// chapter. Previously reimplemented independently in Thread, Reviews and
+// PredictionsPanel -- a single source of truth for a rule this central is
+// worth the shared hook, since a tweak here used to mean finding and
+// updating three separate copies.
+export function useFullAccess(bookId: string): boolean {
+  const { data: myEntry } = useMyShelfEntry(bookId)
+
+  return Boolean(
+    myEntry &&
+      (myEntry.status === 'read_before_joining' ||
+        (myEntry.status === 'finished' && (!myEntry.is_rereading || myEntry.spoil_me)) ||
+        (myEntry.status === 'dnf' && myEntry.spoil_me)),
+  )
+}
+
+export type ChapterOption = { id: string; label: string; position: number }
+
+// Which chapters this member is currently allowed to tag a comment or
+// prediction to: every chapter once they have full access, otherwise only
+// up to their current reading position.
+export function useTaggableChapters(bookId: string): ChapterOption[] {
+  const { data: chapters } = useChapters(bookId)
+  const { data: myEntry } = useMyShelfEntry(bookId)
+  const fullAccess = useFullAccess(bookId)
+
+  return useMemo(() => {
+    if (!chapters || !myEntry) return []
+    if (fullAccess) return chapters
+
+    const currentPosition = chapters.find(
+      (c) => c.id === myEntry.current_chapter_id,
+    )?.position
+    if (currentPosition === undefined) return []
+    return chapters.filter((c) => c.position <= currentPosition)
+  }, [chapters, myEntry, fullAccess])
 }
 
 export function useUpsertShelfEntry(bookId: string) {

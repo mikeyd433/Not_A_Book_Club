@@ -1,6 +1,11 @@
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
-import { useChapters, useMyShelfEntry, useUpsertShelfEntry } from '@/lib/books/queries'
+import {
+  useMyShelfEntry,
+  useTaggableChapters,
+  useUpsertShelfEntry,
+  type ChapterOption,
+} from '@/lib/books/queries'
 import {
   useComments,
   useDeleteComment,
@@ -18,8 +23,6 @@ import PredictionsPanel from '@/components/PredictionsPanel'
 import type { MyGroup } from '@/lib/group/useMyGroup'
 import type { SortPref } from '@/types/domain'
 import type { Tables } from '@/types/database'
-
-type ChapterOption = { id: string; label: string; position: number }
 
 type Comment = Tables<'comments'> & {
   profiles: { display_name: string } | null
@@ -40,32 +43,16 @@ const SPOILER_MARKER = /\[spoiler #(\d+)\]/g
 
 export default function Thread({ group }: { group: MyGroup }) {
   const { bookId } = useParams<{ bookId: string }>()
-  const { data: chapters } = useChapters(bookId!)
   const { data: myEntry } = useMyShelfEntry(bookId!)
   const { data: comments } = useComments(bookId!)
   const { data: lockedCount } = useLockedCommentCount(bookId!)
   const upsertShelf = useUpsertShelfEntry(bookId!)
   const postComment = usePostComment(bookId!)
+  const taggableChapters = useTaggableChapters(bookId!)
 
   const sortPref = (myEntry?.sort_pref ?? 'chapter') as SortPref
   const isAdmin = group.role === 'admin'
   const [tab, setTab] = useState<'discussion' | 'predictions'>('discussion')
-
-  const taggableChapters = useMemo<ChapterOption[]>(() => {
-    if (!chapters || !myEntry) return []
-    const fullAccess =
-      myEntry.status === 'read_before_joining' ||
-      (myEntry.status === 'finished' && (!myEntry.is_rereading || myEntry.spoil_me)) ||
-      (myEntry.status === 'dnf' && myEntry.spoil_me)
-
-    if (fullAccess) return chapters
-
-    const currentPosition = chapters.find(
-      (c) => c.id === myEntry.current_chapter_id,
-    )?.position
-    if (currentPosition === undefined) return []
-    return chapters.filter((c) => c.position <= currentPosition)
-  }, [chapters, myEntry])
 
   const tree = useMemo(
     () => buildTree((comments ?? []) as Comment[], sortPref),

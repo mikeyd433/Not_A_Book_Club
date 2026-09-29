@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { useChapters, useMyShelfEntry } from '@/lib/books/queries'
+import { useChapters, useFullAccess, useMyShelfEntry } from '@/lib/books/queries'
 import { useComments } from '@/lib/comments/queries'
 import {
   useDeleteRating,
@@ -105,13 +105,7 @@ export default function Reviews({ group: _group }: { group: MyGroup }) {
   const deleteRating = useDeleteRating(bookId!)
 
   const [formMode, setFormMode] = useState<'closed' | 'edit' | 'new'>('closed')
-
-  const fullAccess = Boolean(
-    myEntry &&
-      (myEntry.status === 'read_before_joining' ||
-        (myEntry.status === 'finished' && (!myEntry.is_rereading || myEntry.spoil_me)) ||
-        (myEntry.status === 'dnf' && myEntry.spoil_me)),
-  )
+  const fullAccess = useFullAccess(bookId!)
 
   const typedRatings = useMemo(() => (ratings ?? []) as Rating[], [ratings])
   const myRatings = typedRatings.filter((r) => r.user_id === user?.id)
