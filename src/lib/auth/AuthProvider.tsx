@@ -25,6 +25,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Supabase's client reads any access_token/error from the URL hash on
+    // load, but leaves the hash itself in place -- so it stays in the
+    // address bar and, worse, would get captured by a later
+    // emailRedirectTo: window.location.href-style call. Strip it once
+    // there's nothing left to read.
+    if (window.location.hash) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search)
+    }
+
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
       setLoading(false)

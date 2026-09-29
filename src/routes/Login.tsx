@@ -16,7 +16,12 @@ export default function Login() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: window.location.href,
+        // Not window.location.href: that also carries whatever hash is
+        // currently in the address bar (e.g. a stale #error=... from an
+        // earlier failed attempt), which Supabase then appends the real
+        // session tokens onto instead of replacing -- producing a URL with
+        // two concatenated hash fragments that can't be parsed correctly.
+        emailRedirectTo: `${window.location.origin}${window.location.pathname}`,
       },
     })
 
