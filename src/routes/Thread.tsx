@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
 import {
   useChapters,
@@ -56,23 +56,6 @@ export default function Thread({ group }: { group: MyGroup }) {
   const isAdmin = group.role === 'admin'
   const [tab, setTab] = useState<'discussion' | 'predictions'>('discussion')
 
-  // Landing on Discussion is now the default entry point from Home, before
-  // anyone has necessarily visited Overview to set a reading position --
-  // but is_chapter_unlocked has nothing to compare against without one, so
-  // with no position set literally nothing unlocks, not even chapter 1.
-  // Default to chapter 1 (creating a shelf entry if there isn't one yet)
-  // until the member explicitly sets a real position via Overview's
-  // chapter picker; from then on their actual position always wins.
-  const autoDefaultedRef = useRef<string | null>(null)
-  useEffect(() => {
-    if (autoDefaultedRef.current === bookId) return
-    if (!chapters || chapters.length === 0) return
-    if (myEntry === undefined) return
-    if (myEntry?.current_chapter_id) return
-    autoDefaultedRef.current = bookId!
-    upsertShelf.mutate({ current_chapter_id: chapters[0].id })
-  }, [bookId, chapters, myEntry, upsertShelf])
-
   const tree = useMemo(
     () => buildTree((comments ?? []) as Comment[], sortPref),
     [comments, sortPref],
@@ -88,6 +71,31 @@ export default function Thread({ group }: { group: MyGroup }) {
         This book doesn't have any chapters yet — add some from the Chapters
         tab.
       </p>
+    )
+  }
+
+  // Landing on Discussion is now the default entry point from Home, before
+  // anyone has necessarily visited Overview to set a reading position --
+  // but is_chapter_unlocked has nothing to compare against without one, so
+  // with no position set literally nothing unlocks, not even chapter 1.
+  // Gate behind one explicit tap instead of silently marking the first
+  // chapter read on their behalf -- only shown this once, since it
+  // disappears for good the moment a real position is set (here or via
+  // Overview's chapter picker).
+  if (!myEntry?.current_chapter_id) {
+    return (
+      <div className="rounded-card bg-surface p-4 text-center">
+        <p className="text-sm text-muted">
+          Read {chapters[0].label} to start the discussion.
+        </p>
+        <button
+          onClick={() => upsertShelf.mutate({ current_chapter_id: chapters[0].id })}
+          disabled={upsertShelf.isPending}
+          className="mt-3 min-h-11 rounded-lg bg-accent px-4 py-3 text-sm font-semibold text-accent-contrast disabled:opacity-60"
+        >
+          ✅ I finished {chapters[0].label}
+        </button>
+      </div>
     )
   }
 
