@@ -1,6 +1,7 @@
-import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
 import {
+  useChapters,
   useMyShelfEntry,
   useTaggableChapters,
   useUpsertShelfEntry,
@@ -43,6 +44,7 @@ const SPOILER_MARKER = /\[spoiler #(\d+)\]/g
 
 export default function Thread({ group }: { group: MyGroup }) {
   const { bookId } = useParams<{ bookId: string }>()
+  const { data: chapters } = useChapters(bookId!)
   const { data: myEntry } = useMyShelfEntry(bookId!)
   const { data: comments } = useComments(bookId!)
   const { data: lockedCount } = useLockedCommentCount(bookId!)
@@ -54,15 +56,37 @@ export default function Thread({ group }: { group: MyGroup }) {
   const isAdmin = group.role === 'admin'
   const [tab, setTab] = useState<'discussion' | 'predictions'>('discussion')
 
+  // Landing on Discussion is now the default entry point from Home, before
+  // anyone has necessarily visited Overview to set a reading position --
+  // but is_chapter_unlocked has nothing to compare against without one, so
+  // with no position set literally nothing unlocks, not even chapter 1.
+  // Default to chapter 1 (creating a shelf entry if there isn't one yet)
+  // until the member explicitly sets a real position via Overview's
+  // chapter picker; from then on their actual position always wins.
+  const autoDefaultedRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (autoDefaultedRef.current === bookId) return
+    if (!chapters || chapters.length === 0) return
+    if (myEntry === undefined) return
+    if (myEntry?.current_chapter_id) return
+    autoDefaultedRef.current = bookId!
+    upsertShelf.mutate({ current_chapter_id: chapters[0].id })
+  }, [bookId, chapters, myEntry, upsertShelf])
+
   const tree = useMemo(
     () => buildTree((comments ?? []) as Comment[], sortPref),
     [comments, sortPref],
   )
 
-  if (!myEntry) {
+  if (myEntry === undefined || chapters === undefined) {
+    return <p className="text-sm text-muted">Loading…</p>
+  }
+
+  if (chapters.length === 0) {
     return (
       <p className="rounded-card bg-surface p-4 text-sm text-muted">
-        Add this book to your shelf and set a chapter to join the discussion.
+        This book doesn't have any chapters yet — add some from the Chapters
+        tab.
       </p>
     )
   }
@@ -102,9 +126,9 @@ export default function Thread({ group }: { group: MyGroup }) {
           {taggableChapters.length > 0 ? (
             <Composer
               chapters={taggableChapters}
-              defaultChapterId={myEntry.current_chapter_id}
+              defaultChapterId={myEntry!.current_chapter_id}
               onSubmit={(input) =>
-                postComment.mutate({ ...input, madeDuringReread: myEntry.is_rereading })
+                postComment.mutate({ ...input, madeDuringReread: myEntry!.is_rereading })
               }
             />
           ) : (
@@ -129,7 +153,7 @@ export default function Thread({ group }: { group: MyGroup }) {
                     parentId,
                     photo,
                     gifUrl,
-                    madeDuringReread: myEntry.is_rereading,
+                    madeDuringReread: myEntry!.is_rereading,
                   })
                 }
               />
