@@ -2,6 +2,17 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth/AuthProvider'
 
+// Supabase's own email sender is throttled hard (a handful of sends per
+// hour) since it's meant for dev/low-volume use, not real traffic -- see
+// SPEC.md. This cooldown is a guess at a safe retry window, not a value
+// Supabase reports back; its purpose is just to stop someone from
+// immediately re-hitting "Send" and digging the rate limit hole deeper.
+const RATE_LIMIT_COOLDOWN_SECONDS = 60
+
+function isRateLimitError(error: { status?: number; message: string }) {
+  return error.status === 429 || /rate limit/i.test(error.message)
+}
+
 export default function Login() {
   const { authError } = useAuth()
   const [email, setEmail] = useState('')
@@ -9,6 +20,13 @@ export default function Login() {
     'idle',
   )
   const [errorMessage, setErrorMessage] = useState('')
+  const [cooldownSeconds, setCooldownSeconds] = useState(0)
+
+  useEffect(() => {
+    if (cooldownSeconds === 0) return
+    const timer = setTimeout(() => setCooldownSeconds((s) => Math.max(0, s - 1)), 1000)
+    return () => clearTimeout(timer)
+  }, [cooldownSeconds])
 
   // A stale/expired/reused magic link redirects back here with an error in
   // the URL hash (AuthProvider reads it and clears the hash) rather than
@@ -23,6 +41,7 @@ export default function Login() {
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
+    if (cooldownSeconds > 0) return
     setStatus('sending')
     setErrorMessage('')
 
@@ -40,7 +59,14 @@ export default function Login() {
 
     if (error) {
       setStatus('error')
-      setErrorMessage(error.message)
+      if (isRateLimitError(error)) {
+        setErrorMessage(
+          "You've requested a few links in a row — wait a bit before trying again.",
+        )
+        setCooldownSeconds(RATE_LIMIT_COOLDOWN_SECONDS)
+      } else {
+        setErrorMessage(error.message)
+      }
       return
     }
 
@@ -71,10 +97,14 @@ export default function Login() {
             />
             <button
               type="submit"
-              disabled={status === 'sending'}
+              disabled={status === 'sending' || cooldownSeconds > 0}
               className="min-h-11 w-full rounded-lg bg-accent px-3 py-3 text-base font-semibold text-accent-contrast disabled:opacity-60"
             >
-              {status === 'sending' ? 'Sending link…' : 'Send magic link'}
+              {cooldownSeconds > 0
+                ? `Try again in ${cooldownSeconds}s`
+                : status === 'sending'
+                  ? 'Sending link…'
+                  : 'Send magic link'}
             </button>
             {status === 'error' && (
               <p className="text-sm text-red-600">{errorMessage}</p>
