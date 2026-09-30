@@ -36,6 +36,15 @@ This repo is fetched and built by `mikeyd433/dabingabongo`'s `build.sh` and
 served at `dabingabongo.com/nabc` — see SPEC.md's Project Status section
 for the branch name and details.
 
+**A push to this repo's `main` does NOT by itself deploy anything.**
+Netlify only rebuilds `dabingabongo` on pushes to `dabingabongo`'s own
+repo — `build.sh` clones this repo fresh on every build, but a push here
+doesn't trigger that build to run. After merging any change to this
+repo's `main`, also push an empty commit to `mikeyd433/dabingabongo`'s
+`main` (`git commit --allow-empty -m "..."`) to actually deploy it —
+otherwise it just sits on `main` unreleased, as several rounds of fixes
+did before this note existed.
+
 ## Working branch
 
 `claude/magical-sagan-9pmk6q` — push there unless told otherwise.
