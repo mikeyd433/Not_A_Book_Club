@@ -32,6 +32,8 @@ export default function BookDetail({ group }: { group: MyGroup }) {
   const upsert = useUpsertShelfEntry(bookId!)
   const deleteBook = useDeleteBook(group.id)
   const [showPicker, setShowPicker] = useState(false)
+  const [showMoreOptions, setShowMoreOptions] = useState(false)
+  const [showDangerZone, setShowDangerZone] = useState(false)
 
   function handleDelete() {
     if (!book) return
@@ -96,65 +98,71 @@ export default function BookDetail({ group }: { group: MyGroup }) {
       )}
 
       {myEntry && (
-        <details className="rounded-card bg-surface p-3">
-          <summary className="min-h-9 cursor-pointer text-sm font-semibold text-muted">
+        <div className="rounded-card bg-surface p-3">
+          <button
+            onClick={() => setShowMoreOptions((s) => !s)}
+            className="flex min-h-9 w-full items-center justify-between text-left text-sm font-semibold text-muted"
+          >
             More options
-          </summary>
-          <div className="mt-3 space-y-3">
-            <label className="flex min-h-11 items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={myEntry.muted}
-                onChange={(e) => upsert.mutate({ muted: e.target.checked })}
-                className="size-5"
-              />
-              🔕 Mute notifications for this book
-            </label>
-
-            {myEntry.status === 'finished' && (
-              <div>
-                {myEntry.is_rereading ? (
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-semibold">🔁 Rereading</span>
-                    <button
-                      onClick={() => upsert.mutate({ is_rereading: false })}
-                      className="min-h-9 rounded-full border border-border px-3 py-2 text-xs font-medium leading-tight"
-                    >
-                      Finish reread
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() =>
-                      upsert.mutate({
-                        is_rereading: true,
-                        current_chapter_id: null,
-                        spoil_me: false,
-                      })
-                    }
-                    className="min-h-9 w-full rounded-full border border-border px-3 py-2 text-xs font-medium leading-tight"
-                  >
-                    🔁 Start a reread
-                  </button>
-                )}
-              </div>
-            )}
-
-            {(myEntry.status === 'dnf' || myEntry.is_rereading) && (
+            <span>{showMoreOptions ? '▲' : '▼'}</span>
+          </button>
+          {showMoreOptions && (
+            <div className="mt-3 space-y-3">
               <label className="flex min-h-11 items-center gap-2 text-sm">
                 <input
                   type="checkbox"
-                  checked={myEntry.spoil_me}
-                  onChange={(e) => upsert.mutate({ spoil_me: e.target.checked })}
+                  checked={myEntry.muted}
+                  onChange={(e) => upsert.mutate({ muted: e.target.checked })}
                   className="size-5"
                 />
-                {myEntry.is_rereading
-                  ? 'View full thread anyway — see comments ahead of your reread position'
-                  : 'Spoil me — unlock full access anyway'}
+                🔕 Mute notifications for this book
               </label>
-            )}
-          </div>
-        </details>
+
+              {myEntry.status === 'finished' && (
+                <div>
+                  {myEntry.is_rereading ? (
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-semibold">🔁 Rereading</span>
+                      <button
+                        onClick={() => upsert.mutate({ is_rereading: false })}
+                        className="min-h-9 rounded-full border border-border px-3 py-2 text-xs font-medium leading-tight"
+                      >
+                        Finish reread
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() =>
+                        upsert.mutate({
+                          is_rereading: true,
+                          current_chapter_id: null,
+                          spoil_me: false,
+                        })
+                      }
+                      className="min-h-9 w-full rounded-full border border-border px-3 py-2 text-xs font-medium leading-tight"
+                    >
+                      🔁 Start a reread
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {(myEntry.status === 'dnf' || myEntry.is_rereading) && (
+                <label className="flex min-h-11 items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={myEntry.spoil_me}
+                    onChange={(e) => upsert.mutate({ spoil_me: e.target.checked })}
+                    className="size-5"
+                  />
+                  {myEntry.is_rereading
+                    ? 'View full thread anyway — see comments ahead of your reread position'
+                    : 'Spoil me — unlock full access anyway'}
+                </label>
+              )}
+            </div>
+          )}
+        </div>
       )}
 
       <div>
@@ -184,20 +192,26 @@ export default function BookDetail({ group }: { group: MyGroup }) {
       <p className="text-xs text-muted">Group: {group.name}</p>
 
       {group.role === 'admin' && (
-        <details className="rounded-card border border-red-200 bg-surface p-3">
-          <summary className="min-h-9 cursor-pointer text-sm font-semibold text-red-600">
+        <div className="rounded-card border border-red-200 bg-surface p-3">
+          <button
+            onClick={() => setShowDangerZone((s) => !s)}
+            className="flex min-h-9 w-full items-center justify-between text-left text-sm font-semibold text-red-600"
+          >
             Danger zone
-          </summary>
-          <div className="mt-3">
-            <button
-              onClick={handleDelete}
-              disabled={!book || deleteBook.isPending}
-              className="min-h-10 w-full rounded-lg border border-red-600 px-3 py-2 text-sm font-semibold text-red-600 disabled:opacity-60"
-            >
-              {deleteBook.isPending ? 'Deleting…' : 'Delete this book'}
-            </button>
-          </div>
-        </details>
+            <span>{showDangerZone ? '▲' : '▼'}</span>
+          </button>
+          {showDangerZone && (
+            <div className="mt-3">
+              <button
+                onClick={handleDelete}
+                disabled={!book || deleteBook.isPending}
+                className="min-h-10 w-full rounded-lg border border-red-600 px-3 py-2 text-sm font-semibold text-red-600 disabled:opacity-60"
+              >
+                {deleteBook.isPending ? 'Deleting…' : 'Delete this book'}
+              </button>
+            </div>
+          )}
+        </div>
       )}
     </div>
   )
