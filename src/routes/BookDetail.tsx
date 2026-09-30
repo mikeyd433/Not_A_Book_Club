@@ -1,8 +1,10 @@
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import {
+  useBook,
   useBookShelfEntries,
   useChapters,
+  useDeleteBook,
   useMyShelfEntry,
   useUpsertShelfEntry,
 } from '@/lib/books/queries'
@@ -22,11 +24,26 @@ const STATUSES: ShelfStatus[] = [
 
 export default function BookDetail({ group }: { group: MyGroup }) {
   const { bookId } = useParams<{ bookId: string }>()
+  const navigate = useNavigate()
+  const { data: book } = useBook(bookId!)
   const { data: chapters } = useChapters(bookId!)
   const { data: myEntry } = useMyShelfEntry(bookId!)
   const { data: everyone } = useBookShelfEntries(bookId!)
   const upsert = useUpsertShelfEntry(bookId!)
+  const deleteBook = useDeleteBook(group.id)
   const [showPicker, setShowPicker] = useState(false)
+
+  function handleDelete() {
+    if (!book) return
+    if (
+      !window.confirm(
+        `Permanently delete "${book.title}"? This removes every chapter, comment, rating, and cover for it — there's no undoing this.`,
+      )
+    ) {
+      return
+    }
+    deleteBook.mutate(book.id, { onSuccess: () => navigate('/') })
+  }
 
   const currentChapter = chapters?.find((c) => c.id === myEntry?.current_chapter_id)
 
@@ -165,6 +182,23 @@ export default function BookDetail({ group }: { group: MyGroup }) {
       </div>
 
       <p className="text-xs text-muted">Group: {group.name}</p>
+
+      {group.role === 'admin' && (
+        <details className="rounded-card border border-red-200 bg-surface p-3">
+          <summary className="min-h-9 cursor-pointer text-sm font-semibold text-red-600">
+            Danger zone
+          </summary>
+          <div className="mt-3">
+            <button
+              onClick={handleDelete}
+              disabled={!book || deleteBook.isPending}
+              className="min-h-10 w-full rounded-lg border border-red-600 px-3 py-2 text-sm font-semibold text-red-600 disabled:opacity-60"
+            >
+              {deleteBook.isPending ? 'Deleting…' : 'Delete this book'}
+            </button>
+          </div>
+        </details>
+      )}
     </div>
   )
 }

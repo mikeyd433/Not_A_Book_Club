@@ -227,6 +227,41 @@ export function useTaggableChapters(bookId: string): ChapterOption[] {
   }, [chapters, myEntry, fullAccess])
 }
 
+// Admin-only. Deleting the book row cascades through chapters, comments,
+// ratings, predictions, shelf_entries, etc. server-side (FK ON DELETE
+// CASCADE) -- covers row deletion cascades too, but their files in Storage
+// don't disappear just because the DB row referencing them does, so those
+// are removed here as a best-effort client-side step, same as
+// useDeleteCover already does for a single cover.
+export function useDeleteBook(groupId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (bookId: string) => {
+      const { data: covers, error: coversError } = await supabase
+        .from('covers')
+        .select('storage_path')
+        .eq('book_id', bookId)
+      if (coversError) throw coversError
+
+      const { error: deleteError } = await supabase
+        .from('books')
+        .delete()
+        .eq('id', bookId)
+      if (deleteError) throw deleteError
+
+      if (covers && covers.length > 0) {
+        await supabase.storage
+          .from('covers')
+          .remove(covers.map((c) => c.storage_path))
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['books', groupId] })
+    },
+  })
+}
+
 export function useUpsertShelfEntry(bookId: string) {
   const queryClient = useQueryClient()
   const { user } = useAuth()

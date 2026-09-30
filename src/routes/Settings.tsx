@@ -18,6 +18,7 @@ export default function Settings({ group }: { group: MyGroup }) {
   const queryClient = useQueryClient()
   const { user } = useAuth()
   const inviteUrl = `${window.location.origin}/nabc/?invite=${group.invite_code}`
+  const [memberError, setMemberError] = useState('')
 
   const { data: members } = useQuery({
     queryKey: ['group-members', group.id],
@@ -39,6 +40,49 @@ export default function Settings({ group }: { group: MyGroup }) {
       .eq('group_id', group.id)
       .eq('user_id', userId)
     queryClient.invalidateQueries({ queryKey: ['group-members', group.id] })
+  }
+
+  async function removeMember(userId: string, displayName: string) {
+    if (!window.confirm(`Remove ${displayName} from the group?`)) return
+    setMemberError('')
+
+    const { error } = await supabase
+      .from('group_members')
+      .delete()
+      .eq('group_id', group.id)
+      .eq('user_id', userId)
+
+    // The last-admin guard trigger raises a plain Postgres exception --
+    // its message is already written for a human, just surface it as-is.
+    if (error) {
+      setMemberError(error.message)
+      return
+    }
+    queryClient.invalidateQueries({ queryKey: ['group-members', group.id] })
+  }
+
+  const regenerateCode = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc('regenerate_invite_code', {
+        p_group_id: group.id,
+      })
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-group', user?.id] })
+    },
+  })
+
+  function handleRegenerateCode() {
+    if (
+      !window.confirm(
+        'Generate a new invite code? The current code will stop working immediately.',
+      )
+    ) {
+      return
+    }
+    regenerateCode.mutate()
   }
 
   const pushSupported = isPushSupported()
@@ -82,34 +126,54 @@ export default function Settings({ group }: { group: MyGroup }) {
           >
             Copy invite link
           </button>
+          {group.role === 'admin' && (
+            <button
+              onClick={handleRegenerateCode}
+              disabled={regenerateCode.isPending}
+              className="min-h-11 rounded-lg border border-border px-3 py-2 text-xs disabled:opacity-60"
+            >
+              Regenerate
+            </button>
+          )}
         </div>
       </div>
 
       <div>
         <h2 className="text-sm font-semibold text-muted">Members</h2>
         <ul className="mt-2 space-y-1">
-          {members?.map((m) => (
-            <li
-              key={m.user_id}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-surface px-3 py-2 text-sm"
-            >
-              <span className="min-w-0 truncate">
-                {m.profiles?.display_name ?? 'Someone'}
-              </span>
-              <span className="flex items-center gap-2">
-                <span className="text-xs text-muted">{m.role}</span>
-                {group.role === 'admin' && m.role !== 'admin' && (
-                  <button
-                    onClick={() => promote(m.user_id)}
-                    className="min-h-9 rounded-full border border-accent px-3 py-1.5 text-xs text-accent"
-                  >
-                    Make admin
-                  </button>
-                )}
-              </span>
-            </li>
-          ))}
+          {members?.map((m) => {
+            const displayName = m.profiles?.display_name ?? 'Someone'
+            const isSelf = m.user_id === user?.id
+            return (
+              <li
+                key={m.user_id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-surface px-3 py-2 text-sm"
+              >
+                <span className="min-w-0 truncate">{displayName}</span>
+                <span className="flex items-center gap-2">
+                  <span className="text-xs text-muted">{m.role}</span>
+                  {group.role === 'admin' && m.role !== 'admin' && (
+                    <button
+                      onClick={() => promote(m.user_id)}
+                      className="min-h-9 rounded-full border border-accent px-3 py-1.5 text-xs text-accent"
+                    >
+                      Make admin
+                    </button>
+                  )}
+                  {group.role === 'admin' && !isSelf && (
+                    <button
+                      onClick={() => removeMember(m.user_id, displayName)}
+                      className="min-h-9 rounded-full border border-border px-3 py-1.5 text-xs text-red-600"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </span>
+              </li>
+            )
+          })}
         </ul>
+        {memberError && <p className="mt-2 text-xs text-red-600">{memberError}</p>}
       </div>
 
       <div>
