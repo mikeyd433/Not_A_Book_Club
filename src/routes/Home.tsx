@@ -93,7 +93,7 @@ function BookRow({
 
   return (
     <Link
-      to={`/book/${book.id}`}
+      to={`/book/${book.id}/thread`}
       className="flex gap-3 rounded-card bg-surface p-3"
     >
       <CoverThumb

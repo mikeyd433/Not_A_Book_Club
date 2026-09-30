@@ -1,13 +1,11 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import {
-  useBook,
   useBookShelfEntries,
   useChapters,
   useMyShelfEntry,
   useUpsertShelfEntry,
 } from '@/lib/books/queries'
-import CoverThumb from '@/components/CoverThumb'
 import ChapterWheelPicker from '@/components/ChapterWheelPicker'
 import { celebrate } from '@/lib/celebrate'
 import { SHELF_STATUS_LABELS, type ShelfStatus } from '@/types/domain'
@@ -24,58 +22,16 @@ const STATUSES: ShelfStatus[] = [
 
 export default function BookDetail({ group }: { group: MyGroup }) {
   const { bookId } = useParams<{ bookId: string }>()
-  const { data: book } = useBook(bookId!)
   const { data: chapters } = useChapters(bookId!)
   const { data: myEntry } = useMyShelfEntry(bookId!)
   const { data: everyone } = useBookShelfEntries(bookId!)
   const upsert = useUpsertShelfEntry(bookId!)
   const [showPicker, setShowPicker] = useState(false)
 
-  if (!book) return <p className="text-sm text-muted">Loading…</p>
-
   const currentChapter = chapters?.find((c) => c.id === myEntry?.current_chapter_id)
 
   return (
     <div className="space-y-5">
-      <div className="flex gap-4">
-        <Link to={`/book/${book.id}/covers`} className="w-24 flex-shrink-0">
-          <CoverThumb
-            book={book}
-            personalCoverPath={myEntry?.personal_cover?.storage_path}
-          />
-        </Link>
-        <div className="min-w-0">
-          <h1 className="break-words text-lg font-bold">{book.title}</h1>
-          <p className="break-words text-sm text-muted">{book.author}</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <Link
-              to={`/book/${book.id}/covers`}
-              className="min-h-9 rounded-full border border-border px-3 py-2 text-xs leading-tight"
-            >
-              Covers
-            </Link>
-            <Link
-              to={`/book/${book.id}/chapters`}
-              className="min-h-9 rounded-full border border-border px-3 py-2 text-xs leading-tight"
-            >
-              Chapters ({chapters?.length ?? 0})
-            </Link>
-            <Link
-              to={`/book/${book.id}/thread`}
-              className="min-h-9 rounded-full bg-accent px-3 py-2 text-xs leading-tight text-accent-contrast"
-            >
-              Discussion
-            </Link>
-            <Link
-              to={`/book/${book.id}/reviews`}
-              className="min-h-9 rounded-full border border-border px-3 py-2 text-xs leading-tight"
-            >
-              ⭐ Reviews
-            </Link>
-          </div>
-        </div>
-      </div>
-
       <div>
         <h2 className="text-sm font-semibold text-muted">Your shelf</h2>
         <select
