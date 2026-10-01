@@ -18,12 +18,19 @@ html {
      bouncing the whole page horizontally if something briefly overflows. */
   -webkit-text-size-adjust: 100%;
   overflow-x: hidden;
+  /* Explicit, not left to default: some Android WebView/Chrome builds
+     treat a single-axis `overflow` on the root element as disabling the
+     browser's native viewport scroll container entirely, rather than
+     defaulting the other axis to `visible` -- which broke vertical
+     scrolling on every mobile page, not just one. */
+  overflow-y: auto;
 }
 
 body {
   background-color: var(--color-bg);
   color: var(--color-text);
   overflow-x: hidden;
+  overflow-y: auto;
   /* contain, not none: stops pull-to-refresh/scroll chaining to the
      browser the same way, but `none` has a real Android Chrome failure
      mode -- if a page's content is at or just under viewport height
