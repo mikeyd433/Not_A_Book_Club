@@ -8,7 +8,7 @@ import type { MyGroup } from '@/lib/group/useMyGroup'
 // so neither earns permanent chrome the way a persistent nav tab would.
 export default function Layout({ group }: { group: MyGroup }) {
   return (
-    <div className="min-h-screen bg-bg pb-6">
+    <div className="min-h-screen bg-bg pb-[calc(2rem+env(safe-area-inset-bottom))]">
       <AchievementWatcher />
       <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-surface px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <div className="min-w-0">
