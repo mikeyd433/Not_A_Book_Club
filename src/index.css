@@ -31,14 +31,14 @@ body {
   color: var(--color-text);
   overflow-x: hidden;
   overflow-y: auto;
-  /* contain, not none: stops pull-to-refresh/scroll chaining to the
-     browser the same way, but `none` has a real Android Chrome failure
-     mode -- if a page's content is at or just under viewport height
-     (as Overview can be, e.g. for a book with few members), the browser
-     can decide upfront there's nothing to scroll and stop recognizing
-     scroll gestures on that page entirely, even after a toggle grows the
-     content taller. */
-  overscroll-behavior-y: contain;
+  /* No overscroll-behavior-y here: both `none` and `contain` have been
+     observed to make Chrome/Edge misjudge the scrollable range on this
+     page (with explicit overflow-y set on both html and body) and
+     immediately rubber-band back on every wheel/trackpad/keyboard scroll
+     attempt, as if there were nothing to scroll -- even though a native
+     scrollbar drag still worked, confirming the content really was
+     scrollable. Not worth the broken scrolling to get pull-to-refresh
+     prevention. */
 }
 
 /* Chrome/Safari scrollbar hiding for the chapter wheel picker; Firefox is
