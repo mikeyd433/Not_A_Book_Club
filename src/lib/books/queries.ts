@@ -293,6 +293,16 @@ export function useUpsertShelfEntry(bookId: string) {
       queryClient.invalidateQueries({ queryKey: ['shelf-entry', bookId, user?.id] })
       queryClient.invalidateQueries({ queryKey: ['shelf-entries', bookId] })
       queryClient.invalidateQueries({ queryKey: ['books'] })
+      // A patch here can change full-access status (e.g. starting a reread
+      // re-locks the thread), so anything gated by chapter position needs
+      // to be refetched too -- otherwise a still-fresh cached query can
+      // keep serving comments/predictions/ratings from before the lock
+      // changed, for as long as its staleTime window lasts.
+      queryClient.invalidateQueries({ queryKey: ['comments', bookId] })
+      queryClient.invalidateQueries({ queryKey: ['locked-comment-count', bookId] })
+      queryClient.invalidateQueries({ queryKey: ['predictions', bookId] })
+      queryClient.invalidateQueries({ queryKey: ['prediction-scoreboard', bookId] })
+      queryClient.invalidateQueries({ queryKey: ['ratings', bookId] })
     },
   })
 }

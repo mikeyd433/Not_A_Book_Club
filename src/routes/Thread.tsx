@@ -135,9 +135,12 @@ export default function Thread({ group }: { group: MyGroup }) {
             <Composer
               chapters={taggableChapters}
               defaultChapterId={myEntry!.current_chapter_id}
-              onSubmit={(input) =>
-                postComment.mutate({ ...input, madeDuringReread: myEntry!.is_rereading })
-              }
+              onSubmit={async (input) => {
+                await postComment.mutateAsync({
+                  ...input,
+                  madeDuringReread: myEntry!.is_rereading,
+                })
+              }}
             />
           ) : (
             <p className="rounded-lg bg-surface-alt p-3 text-xs text-muted">
@@ -154,16 +157,13 @@ export default function Thread({ group }: { group: MyGroup }) {
                 taggableChapters={taggableChapters}
                 isAdmin={isAdmin}
                 bookId={bookId!}
-                onReply={(chapterId, body, parentId, photo, gifUrl) =>
-                  postComment.mutate({
-                    chapterId,
-                    body,
+                onReply={async (input, parentId) => {
+                  await postComment.mutateAsync({
+                    ...input,
                     parentId,
-                    photo,
-                    gifUrl,
                     madeDuringReread: myEntry!.is_rereading,
                   })
-                }
+                }}
               />
             ))}
           </ul>
@@ -302,13 +302,7 @@ function CommentNode({
   taggableChapters: ChapterOption[]
   isAdmin: boolean
   bookId: string
-  onReply: (
-    chapterId: string,
-    body: string,
-    parentId: string,
-    photo?: File | null,
-    gifUrl?: string | null,
-  ) => void
+  onReply: (input: ComposerSubmit, parentId: string) => Promise<void>
   depth?: number
 }) {
   const { user } = useAuth()
@@ -476,8 +470,8 @@ function CommentNode({
             <Composer
               chapters={replyChapters}
               defaultChapterId={comment.chapter_id}
-              onSubmit={(input) => {
-                onReply(input.chapterId, input.body, comment.id, input.photo, input.gifUrl)
+              onSubmit={async (input) => {
+                await onReply(input, comment.id)
                 setReplying(false)
               }}
               compact
@@ -522,7 +516,7 @@ function Composer({
 }: {
   chapters: ChapterOption[]
   defaultChapterId: string | null
-  onSubmit: (input: ComposerSubmit) => void
+  onSubmit: (input: ComposerSubmit) => Promise<void>
   compact?: boolean
 }) {
   const [chapterId, setChapterId] = useState(
@@ -539,6 +533,8 @@ function Composer({
   const [gifUrl, setGifUrl] = useState<string | null>(null)
   const [pickingGif, setPickingGif] = useState(false)
   const [showAttachMenu, setShowAttachMenu] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
 
   function handleInsertSpoiler() {
     if (!spoilerText.trim()) return
@@ -552,17 +548,28 @@ function Composer({
     setAddingSpoiler(false)
   }
 
-  function handleSubmit() {
-    if (!body.trim() || !chapterId) return
-    onSubmit({ chapterId, body: body.trim(), noSpoilers, spoilerBlocks, photo, gifUrl })
-    setBody('')
-    setNoSpoilers(false)
-    setSpoilerBlocks([])
-    setPhoto(null)
-    if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl)
-    setPhotoPreviewUrl(null)
-    setGifUrl(null)
-    setShowAttachMenu(false)
+  async function handleSubmit() {
+    if (!body.trim() || !chapterId || submitting) return
+    setSubmitting(true)
+    setSubmitError('')
+    try {
+      await onSubmit({ chapterId, body: body.trim(), noSpoilers, spoilerBlocks, photo, gifUrl })
+      // Only clear on confirmed success -- clearing unconditionally after a
+      // fire-and-forget mutate() used to silently lose the user's text (and
+      // any spoiler blocks/attachment) if the request failed partway.
+      setBody('')
+      setNoSpoilers(false)
+      setSpoilerBlocks([])
+      setPhoto(null)
+      if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl)
+      setPhotoPreviewUrl(null)
+      setGifUrl(null)
+      setShowAttachMenu(false)
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Failed to post — try again.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   function handlePhotoChange(file: File | null) {
@@ -729,11 +736,15 @@ function Composer({
         </div>
       </div>
 
+      {submitError && (
+        <p className="mt-1 text-xs text-red-600">{submitError}</p>
+      )}
       <button
         onClick={handleSubmit}
-        className="mt-1 min-h-10 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-contrast"
+        disabled={submitting}
+        className="mt-1 min-h-10 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-contrast disabled:opacity-60"
       >
-        Post
+        {submitting ? 'Posting…' : 'Post'}
       </button>
     </div>
   )
