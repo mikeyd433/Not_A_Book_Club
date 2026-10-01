@@ -24,7 +24,14 @@ body {
   background-color: var(--color-bg);
   color: var(--color-text);
   overflow-x: hidden;
-  overscroll-behavior-y: none;
+  /* contain, not none: stops pull-to-refresh/scroll chaining to the
+     browser the same way, but `none` has a real Android Chrome failure
+     mode -- if a page's content is at or just under viewport height
+     (as Overview can be, e.g. for a book with few members), the browser
+     can decide upfront there's nothing to scroll and stop recognizing
+     scroll gestures on that page entirely, even after a toggle grows the
+     content taller. */
+  overscroll-behavior-y: contain;
 }
 
 /* Chrome/Safari scrollbar hiding for the chapter wheel picker; Firefox is
