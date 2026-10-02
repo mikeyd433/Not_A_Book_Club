@@ -83,6 +83,27 @@ export function useAddBook(groupId: string) {
   })
 }
 
+// Purely informational -- "no more chapters expected" -- not a lock.
+// Anyone who can update the book row (any group member, same as the
+// accent-color update after a cover upload) can toggle it either way;
+// chapters can still be added/edited/removed after it's set.
+export function useSetBookComplete(bookId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (isComplete: boolean) => {
+      const { error } = await supabase
+        .from('books')
+        .update({ is_complete: isComplete })
+        .eq('id', bookId)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['book', bookId] })
+    },
+  })
+}
+
 // === chapters =================================================================
 
 export function useChapters(bookId: string) {

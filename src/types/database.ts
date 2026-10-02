@@ -90,6 +90,7 @@ export type Database = {
           default_cover_id: string | null
           group_id: string
           id: string
+          is_complete: boolean
           open_library_cover_url: string | null
           open_library_id: string | null
           title: string
@@ -102,6 +103,7 @@ export type Database = {
           default_cover_id?: string | null
           group_id: string
           id?: string
+          is_complete?: boolean
           open_library_cover_url?: string | null
           open_library_id?: string | null
           title: string
@@ -114,6 +116,7 @@ export type Database = {
           default_cover_id?: string | null
           group_id?: string
           id?: string
+          is_complete?: boolean
           open_library_cover_url?: string | null
           open_library_id?: string | null
           title?: string
@@ -938,6 +941,7 @@ export type Database = {
           default_cover_id: string | null
           group_id: string
           id: string
+          is_complete: boolean
           open_library_cover_url: string | null
           open_library_id: string | null
           title: string

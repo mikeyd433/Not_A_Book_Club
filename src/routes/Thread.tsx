@@ -59,6 +59,7 @@ export default function Thread({ group }: { group: MyGroup }) {
   const isAdmin = group.role === 'admin'
   const [tab, setTab] = useState<'discussion' | 'predictions'>('discussion')
   const [addChapterError, setAddChapterError] = useState('')
+  const [hideComments, setHideComments] = useState(false)
 
   async function handleAddFirstChapter() {
     const defaultLabel = `Chapter ${addNextChapter.nextPosition}`
@@ -181,6 +182,7 @@ export default function Thread({ group }: { group: MyGroup }) {
                   ...input,
                   madeDuringReread: myEntry!.is_rereading,
                 })
+                setHideComments(false)
               }}
             />
           ) : (
@@ -189,25 +191,50 @@ export default function Thread({ group }: { group: MyGroup }) {
             </p>
           )}
 
-          <ul className="space-y-3">
-            {tree.map((node) => (
-              <CommentNode
-                key={node.comment.id}
-                node={node}
-                showChapterTag={sortPref !== 'chapter'}
-                taggableChapters={taggableChapters}
-                isAdmin={isAdmin}
-                bookId={bookId!}
-                onReply={async (input, parentId) => {
-                  await postComment.mutateAsync({
-                    ...input,
-                    parentId,
-                    madeDuringReread: myEntry!.is_rereading,
-                  })
-                }}
-              />
+          {tree.length > 0 &&
+            (hideComments ? (
+              <div className="rounded-card bg-surface-alt p-4 text-center">
+                <p className="text-sm text-muted">
+                  🙈 {comments?.length ?? 0} comment
+                  {(comments?.length ?? 0) === 1 ? '' : 's'} hidden so you can
+                  write yours first.
+                </p>
+                <button
+                  onClick={() => setHideComments(false)}
+                  className="mt-2 min-h-9 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-accent"
+                >
+                  Reveal comments
+                </button>
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={() => setHideComments(true)}
+                  className="min-h-9 text-xs text-muted underline"
+                >
+                  🙈 Hide comments until I post mine
+                </button>
+                <ul className="space-y-3">
+                  {tree.map((node) => (
+                    <CommentNode
+                      key={node.comment.id}
+                      node={node}
+                      showChapterTag={sortPref !== 'chapter'}
+                      taggableChapters={taggableChapters}
+                      isAdmin={isAdmin}
+                      bookId={bookId!}
+                      onReply={async (input, parentId) => {
+                        await postComment.mutateAsync({
+                          ...input,
+                          parentId,
+                          madeDuringReread: myEntry!.is_rereading,
+                        })
+                      }}
+                    />
+                  ))}
+                </ul>
+              </>
             ))}
-          </ul>
 
           {Boolean(lockedCount) && (
             <p className="rounded-lg bg-surface-alt p-3 text-center text-xs text-muted">

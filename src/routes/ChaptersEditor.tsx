@@ -3,10 +3,12 @@ import { useParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import {
+  useBook,
   useChapterSnapshot,
   useChapters,
   useDeleteChapter,
   useMyShelfEntry,
+  useSetBookComplete,
   useUpdateChapter,
 } from '@/lib/books/queries'
 import ChapterSetupPanel from '@/components/ChapterSetupPanel'
@@ -18,11 +20,13 @@ type Chapter = Tables<'chapters'>
 export default function ChaptersEditor({ group: _group }: { group: MyGroup }) {
   const { bookId } = useParams<{ bookId: string }>()
   const queryClient = useQueryClient()
+  const { data: book } = useBook(bookId!)
   const { data: chapters } = useChapters(bookId!)
   const { data: myEntry } = useMyShelfEntry(bookId!)
   const updateChapter = useUpdateChapter(bookId!)
   const deleteChapter = useDeleteChapter(bookId!)
   const snapshot = useChapterSnapshot(bookId!)
+  const setComplete = useSetBookComplete(bookId!)
 
   const canEdit = myEntry?.status === 'reading' || myEntry?.status === 'paused'
 
@@ -65,7 +69,35 @@ export default function ChaptersEditor({ group: _group }: { group: MyGroup }) {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-lg font-bold">Chapters</h1>
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-lg font-bold">Chapters</h1>
+        {book &&
+          (book.is_complete ? (
+            <button
+              onClick={() => setComplete.mutate(false)}
+              disabled={setComplete.isPending}
+              className="min-h-9 rounded-full bg-accent px-3 py-1.5 text-xs font-semibold text-accent-contrast disabled:opacity-60"
+            >
+              ✓ Complete — mark ongoing
+            </button>
+          ) : (
+            <button
+              onClick={() => setComplete.mutate(true)}
+              disabled={setComplete.isPending}
+              className="min-h-9 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted disabled:opacity-60"
+            >
+              Mark as complete
+            </button>
+          ))}
+      </div>
+
+      {book?.is_complete && (
+        <p className="rounded-lg bg-surface-alt p-3 text-xs text-muted">
+          This book is marked complete — no more chapters are expected. You
+          can still add, rename, or remove chapters, or mark it ongoing
+          again at any time.
+        </p>
+      )}
 
       {!canEdit && (
         <p className="rounded-lg bg-surface-alt p-3 text-xs text-muted">

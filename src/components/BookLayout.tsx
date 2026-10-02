@@ -46,7 +46,7 @@ export default function BookLayout() {
         </BookTab>
         <BookTab to={`/book/${book.id}/thread`}>Discussion</BookTab>
         <BookTab to={`/book/${book.id}/chapters`}>
-          Chapters ({chapters?.length ?? 0})
+          Chapters ({chapters?.length ?? 0}){book.is_complete ? ' ✓' : ''}
         </BookTab>
         <BookTab to={`/book/${book.id}/reviews`}>⭐ Reviews</BookTab>
         <BookTab to={`/book/${book.id}/covers`}>Covers</BookTab>
