@@ -279,6 +279,7 @@ export type Database = {
           created_at: string
           flagged: boolean
           id: string
+          is_prediction: boolean
           made_during_reread: boolean
           no_spoilers: boolean
           parent_id: string | null
@@ -292,6 +293,7 @@ export type Database = {
           created_at?: string
           flagged?: boolean
           id?: string
+          is_prediction?: boolean
           made_during_reread?: boolean
           no_spoilers?: boolean
           parent_id?: string | null
@@ -305,6 +307,7 @@ export type Database = {
           created_at?: string
           flagged?: boolean
           id?: string
+          is_prediction?: boolean
           made_during_reread?: boolean
           no_spoilers?: boolean
           parent_id?: string | null

@@ -54,6 +54,7 @@ export function usePostComment(bookId: string) {
       noSpoilers?: boolean
       spoilerBlocks?: PendingSpoilerBlock[]
       madeDuringReread?: boolean
+      isPrediction?: boolean
       photo?: File | null
       gifUrl?: string | null
     }) => {
@@ -68,6 +69,7 @@ export function usePostComment(bookId: string) {
           parent_id: input.parentId ?? null,
           no_spoilers: input.noSpoilers ?? false,
           made_during_reread: input.madeDuringReread ?? false,
+          is_prediction: input.isPrediction ?? false,
           user_id: user.id,
         })
         .select()

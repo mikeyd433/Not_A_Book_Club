@@ -1,0 +1,12 @@
+-- Replaces the standalone predictions table/tab/scoreboard with a simple
+-- flag on an ordinary comment: post it like any other comment, optionally
+-- marked as a prediction, and it renders collapsed ("X made a prediction")
+-- until someone taps it to reveal -- a client-side toggle, not a
+-- server-tracked resolved/verdict state like the old system had. Visibility
+-- otherwise follows the exact same chapter-unlock rules as any comment.
+--
+-- The old public.predictions table and public.prediction_scoreboard()
+-- function are now unused by the app but intentionally left in place --
+-- this session's tooling can't run DROP statements, so dropping them (if
+-- wanted) is a manual follow-up via the Supabase SQL editor.
+alter table public.comments add column is_prediction boolean not null default false;

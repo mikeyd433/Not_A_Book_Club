@@ -22,7 +22,6 @@ import {
 import { useAuth } from '@/lib/auth/AuthProvider'
 import { useSearchGifs } from '@/lib/gifs/queries'
 import AttachmentImage from '@/components/AttachmentImage'
-import PredictionsPanel from '@/components/PredictionsPanel'
 import type { MyGroup } from '@/lib/group/useMyGroup'
 import type { Tables } from '@/types/database'
 
@@ -49,7 +48,6 @@ export default function Thread({ group }: { group: MyGroup }) {
   const addNextChapter = useAddChapterAndAdvance(bookId!)
 
   const isAdmin = group.role === 'admin'
-  const [tab, setTab] = useState<'discussion' | 'predictions'>('discussion')
   const [addChapterError, setAddChapterError] = useState('')
 
   async function handleAddFirstChapter() {
@@ -160,18 +158,7 @@ export default function Thread({ group }: { group: MyGroup }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex rounded-lg border border-border p-0.5">
-        <TabButton active={tab === 'discussion'} onClick={() => setTab('discussion')}>
-          Discussion
-        </TabButton>
-        <TabButton active={tab === 'predictions'} onClick={() => setTab('predictions')}>
-          🔮 Predictions
-        </TabButton>
-      </div>
-
-      {tab === 'predictions' ? (
-        <PredictionsPanel bookId={bookId!} />
-      ) : taggableChapters.length === 0 ? (
+      {taggableChapters.length === 0 ? (
         <p className="rounded-lg bg-surface-alt p-3 text-xs text-muted">
           Set your current chapter to start commenting.
         </p>
@@ -307,27 +294,6 @@ function ChapterSection({
   )
 }
 
-function TabButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean
-  onClick: () => void
-  children: ReactNode
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`min-h-9 rounded-md px-3 py-1.5 text-sm font-medium ${
-        active ? 'bg-accent text-accent-contrast' : 'text-muted'
-      }`}
-    >
-      {children}
-    </button>
-  )
-}
-
 type TreeNode = { comment: Comment; children: TreeNode[] }
 
 // Builds parent/child links across every comment regardless of chapter --
@@ -426,6 +392,11 @@ function CommentNode({
   const { user } = useAuth()
   const [replying, setReplying] = useState(false)
   const [retagging, setRetagging] = useState(false)
+  // Predictions start collapsed -- a lightweight, client-side-only tuck-away
+  // (not a server-tracked resolved/verdict state like the old standalone
+  // predictions feature), so replies stay hidden along with it too, to
+  // avoid a reply giving away the gist before it's revealed.
+  const [revealed, setRevealed] = useState(!node.comment.is_prediction)
   const { comment, children } = node
   const flagComment = useFlagComment(bookId)
   const resolveFlag = useResolveFlag(bookId)
@@ -460,6 +431,7 @@ function CommentNode({
             {comment.profiles?.display_name ?? 'Someone'}
           </span>
           <span className="flex items-center gap-1">
+            {comment.is_prediction && <span title="Prediction">🔮</span>}
             {comment.no_spoilers && (
               <span title="No spoilers please">❓</span>
             )}
@@ -474,135 +446,147 @@ function CommentNode({
           </span>
         </div>
 
-        {canModerate && (
-          <div className="mt-2 rounded-lg bg-surface-alt p-2 text-xs">
-            <p className="font-semibold">🚩 Flagged as a spoiler</p>
-            <p className="mt-0.5 text-muted">
-              Only you and admins can see this until it's retagged or removed.
-            </p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <button
-                onClick={() => setRetagging((r) => !r)}
-                className="min-h-9 rounded-md border border-border px-2 py-1.5 font-medium"
-              >
-                Retag
-              </button>
-              <button
-                onClick={() => resolveFlag.mutate({ commentId: comment.id })}
-                className="min-h-9 rounded-md border border-accent px-2 py-1.5 font-medium text-accent"
-              >
-                Dismiss flag
-              </button>
-              <button
-                onClick={() => {
-                  if (window.confirm('Remove this comment?')) {
-                    deleteComment.mutate(comment.id)
-                  }
-                }}
-                className="min-h-9 rounded-md border border-border px-2 py-1.5 font-medium text-red-600"
-              >
-                Remove
-              </button>
-            </div>
-            {retagging && (
-              <select
-                defaultValue=""
-                onChange={(e) => {
-                  if (!e.target.value) return
-                  resolveFlag.mutate({
-                    commentId: comment.id,
-                    chapterId: e.target.value,
-                  })
-                  setRetagging(false)
-                }}
-                className="mt-2 min-h-11 w-full rounded-lg border border-border bg-surface px-2 py-2 text-base"
-              >
-                <option value="" disabled>
-                  Move to chapter…
-                </option>
-                {taggableChapters.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-        )}
-
-        <p className="mt-1 whitespace-pre-wrap break-words text-sm">
-          {renderBody(comment.body, comment.spoiler_blocks)}
-        </p>
-
-        {comment.comment_attachments.map((a) => (
-          <AttachmentImage key={a.id} path={a.storage_path} gifUrl={a.gif_url} />
-        ))}
-
-        <div className="mt-2 flex flex-wrap items-center gap-1">
-          {reactionCounts.map(({ emoji, count, mine }) => (
-            <button
-              key={emoji}
-              onClick={() =>
-                toggleReaction.mutate({
-                  commentId: comment.id,
-                  emoji,
-                  reacted: mine,
-                })
-              }
-              className={`min-h-9 rounded-full border px-2 py-1 text-sm ${
-                mine ? 'border-accent bg-accent/10' : 'border-border'
-              }`}
-            >
-              {emoji}
-              {count > 0 && <span className="ml-1 text-xs">{count}</span>}
-            </button>
-          ))}
-        </div>
-
-        <div className="mt-1 flex flex-wrap">
+        {comment.is_prediction && !revealed ? (
           <button
-            onClick={() => setReplying((r) => !r)}
-            className="-ml-2 min-h-9 rounded-md px-2 py-1.5 text-xs text-accent active:bg-surface-alt"
+            onClick={() => setRevealed(true)}
+            className="mt-2 w-full rounded-lg border border-dashed border-border px-3 py-2 text-left text-xs text-muted"
           >
-            Reply
+            🔮 {comment.profiles?.display_name ?? 'Someone'} made a prediction —
+            tap to reveal
           </button>
-          {!comment.flagged && (
-            <button
-              onClick={() => flagComment.mutate(comment.id)}
-              className="min-h-9 rounded-md px-2 py-1.5 text-xs text-muted active:bg-surface-alt"
-            >
-              🚩 Flag
-            </button>
-          )}
-          {isAuthor && !comment.flagged && (
-            <button
-              onClick={() => {
-                if (window.confirm('Delete this comment?')) {
-                  deleteComment.mutate(comment.id)
-                }
-              }}
-              className="min-h-9 rounded-md px-2 py-1.5 text-xs text-red-600 active:bg-surface-alt"
-            >
-              Delete
-            </button>
-          )}
-        </div>
+        ) : (
+          <>
+            {canModerate && (
+              <div className="mt-2 rounded-lg bg-surface-alt p-2 text-xs">
+                <p className="font-semibold">🚩 Flagged as a spoiler</p>
+                <p className="mt-0.5 text-muted">
+                  Only you and admins can see this until it's retagged or removed.
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setRetagging((r) => !r)}
+                    className="min-h-9 rounded-md border border-border px-2 py-1.5 font-medium"
+                  >
+                    Retag
+                  </button>
+                  <button
+                    onClick={() => resolveFlag.mutate({ commentId: comment.id })}
+                    className="min-h-9 rounded-md border border-accent px-2 py-1.5 font-medium text-accent"
+                  >
+                    Dismiss flag
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (window.confirm('Remove this comment?')) {
+                        deleteComment.mutate(comment.id)
+                      }
+                    }}
+                    className="min-h-9 rounded-md border border-border px-2 py-1.5 font-medium text-red-600"
+                  >
+                    Remove
+                  </button>
+                </div>
+                {retagging && (
+                  <select
+                    defaultValue=""
+                    onChange={(e) => {
+                      if (!e.target.value) return
+                      resolveFlag.mutate({
+                        commentId: comment.id,
+                        chapterId: e.target.value,
+                      })
+                      setRetagging(false)
+                    }}
+                    className="mt-2 min-h-11 w-full rounded-lg border border-border bg-surface px-2 py-2 text-base"
+                  >
+                    <option value="" disabled>
+                      Move to chapter…
+                    </option>
+                    {taggableChapters.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
 
-        {replying && (
-          <div className="mt-2">
-            <Composer
-              chapters={replyChapters}
-              defaultChapterId={comment.chapter_id}
-              onSubmit={async (input) => {
-                await onReply(input, comment.id)
-                setReplying(false)
-              }}
-              compact
-            />
-          </div>
+            <p className="mt-1 whitespace-pre-wrap break-words text-sm">
+              {renderBody(comment.body, comment.spoiler_blocks)}
+            </p>
+
+            {comment.comment_attachments.map((a) => (
+              <AttachmentImage key={a.id} path={a.storage_path} gifUrl={a.gif_url} />
+            ))}
+
+            <div className="mt-2 flex flex-wrap items-center gap-1">
+              {reactionCounts.map(({ emoji, count, mine }) => (
+                <button
+                  key={emoji}
+                  onClick={() =>
+                    toggleReaction.mutate({
+                      commentId: comment.id,
+                      emoji,
+                      reacted: mine,
+                    })
+                  }
+                  className={`min-h-9 rounded-full border px-2 py-1 text-sm ${
+                    mine ? 'border-accent bg-accent/10' : 'border-border'
+                  }`}
+                >
+                  {emoji}
+                  {count > 0 && <span className="ml-1 text-xs">{count}</span>}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-1 flex flex-wrap">
+              <button
+                onClick={() => setReplying((r) => !r)}
+                className="-ml-2 min-h-9 rounded-md px-2 py-1.5 text-xs text-accent active:bg-surface-alt"
+              >
+                Reply
+              </button>
+              {!comment.flagged && (
+                <button
+                  onClick={() => flagComment.mutate(comment.id)}
+                  className="min-h-9 rounded-md px-2 py-1.5 text-xs text-muted active:bg-surface-alt"
+                >
+                  🚩 Flag
+                </button>
+              )}
+              {isAuthor && !comment.flagged && (
+                <button
+                  onClick={() => {
+                    if (window.confirm('Delete this comment?')) {
+                      deleteComment.mutate(comment.id)
+                    }
+                  }}
+                  className="min-h-9 rounded-md px-2 py-1.5 text-xs text-red-600 active:bg-surface-alt"
+                >
+                  Delete
+                </button>
+              )}
+            </div>
+
+            {replying && (
+              <div className="mt-2">
+                <Composer
+                  chapters={replyChapters}
+                  defaultChapterId={comment.chapter_id}
+                  onSubmit={async (input) => {
+                    await onReply(input, comment.id)
+                    setReplying(false)
+                  }}
+                  compact
+                />
+              </div>
+            )}
+          </>
         )}
       </div>
-      {children.length > 0 && (
+      {children.length > 0 && revealed && (
         <ul className="mt-2 space-y-2">
           {children.map((child) => (
             <CommentNode
@@ -627,6 +611,7 @@ type ComposerSubmit = {
   body: string
   noSpoilers?: boolean
   spoilerBlocks?: PendingSpoilerBlock[]
+  isPrediction?: boolean
   photo?: File | null
   gifUrl?: string | null
 }
@@ -647,6 +632,7 @@ function Composer({
   )
   const [body, setBody] = useState('')
   const [noSpoilers, setNoSpoilers] = useState(false)
+  const [isPrediction, setIsPrediction] = useState(false)
   const [spoilerBlocks, setSpoilerBlocks] = useState<PendingSpoilerBlock[]>([])
   const [addingSpoiler, setAddingSpoiler] = useState(false)
   const [spoilerChapterId, setSpoilerChapterId] = useState(chapterId)
@@ -676,12 +662,21 @@ function Composer({
     setSubmitting(true)
     setSubmitError('')
     try {
-      await onSubmit({ chapterId, body: body.trim(), noSpoilers, spoilerBlocks, photo, gifUrl })
+      await onSubmit({
+        chapterId,
+        body: body.trim(),
+        noSpoilers,
+        spoilerBlocks,
+        isPrediction,
+        photo,
+        gifUrl,
+      })
       // Only clear on confirmed success -- clearing unconditionally after a
       // fire-and-forget mutate() used to silently lose the user's text (and
       // any spoiler blocks/attachment) if the request failed partway.
       setBody('')
       setNoSpoilers(false)
+      setIsPrediction(false)
       setSpoilerBlocks([])
       setPhoto(null)
       if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl)
@@ -802,7 +797,7 @@ function Composer({
         <GifPicker onPick={handlePickGif} onCancel={() => setPickingGif(false)} />
       )}
 
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
         <label className="flex min-h-9 items-center gap-1.5 text-xs text-muted">
           <input
             type="checkbox"
@@ -812,6 +807,18 @@ function Composer({
           />
           ❓ No spoilers please
         </label>
+        <label className="flex min-h-9 items-center gap-1.5 text-xs text-muted">
+          <input
+            type="checkbox"
+            checked={isPrediction}
+            onChange={(e) => setIsPrediction(e.target.checked)}
+            className="size-4"
+          />
+          🔮 Mark as a prediction
+        </label>
+      </div>
+
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           {showAttachMenu ? (
             <>
