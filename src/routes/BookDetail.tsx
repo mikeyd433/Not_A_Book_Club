@@ -100,18 +100,43 @@ export default function BookDetail({ group }: { group: MyGroup }) {
     <div className="space-y-5">
       <div>
         <h2 className="text-sm font-semibold text-muted">Your shelf</h2>
-        <select
-          value={myEntry?.status ?? ''}
-          onChange={(e) => upsert.mutate({ status: e.target.value as ShelfStatus })}
-          className="mt-2 min-h-11 w-full rounded-lg border border-border bg-surface px-2 py-2 text-base"
-        >
-          {!myEntry && <option value="" disabled>Not on your shelf</option>}
-          {STATUSES.map((status) => (
-            <option key={status} value={status}>
-              {SHELF_STATUS_LABELS[status]}
-            </option>
-          ))}
-        </select>
+        {!myEntry ? (
+          <div className="mt-2">
+            <p className="text-xs text-muted">
+              Add this book to your shelf to join in — probably{' '}
+              <span className="font-semibold text-accent">Reading now</span>{' '}
+              if you're starting it.
+            </p>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              {STATUSES.map((status) => (
+                <button
+                  key={status}
+                  onClick={() => upsert.mutate({ status })}
+                  disabled={upsert.isPending}
+                  className={`min-h-11 rounded-lg px-3 py-2 text-sm font-medium disabled:opacity-60 ${
+                    status === 'reading'
+                      ? 'bg-accent text-accent-contrast'
+                      : 'border border-border bg-surface text-muted'
+                  }`}
+                >
+                  {SHELF_STATUS_LABELS[status]}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <select
+            value={myEntry.status}
+            onChange={(e) => upsert.mutate({ status: e.target.value as ShelfStatus })}
+            className="mt-2 min-h-11 w-full rounded-lg border border-border bg-surface px-2 py-2 text-base"
+          >
+            {STATUSES.map((status) => (
+              <option key={status} value={status}>
+                {SHELF_STATUS_LABELS[status]}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
       {myEntry && (chapters?.length ?? 0) > 0 && (
