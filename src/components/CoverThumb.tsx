@@ -26,14 +26,14 @@ export default function CoverThumb({
       <img
         src={src}
         alt={book.title}
-        className={`aspect-[2/3] rounded-lg object-cover ${className}`}
+        className={`aspect-[2/3] object-cover ${className}`}
       />
     )
   }
 
   return (
     <div
-      className={`flex aspect-[2/3] items-center justify-center rounded-lg bg-accent p-2 text-center text-xs font-semibold text-accent-contrast ${className}`}
+      className={`flex aspect-[2/3] items-center justify-center bg-accent p-2 text-center text-xs font-semibold text-accent-contrast ${className}`}
     >
       {book.title}
     </div>

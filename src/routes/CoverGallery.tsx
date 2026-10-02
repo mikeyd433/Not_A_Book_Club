@@ -40,7 +40,7 @@ export default function CoverGallery({ group }: { group: MyGroup }) {
                 <img
                   src={coverPublicUrl(cover.storage_path)}
                   alt=""
-                  className="aspect-[2/3] w-full rounded-lg object-cover"
+                  className="aspect-[2/3] w-full object-cover"
                 />
                 {isDefault && (
                   <span className="absolute left-1 top-1 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-accent-contrast">

@@ -87,10 +87,10 @@ export default function AddBook({ group }: { group: MyGroup }) {
               <img
                 src={result.coverUrl}
                 alt=""
-                className="h-16 w-11 shrink-0 rounded object-cover"
+                className="h-16 w-11 shrink-0 object-cover"
               />
             ) : (
-              <div className="h-16 w-11 shrink-0 rounded bg-surface-alt" />
+              <div className="h-16 w-11 shrink-0 bg-surface-alt" />
             )}
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">{result.title}</p>
