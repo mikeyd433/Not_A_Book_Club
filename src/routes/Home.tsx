@@ -1,10 +1,11 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
   useChapters,
   useGroupBooks,
   useMyShelfEntry,
+  useMyShelfStatuses,
 } from '@/lib/books/queries'
 import { useAchievementsCatalog, useAchievementsFeed } from '@/lib/achievements/queries'
 import { useAuth } from '@/lib/auth/AuthProvider'
@@ -14,8 +15,50 @@ import ProgressBar from '@/components/ProgressBar'
 import { SHELF_STATUS_LABELS, type ShelfStatus } from '@/types/domain'
 import type { MyGroup } from '@/lib/group/useMyGroup'
 
+type GroupBook = {
+  id: string
+  title: string
+  author: string | null
+  open_library_cover_url: string | null
+  default_cover: { storage_path: string } | null
+  created_at: string
+}
+
+const SORT_LABELS = {
+  status: 'By status',
+  title: 'Title (A-Z)',
+  recent: 'Recently added',
+} as const
+type SortMode = keyof typeof SORT_LABELS
+
+// "none" covers a book nobody's added to their shelf yet -- shown last,
+// since it's the least relevant group day-to-day and mainly a prompt to
+// pick a status at all.
+const STATUS_GROUPS: (ShelfStatus | 'none')[] = [
+  'reading',
+  'paused',
+  'want_to_read',
+  'finished',
+  'dnf',
+  'read_before_joining',
+  'none',
+]
+const STATUS_GROUP_LABELS: Record<ShelfStatus | 'none', string> = {
+  ...SHELF_STATUS_LABELS,
+  none: 'Not on your shelf',
+}
+
 export default function Home({ group }: { group: MyGroup }) {
   const { data: books, isLoading } = useGroupBooks(group.id)
+  const [sortMode, setSortMode] = useState<SortMode>('status')
+
+  const bookIds = useMemo(() => (books ?? []).map((b) => b.id), [books])
+  const { data: myStatuses } = useMyShelfStatuses(bookIds)
+  const statusByBook = useMemo(() => {
+    const map = new Map<string, ShelfStatus>()
+    myStatuses?.forEach((e) => map.set(e.book_id, e.status as ShelfStatus))
+    return map
+  }, [myStatuses])
 
   if (isLoading) return <p className="text-sm text-muted">Loading…</p>
 
@@ -33,13 +76,51 @@ export default function Home({ group }: { group: MyGroup }) {
     )
   }
 
+  const flatBooks = [...books]
+  if (sortMode === 'title') {
+    flatBooks.sort((a, b) => a.title.localeCompare(b.title))
+  }
+  // 'recent' needs no extra sort -- useGroupBooks already orders by
+  // created_at descending.
+
   return (
     <div className="space-y-3">
-      <h1 className="text-lg font-bold">Your shelf</h1>
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-lg font-bold">Your shelf</h1>
+        <select
+          value={sortMode}
+          onChange={(e) => setSortMode(e.target.value as SortMode)}
+          className="min-h-11 rounded-lg border border-border bg-surface px-2 py-2 text-sm"
+        >
+          {Object.entries(SORT_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </div>
       <AchievementsStrip />
-      {books.map((book) => (
-        <BookRow key={book.id} book={book} />
-      ))}
+
+      {sortMode === 'status'
+        ? STATUS_GROUPS.map((status) => {
+            const groupBooks = (books as GroupBook[]).filter(
+              (b) => (statusByBook.get(b.id) ?? 'none') === status,
+            )
+            if (groupBooks.length === 0) return null
+            return (
+              <div key={status} className="space-y-2">
+                <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">
+                  {STATUS_GROUP_LABELS[status]}
+                </h2>
+                <div className="space-y-2">
+                  {groupBooks.map((book) => (
+                    <BookRow key={book.id} book={book} />
+                  ))}
+                </div>
+              </div>
+            )
+          })
+        : flatBooks.map((book) => <BookRow key={book.id} book={book} />)}
     </div>
   )
 }

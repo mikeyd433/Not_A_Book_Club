@@ -243,6 +243,28 @@ export function useMyShelfEntry(bookId: string) {
   })
 }
 
+// Lightweight -- just enough to group/sort Home's book list by the
+// viewer's own status for each book, without every row needing the full
+// useMyShelfEntry fetch (personal cover join, etc.) up front.
+export function useMyShelfStatuses(bookIds: string[]) {
+  const { user } = useAuth()
+
+  return useQuery({
+    queryKey: ['my-shelf-statuses', user?.id, bookIds],
+    enabled: Boolean(user) && bookIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('shelf_entries')
+        .select('book_id, status')
+        .eq('user_id', user!.id)
+        .in('book_id', bookIds)
+
+      if (error) throw error
+      return data
+    },
+  })
+}
+
 export function useBookShelfEntries(bookId: string) {
   return useQuery({
     queryKey: ['shelf-entries', bookId],
