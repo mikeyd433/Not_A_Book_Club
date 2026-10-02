@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth/AuthProvider'
 import type { ShelfStatus, SortPref } from '@/types/domain'
+import type { Json } from '@/types/database'
 
 export function coverPublicUrl(storagePath: string) {
   return supabase.storage.from('covers').getPublicUrl(storagePath).data
@@ -116,6 +117,23 @@ export function useAddChapters(bookId: string) {
       queryClient.invalidateQueries({ queryKey: ['chapters', bookId] })
     },
   })
+}
+
+// A revert point before a chapter-list edit -- shared by ChaptersEditor's
+// own insert/rename/delete handlers and ChapterSetupPanel's quick-fill/
+// bulk-paste, so both record history the same way instead of drifting.
+export function useChapterSnapshot(bookId: string) {
+  const { user } = useAuth()
+  const { data: chapters } = useChapters(bookId)
+
+  return async function snapshotChapters() {
+    if (!user || !chapters) return
+    await supabase.from('chapter_edits').insert({
+      book_id: bookId,
+      user_id: user.id,
+      snapshot: chapters as unknown as Json,
+    })
+  }
 }
 
 export function useUpdateChapter(bookId: string) {

@@ -1,14 +1,20 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { searchOpenLibrary, type OpenLibraryResult } from '@/lib/openLibrary'
-import { useAddBook } from '@/lib/books/queries'
+import { useAddBook, useMyShelfEntry, useUpsertShelfEntry } from '@/lib/books/queries'
+import ChapterSetupPanel from '@/components/ChapterSetupPanel'
+import CoverUploadPanel from '@/components/CoverUploadPanel'
 import type { MyGroup } from '@/lib/group/useMyGroup'
+import type { Tables } from '@/types/database'
+
+type Book = Tables<'books'>
 
 export default function AddBook({ group }: { group: MyGroup }) {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<OpenLibraryResult[]>([])
   const [searching, setSearching] = useState(false)
+  const [createdBook, setCreatedBook] = useState<Book | null>(null)
   const addBook = useAddBook(group.id)
 
   async function handleSearch() {
@@ -27,7 +33,7 @@ export default function AddBook({ group }: { group: MyGroup }) {
       openLibraryId: result.openLibraryId,
       openLibraryCoverUrl: result.coverUrl,
     })
-    navigate(`/book/${book.id}`)
+    setCreatedBook(book)
   }
 
   async function handleAddManual() {
@@ -37,7 +43,16 @@ export default function AddBook({ group }: { group: MyGroup }) {
       openLibraryId: null,
       openLibraryCoverUrl: null,
     })
-    navigate(`/book/${book.id}`)
+    setCreatedBook(book)
+  }
+
+  if (createdBook) {
+    return (
+      <BookSetupStep
+        book={createdBook}
+        onDone={() => navigate(`/book/${createdBook.id}`)}
+      />
+    )
   }
 
   return (
@@ -101,6 +116,58 @@ export default function AddBook({ group }: { group: MyGroup }) {
           Can't find it? Add "{query}" manually
         </button>
       )}
+    </div>
+  )
+}
+
+// Chapters can only be added by someone currently reading/paused on the
+// book (RLS requires it, same as ChaptersEditor's own canEdit check) --
+// a book you *just* created has no shelf entry at all yet, so this offers
+// one tap to mark yourself as reading before handing off to the real
+// chapter-setup tool. Covers have no such restriction, so that panel is
+// always available.
+function BookSetupStep({ book, onDone }: { book: Book; onDone: () => void }) {
+  const { data: myEntry } = useMyShelfEntry(book.id)
+  const upsertShelf = useUpsertShelfEntry(book.id)
+  const canEditChapters = myEntry?.status === 'reading' || myEntry?.status === 'paused'
+
+  return (
+    <div className="space-y-5">
+      <div className="rounded-card bg-surface p-3">
+        <p className="text-sm font-semibold">✅ Added "{book.title}"</p>
+        <p className="mt-1 text-xs text-muted">
+          Set up chapters and a cover now, or skip — you can always do this
+          later from the book's own Chapters and Covers tabs.
+        </p>
+      </div>
+
+      {myEntry !== undefined &&
+        (canEditChapters ? (
+          <ChapterSetupPanel bookId={book.id} />
+        ) : (
+          <div className="rounded-card bg-surface p-3">
+            <p className="text-sm font-semibold">Chapters</p>
+            <p className="mt-1 text-xs text-muted">
+              Mark yourself as reading this book to set up its chapters now.
+            </p>
+            <button
+              onClick={() => upsertShelf.mutate({ status: 'reading' })}
+              disabled={upsertShelf.isPending}
+              className="mt-2 min-h-11 w-full rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-contrast disabled:opacity-60"
+            >
+              📖 I'm reading this — set up chapters
+            </button>
+          </div>
+        ))}
+
+      <CoverUploadPanel bookId={book.id} />
+
+      <button
+        onClick={onDone}
+        className="min-h-11 w-full rounded-lg border border-border px-4 py-3 text-sm font-semibold"
+      >
+        Done — go to book →
+      </button>
     </div>
   )
 }

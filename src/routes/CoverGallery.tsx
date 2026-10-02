@@ -1,7 +1,4 @@
-import { useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { useQueryClient } from '@tanstack/react-query'
-import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth/AuthProvider'
 import { useBook, useMyShelfEntry, coverPublicUrl } from '@/lib/books/queries'
 import {
@@ -9,113 +6,25 @@ import {
   useDeleteCover,
   useSetDefaultCover,
   useSetPersonalCover,
-  useUploadCover,
 } from '@/lib/covers/queries'
-import CoverCropper from '@/components/CoverCropper'
-import { fileToDataUrl } from '@/lib/image'
+import CoverUploadPanel from '@/components/CoverUploadPanel'
 import type { MyGroup } from '@/lib/group/useMyGroup'
 
 export default function CoverGallery({ group }: { group: MyGroup }) {
   const { bookId } = useParams<{ bookId: string }>()
   const { user } = useAuth()
-  const queryClient = useQueryClient()
   const { data: book } = useBook(bookId!)
   const { data: covers } = useCovers(bookId!)
   const { data: myEntry } = useMyShelfEntry(bookId!)
-  const uploadCover = useUploadCover(bookId!)
   const deleteCover = useDeleteCover(bookId!)
   const setDefaultCover = useSetDefaultCover(bookId!)
   const setPersonalCover = useSetPersonalCover(bookId!)
-
-  const [cropSrc, setCropSrc] = useState<string | null>(null)
-  const [urlInput, setUrlInput] = useState('')
-  const [error, setError] = useState('')
-  const photoInputRef = useRef<HTMLInputElement>(null)
-
-  async function handleFileChosen(file: File | undefined) {
-    if (!file) return
-    setError('')
-    try {
-      setCropSrc(await fileToDataUrl(file))
-    } catch {
-      setError("Couldn't read that file.")
-    }
-  }
-
-  function handleLoadUrl() {
-    if (!urlInput.trim()) return
-    setError('')
-    setCropSrc(urlInput.trim())
-  }
-
-  async function handleCropConfirm(blob: Blob, accent: { accent: string }) {
-    const cover = await uploadCover.mutateAsync(blob)
-
-    // The first cover uploaded auto-becomes the default (DB trigger), but
-    // only *this* client has the accent color it computed while cropping —
-    // carry it over now rather than re-fetching the image to recompute it.
-    const { data: freshBook } = await supabase
-      .from('books')
-      .select('default_cover_id')
-      .eq('id', bookId!)
-      .single()
-    if (freshBook?.default_cover_id === cover.id) {
-      await supabase
-        .from('books')
-        .update({ accent_color: accent.accent })
-        .eq('id', bookId!)
-      queryClient.invalidateQueries({ queryKey: ['book', bookId] })
-    }
-
-    setCropSrc(null)
-    setUrlInput('')
-  }
 
   return (
     <div className="space-y-5">
       <h1 className="text-lg font-bold">Covers</h1>
 
-      <div className="rounded-card bg-surface p-3">
-        <p className="text-sm font-semibold">Add a cover</p>
-        <p className="mt-1 text-xs text-muted">
-          Anyone can add a cover. Every cover is cropped to about 2:3.
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button
-            onClick={() => photoInputRef.current?.click()}
-            className="min-h-11 rounded-lg border border-border px-3 py-2 text-sm font-semibold"
-          >
-            📷 Add photo
-          </button>
-        </div>
-        <input
-          ref={photoInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => {
-            void handleFileChosen(e.target.files?.[0])
-            e.target.value = ''
-          }}
-        />
-
-        <div className="mt-3 flex gap-2">
-          <input
-            type="url"
-            placeholder="Or paste an image URL…"
-            value={urlInput}
-            onChange={(e) => setUrlInput(e.target.value)}
-            className="min-h-11 flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-base outline-none focus:border-accent"
-          />
-          <button
-            onClick={handleLoadUrl}
-            className="min-h-11 shrink-0 rounded-lg border border-border px-3 py-2 text-sm font-semibold"
-          >
-            Load
-          </button>
-        </div>
-        {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
-      </div>
+      <CoverUploadPanel bookId={bookId!} />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {covers?.map((cover) => {
@@ -186,14 +95,6 @@ export default function CoverGallery({ group }: { group: MyGroup }) {
         <p className="text-sm text-muted">
           No uploaded covers yet — {book?.open_library_cover_url ? 'the Open Library cover is showing for now.' : 'a placeholder is showing for now.'}
         </p>
-      )}
-
-      {cropSrc && (
-        <CoverCropper
-          imageSrc={cropSrc}
-          onCancel={() => setCropSrc(null)}
-          onConfirm={handleCropConfirm}
-        />
       )}
     </div>
   )
