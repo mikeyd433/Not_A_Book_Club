@@ -5,6 +5,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import App from './App'
 import { AuthProvider } from '@/lib/auth/AuthProvider'
 import './index.css'
+// Attaches the beforeinstallprompt listener immediately, not just once
+// someone happens to visit Settings -- see pwaInstall.ts for why.
+import '@/lib/pwaInstall'
 
 const queryClient = new QueryClient({
   defaultOptions: {

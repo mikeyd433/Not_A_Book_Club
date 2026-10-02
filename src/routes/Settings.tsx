@@ -12,6 +12,7 @@ import {
   subscribeToPush,
   unsubscribeFromPush,
 } from '@/lib/notifications/push'
+import { isIOS, promptInstall, useInstallPrompt } from '@/lib/pwaInstall'
 import type { MyGroup } from '@/lib/group/useMyGroup'
 
 export default function Settings({ group }: { group: MyGroup }) {
@@ -111,8 +112,33 @@ export default function Settings({ group }: { group: MyGroup }) {
   const { data: prefs } = useMyNotificationPrefs(group.id)
   const updatePrefs = useUpdateNotificationPrefs(group.id)
 
+  const installState = useInstallPrompt()
+  const showManualInstallHint = !installState.installed && !installState.canPrompt && isIOS()
+
   return (
     <div className="space-y-6">
+      {(installState.canPrompt || showManualInstallHint) && (
+        <div className="rounded-card bg-surface p-3">
+          <p className="text-sm font-semibold">📲 Install the app</p>
+          <p className="mt-1 text-xs text-muted">
+            Add Not A Book Club to your home screen for quick access, like a
+            regular app.
+          </p>
+          {installState.canPrompt ? (
+            <button
+              onClick={() => promptInstall()}
+              className="mt-2 min-h-11 w-full rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-contrast"
+            >
+              Install app
+            </button>
+          ) : (
+            <p className="mt-2 text-xs text-muted">
+              Tap the Share icon in Safari, then "Add to Home Screen".
+            </p>
+          )}
+        </div>
+      )}
+
       <div>
         <h1 className="text-lg font-bold">{group.name}</h1>
         <p className="text-sm text-muted">Invite code</p>
