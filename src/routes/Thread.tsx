@@ -24,7 +24,6 @@ import { useSearchGifs } from '@/lib/gifs/queries'
 import AttachmentImage from '@/components/AttachmentImage'
 import PredictionsPanel from '@/components/PredictionsPanel'
 import type { MyGroup } from '@/lib/group/useMyGroup'
-import type { SortPref } from '@/types/domain'
 import type { Tables } from '@/types/database'
 
 type Comment = Tables<'comments'> & {
@@ -33,12 +32,6 @@ type Comment = Tables<'comments'> & {
   reactions: { user_id: string; emoji: string }[]
   spoiler_blocks: { id: string; ordinal: number; content: string }[]
   comment_attachments: { id: string; storage_path: string | null; gif_url: string | null }[]
-}
-
-const SORT_LABELS: Record<Exclude<SortPref, 'most_reactions'>, string> = {
-  chapter: 'Chapter order',
-  newest: 'Newest first',
-  recently_unlocked: 'Recently unlocked',
 }
 
 const REACTION_PALETTE = ['👍', '❤️', '😂', '😮', '😢']
@@ -55,11 +48,9 @@ export default function Thread({ group }: { group: MyGroup }) {
   const taggableChapters = useTaggableChapters(bookId!)
   const addNextChapter = useAddChapterAndAdvance(bookId!)
 
-  const sortPref = (myEntry?.sort_pref ?? 'chapter') as SortPref
   const isAdmin = group.role === 'admin'
   const [tab, setTab] = useState<'discussion' | 'predictions'>('discussion')
   const [addChapterError, setAddChapterError] = useState('')
-  const [hideComments, setHideComments] = useState(false)
 
   async function handleAddFirstChapter() {
     const defaultLabel = `Chapter ${addNextChapter.nextPosition}`
@@ -79,10 +70,36 @@ export default function Thread({ group }: { group: MyGroup }) {
     }
   }
 
-  const tree = useMemo(
-    () => buildTree((comments ?? []) as Comment[], sortPref),
-    [comments, sortPref],
+  // Replies can be tagged to a later chapter than the comment they're
+  // replying to (see CommentNode's replyChapters), so the tree is built
+  // once across every comment regardless of chapter -- parent/child links
+  // stay correct -- and only root comments get partitioned by chapter
+  // afterward, for display as separate sections.
+  const allRoots = useMemo(
+    () => buildForest((comments ?? []) as Comment[]),
+    [comments],
   )
+  const rootsByChapter = useMemo(() => {
+    const map = new Map<string, TreeNode[]>()
+    for (const node of allRoots) {
+      const list = map.get(node.comment.chapter_id)
+      if (list) {
+        list.push(node)
+      } else {
+        map.set(node.comment.chapter_id, [node])
+      }
+    }
+    return map
+  }, [allRoots])
+
+  const revealedChapterIds = myEntry?.revealed_chapter_ids ?? []
+
+  function revealChapter(chapterId: string) {
+    if (revealedChapterIds.includes(chapterId)) return
+    upsertShelf.mutate({
+      revealed_chapter_ids: [...revealedChapterIds, chapterId],
+    })
+  }
 
   if (myEntry === undefined || chapters === undefined) {
     return <p className="text-sm text-muted">Loading…</p>
@@ -143,98 +160,51 @@ export default function Thread({ group }: { group: MyGroup }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex rounded-lg border border-border p-0.5">
-          <TabButton active={tab === 'discussion'} onClick={() => setTab('discussion')}>
-            Discussion
-          </TabButton>
-          <TabButton active={tab === 'predictions'} onClick={() => setTab('predictions')}>
-            🔮 Predictions
-          </TabButton>
-        </div>
-        {tab === 'discussion' && (
-          <select
-            value={sortPref}
-            onChange={(e) =>
-              upsertShelf.mutate({ sort_pref: e.target.value as SortPref })
-            }
-            className="min-h-11 rounded-lg border border-border bg-surface px-2 py-2 text-base"
-          >
-            {Object.entries(SORT_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        )}
+      <div className="flex rounded-lg border border-border p-0.5">
+        <TabButton active={tab === 'discussion'} onClick={() => setTab('discussion')}>
+          Discussion
+        </TabButton>
+        <TabButton active={tab === 'predictions'} onClick={() => setTab('predictions')}>
+          🔮 Predictions
+        </TabButton>
       </div>
 
       {tab === 'predictions' ? (
         <PredictionsPanel bookId={bookId!} />
+      ) : taggableChapters.length === 0 ? (
+        <p className="rounded-lg bg-surface-alt p-3 text-xs text-muted">
+          Set your current chapter to start commenting.
+        </p>
       ) : (
-        <>
-          {taggableChapters.length > 0 ? (
-            <Composer
-              chapters={taggableChapters}
-              defaultChapterId={myEntry!.current_chapter_id}
-              onSubmit={async (input) => {
+        <div className="space-y-5">
+          {taggableChapters.map((chapter, i) => (
+            <ChapterSection
+              key={chapter.id}
+              chapter={chapter}
+              roots={rootsByChapter.get(chapter.id) ?? []}
+              isRevealed={revealedChapterIds.includes(chapter.id)}
+              onReveal={() => revealChapter(chapter.id)}
+              taggableChapters={taggableChapters}
+              isAdmin={isAdmin}
+              bookId={bookId!}
+              divider={i > 0}
+              onPost={async (input) => {
                 await postComment.mutateAsync({
                   ...input,
                   madeDuringReread: myEntry!.is_rereading,
                 })
-                setHideComments(false)
+                revealChapter(chapter.id)
+              }}
+              onReply={async (input, parentId) => {
+                await postComment.mutateAsync({
+                  ...input,
+                  parentId,
+                  madeDuringReread: myEntry!.is_rereading,
+                })
+                revealChapter(chapter.id)
               }}
             />
-          ) : (
-            <p className="rounded-lg bg-surface-alt p-3 text-xs text-muted">
-              Set your current chapter to start commenting.
-            </p>
-          )}
-
-          {tree.length > 0 &&
-            (hideComments ? (
-              <div className="rounded-card bg-surface-alt p-4 text-center">
-                <p className="text-sm text-muted">
-                  🙈 {comments?.length ?? 0} comment
-                  {(comments?.length ?? 0) === 1 ? '' : 's'} hidden so you can
-                  write yours first.
-                </p>
-                <button
-                  onClick={() => setHideComments(false)}
-                  className="mt-2 min-h-9 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-accent"
-                >
-                  Reveal comments
-                </button>
-              </div>
-            ) : (
-              <>
-                <button
-                  onClick={() => setHideComments(true)}
-                  className="min-h-9 text-xs text-muted underline"
-                >
-                  🙈 Hide comments until I post mine
-                </button>
-                <ul className="space-y-3">
-                  {tree.map((node) => (
-                    <CommentNode
-                      key={node.comment.id}
-                      node={node}
-                      showChapterTag={sortPref !== 'chapter'}
-                      taggableChapters={taggableChapters}
-                      isAdmin={isAdmin}
-                      bookId={bookId!}
-                      onReply={async (input, parentId) => {
-                        await postComment.mutateAsync({
-                          ...input,
-                          parentId,
-                          madeDuringReread: myEntry!.is_rereading,
-                        })
-                      }}
-                    />
-                  ))}
-                </ul>
-              </>
-            ))}
+          ))}
 
           {Boolean(lockedCount) && (
             <p className="rounded-lg bg-surface-alt p-3 text-center text-xs text-muted">
@@ -242,7 +212,71 @@ export default function Thread({ group }: { group: MyGroup }) {
               reading to unlock
             </p>
           )}
-        </>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ChapterSection({
+  chapter,
+  roots,
+  isRevealed,
+  onReveal,
+  taggableChapters,
+  isAdmin,
+  bookId,
+  divider,
+  onPost,
+  onReply,
+}: {
+  chapter: ChapterOption
+  roots: TreeNode[]
+  isRevealed: boolean
+  onReveal: () => void
+  taggableChapters: ChapterOption[]
+  isAdmin: boolean
+  bookId: string
+  divider: boolean
+  onPost: (input: ComposerSubmit) => Promise<void>
+  onReply: (input: ComposerSubmit, parentId: string) => Promise<void>
+}) {
+  const count = countNodes(roots)
+
+  return (
+    <div className={`space-y-3 ${divider ? 'border-t border-border pt-5' : ''}`}>
+      <h2 className="text-base font-bold">{chapter.label}</h2>
+
+      <Composer chapters={[chapter]} defaultChapterId={chapter.id} onSubmit={onPost} />
+
+      {roots.length === 0 ? (
+        <p className="text-xs text-muted">No comments yet.</p>
+      ) : isRevealed ? (
+        <ul className="space-y-3">
+          {roots.map((node) => (
+            <CommentNode
+              key={node.comment.id}
+              node={node}
+              sectionChapterId={chapter.id}
+              taggableChapters={taggableChapters}
+              isAdmin={isAdmin}
+              bookId={bookId}
+              onReply={onReply}
+            />
+          ))}
+        </ul>
+      ) : (
+        <div className="rounded-card bg-surface-alt p-3 text-center">
+          <p className="text-xs text-muted">
+            🙈 {count} comment{count === 1 ? '' : 's'} hidden
+          </p>
+          <button
+            onClick={onReveal}
+            className="mt-1 min-h-9 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-accent"
+          >
+            Reveal
+          </button>
+        </div>
       )}
     </div>
   )
@@ -271,7 +305,11 @@ function TabButton({
 
 type TreeNode = { comment: Comment; children: TreeNode[] }
 
-function buildTree(comments: Comment[], sort: SortPref): TreeNode[] {
+// Builds parent/child links across every comment regardless of chapter --
+// a reply can be tagged to a later chapter than the comment it replies to
+// (see CommentNode's replyChapters), so nesting has to be resolved globally
+// before Thread partitions the resulting roots by chapter for display.
+function buildForest(comments: Comment[]): TreeNode[] {
   const byId = new Map<string, TreeNode>()
   comments.forEach((c) => byId.set(c.id, { comment: c, children: [] }))
 
@@ -289,26 +327,13 @@ function buildTree(comments: Comment[], sort: SortPref): TreeNode[] {
     a.comment.created_at.localeCompare(b.comment.created_at)
 
   byId.forEach((node) => node.children.sort(byCreatedAsc))
-
-  if (sort === 'chapter') {
-    roots.sort((a, b) => {
-      const posA = a.comment.chapters?.position ?? 0
-      const posB = b.comment.chapters?.position ?? 0
-      return posA - posB || byCreatedAsc(a, b)
-    })
-  } else if (sort === 'newest') {
-    roots.sort((a, b) => -byCreatedAsc(a, b))
-  } else {
-    // recently_unlocked (approximation): comments at a chapter you just
-    // reached surface first, since there's no stored "unlocked at" moment.
-    roots.sort((a, b) => {
-      const posA = a.comment.chapters?.position ?? 0
-      const posB = b.comment.chapters?.position ?? 0
-      return posB - posA || -byCreatedAsc(a, b)
-    })
-  }
+  roots.sort(byCreatedAsc)
 
   return roots
+}
+
+function countNodes(nodes: TreeNode[]): number {
+  return nodes.reduce((n, node) => n + 1 + countNodes(node.children), 0)
 }
 
 function renderBody(body: string, blocks: Comment['spoiler_blocks']) {
@@ -358,7 +383,7 @@ function SpoilerChip({ block }: { block?: { content: string } }) {
 
 function CommentNode({
   node,
-  showChapterTag,
+  sectionChapterId,
   taggableChapters,
   isAdmin,
   bookId,
@@ -366,7 +391,7 @@ function CommentNode({
   depth = 0,
 }: {
   node: TreeNode
-  showChapterTag: boolean
+  sectionChapterId: string
   taggableChapters: ChapterOption[]
   isAdmin: boolean
   bookId: string
@@ -384,6 +409,11 @@ function CommentNode({
 
   const isAuthor = comment.user_id === user?.id
   const canModerate = comment.flagged && (isAuthor || isAdmin)
+  // A reply nests under its parent (handled by buildForest) even when
+  // tagged to a different chapter than the section it's rendered in --
+  // show the tag only then, since the section header already establishes
+  // it for every comment that matches.
+  const showChapterTag = comment.chapter_id !== sectionChapterId
 
   const parentPosition = comment.chapters?.position
   const replyChapters =
@@ -553,7 +583,7 @@ function CommentNode({
             <CommentNode
               key={child.comment.id}
               node={child}
-              showChapterTag={showChapterTag}
+              sectionChapterId={sectionChapterId}
               taggableChapters={taggableChapters}
               isAdmin={isAdmin}
               bookId={bookId}
@@ -655,22 +685,24 @@ function Composer({
 
   return (
     <div className={compact ? '' : 'rounded-card bg-surface p-3'}>
-      <div className="flex items-center gap-2">
-        <select
-          value={chapterId}
-          onChange={(e) => {
-            setChapterId(e.target.value)
-            setSpoilerChapterId(e.target.value)
-          }}
-          className="min-h-11 rounded-lg border border-border bg-surface px-2 py-2 text-base"
-        >
-          {chapters.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.label}
-            </option>
-          ))}
-        </select>
-      </div>
+      {chapters.length > 1 && (
+        <div className="flex items-center gap-2">
+          <select
+            value={chapterId}
+            onChange={(e) => {
+              setChapterId(e.target.value)
+              setSpoilerChapterId(e.target.value)
+            }}
+            className="min-h-11 rounded-lg border border-border bg-surface px-2 py-2 text-base"
+          >
+            {chapters.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       <textarea
         value={body}
         onChange={(e) => setBody(e.target.value)}

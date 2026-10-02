@@ -436,6 +436,7 @@ export function useUpsertShelfEntry(bookId: string) {
       sort_pref?: SortPref
       muted?: boolean
       is_rereading?: boolean
+      revealed_chapter_ids?: string[]
     }) => {
       if (!user) throw new Error('Not signed in')
 

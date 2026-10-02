@@ -705,6 +705,7 @@ export type Database = {
           is_rereading: boolean
           muted: boolean
           personal_cover_id: string | null
+          revealed_chapter_ids: string[]
           sort_pref: string
           spoil_me: boolean
           started_at: string | null
@@ -721,6 +722,7 @@ export type Database = {
           is_rereading?: boolean
           muted?: boolean
           personal_cover_id?: string | null
+          revealed_chapter_ids?: string[]
           sort_pref?: string
           spoil_me?: boolean
           started_at?: string | null
@@ -737,6 +739,7 @@ export type Database = {
           is_rereading?: boolean
           muted?: boolean
           personal_cover_id?: string | null
+          revealed_chapter_ids?: string[]
           sort_pref?: string
           spoil_me?: boolean
           started_at?: string | null
