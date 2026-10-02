@@ -13,6 +13,32 @@
   --color-accent-contrast: #ffffff;
 }
 
+/* Dark mode: system preference by default (unless explicitly overridden
+   to light), or forced on/off via data-theme -- see src/lib/theme.ts. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --color-bg: #15121c;
+    --color-surface: #211c2c;
+    --color-surface-alt: #2a2438;
+    --color-text: #f1eef7;
+    --color-muted: #a79fb8;
+    --color-border: #3a3349;
+    --color-accent: #9f75f0;
+    --color-accent-contrast: #15121c;
+  }
+}
+
+:root[data-theme='dark'] {
+  --color-bg: #15121c;
+  --color-surface: #211c2c;
+  --color-surface-alt: #2a2438;
+  --color-text: #f1eef7;
+  --color-muted: #a79fb8;
+  --color-border: #3a3349;
+  --color-accent: #9f75f0;
+  --color-accent-contrast: #15121c;
+}
+
 html {
   /* Prevent iOS Safari from auto-zooming the page on input focus and from
      bouncing the whole page horizontally if something briefly overflows. */

@@ -13,7 +13,14 @@ import {
   unsubscribeFromPush,
 } from '@/lib/notifications/push'
 import { isIOS, promptInstall, useInstallPrompt } from '@/lib/pwaInstall'
+import { setTheme, useTheme, type ThemePreference } from '@/lib/theme'
 import type { MyGroup } from '@/lib/group/useMyGroup'
+
+const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
+  { value: 'system', label: 'System' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+]
 
 export default function Settings({ group }: { group: MyGroup }) {
   const queryClient = useQueryClient()
@@ -114,9 +121,29 @@ export default function Settings({ group }: { group: MyGroup }) {
 
   const installState = useInstallPrompt()
   const showManualInstallHint = !installState.installed && !installState.canPrompt && isIOS()
+  const theme = useTheme()
 
   return (
     <div className="space-y-6">
+      <div>
+        <h2 className="text-sm font-semibold text-muted">Appearance</h2>
+        <div className="mt-2 grid grid-cols-3 gap-2">
+          {THEME_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setTheme(opt.value)}
+              className={`min-h-11 rounded-lg px-3 py-2 text-sm font-medium ${
+                theme === opt.value
+                  ? 'bg-accent text-accent-contrast'
+                  : 'border border-border bg-surface text-muted'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {(installState.canPrompt || showManualInstallHint) && (
         <div className="rounded-card bg-surface p-3">
           <p className="text-sm font-semibold">📲 Install the app</p>
