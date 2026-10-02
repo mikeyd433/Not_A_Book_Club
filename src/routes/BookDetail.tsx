@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   RESET_CATEGORIES,
+  useAddChapterAndAdvance,
   useBook,
   useBookShelfEntries,
   useChapters,
@@ -45,10 +46,12 @@ export default function BookDetail({ group }: { group: MyGroup }) {
   const upsert = useUpsertShelfEntry(bookId!)
   const deleteBook = useDeleteBook(group.id)
   const resetBookData = useResetBookData(bookId!)
+  const addNextChapter = useAddChapterAndAdvance(bookId!)
   const [showPicker, setShowPicker] = useState(false)
   const [showMoreOptions, setShowMoreOptions] = useState(false)
   const [showDangerZone, setShowDangerZone] = useState(false)
   const [resetSelection, setResetSelection] = useState<Set<ResetCategory>>(new Set())
+  const [addChapterError, setAddChapterError] = useState('')
 
   function handleDelete() {
     if (!book) return
@@ -96,6 +99,30 @@ export default function BookDetail({ group }: { group: MyGroup }) {
 
   const currentChapter = chapters?.find((c) => c.id === myEntry?.current_chapter_id)
 
+  async function handleAddNextChapter() {
+    if (myEntry?.status !== 'reading' && myEntry?.status !== 'paused') {
+      setAddChapterError(
+        'Set your shelf status to "Reading now" or "Paused" to add new chapters.',
+      )
+      return
+    }
+    const defaultLabel = `Chapter ${addNextChapter.nextPosition}`
+    const input = window.prompt(
+      'Name this chapter (leave blank to just number it):',
+      defaultLabel,
+    )
+    if (input === null) return
+    setAddChapterError('')
+    try {
+      await addNextChapter.addAndAdvance(input.trim() || defaultLabel)
+      celebrate()
+    } catch (err) {
+      setAddChapterError(
+        err instanceof Error ? err.message : 'Failed to add the chapter.',
+      )
+    }
+  }
+
   return (
     <div className="space-y-5">
       <div>
@@ -139,18 +166,20 @@ export default function BookDetail({ group }: { group: MyGroup }) {
         )}
       </div>
 
-      {myEntry && (chapters?.length ?? 0) > 0 && (
+      {myEntry && (
         <div>
-          <button
-            onClick={() => setShowPicker((s) => !s)}
-            className="flex w-full items-center justify-between rounded-card bg-surface p-3 text-left"
-          >
-            <span className="text-sm font-semibold">Current chapter</span>
-            <span className="text-sm text-accent">
-              {currentChapter?.label ?? 'Set position →'}
-            </span>
-          </button>
-          {showPicker && (
+          {(chapters?.length ?? 0) > 0 && (
+            <button
+              onClick={() => setShowPicker((s) => !s)}
+              className="flex w-full items-center justify-between rounded-card bg-surface p-3 text-left"
+            >
+              <span className="text-sm font-semibold">Current chapter</span>
+              <span className="text-sm text-accent">
+                {currentChapter?.label ?? 'Set position →'}
+              </span>
+            </button>
+          )}
+          {showPicker && (chapters?.length ?? 0) > 0 && (
             <div className="mt-2 rounded-card bg-surface p-2">
               <ChapterWheelPicker
                 items={(chapters ?? []).map((c) => ({ id: c.id, label: c.label }))}
@@ -165,6 +194,21 @@ export default function BookDetail({ group }: { group: MyGroup }) {
                 }}
               />
             </div>
+          )}
+
+          <button
+            onClick={handleAddNextChapter}
+            disabled={addNextChapter.isPending}
+            className={`flex min-h-11 w-full items-center justify-center rounded-card border border-dashed border-border px-3 py-2 text-sm font-semibold text-accent disabled:opacity-60 ${
+              (chapters?.length ?? 0) > 0 ? 'mt-2' : ''
+            }`}
+          >
+            {addNextChapter.isPending
+              ? 'Adding…'
+              : `+ Add chapter ${addNextChapter.nextPosition} as you go`}
+          </button>
+          {addChapterError && (
+            <p className="mt-2 text-xs text-red-600">{addChapterError}</p>
           )}
         </div>
       )}

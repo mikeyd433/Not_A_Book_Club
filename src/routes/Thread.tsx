@@ -1,12 +1,14 @@
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
 import {
+  useAddChapterAndAdvance,
   useChapters,
   useMyShelfEntry,
   useTaggableChapters,
   useUpsertShelfEntry,
   type ChapterOption,
 } from '@/lib/books/queries'
+import { celebrate } from '@/lib/celebrate'
 import {
   useComments,
   useDeleteComment,
@@ -51,10 +53,30 @@ export default function Thread({ group }: { group: MyGroup }) {
   const upsertShelf = useUpsertShelfEntry(bookId!)
   const postComment = usePostComment(bookId!)
   const taggableChapters = useTaggableChapters(bookId!)
+  const addNextChapter = useAddChapterAndAdvance(bookId!)
 
   const sortPref = (myEntry?.sort_pref ?? 'chapter') as SortPref
   const isAdmin = group.role === 'admin'
   const [tab, setTab] = useState<'discussion' | 'predictions'>('discussion')
+  const [addChapterError, setAddChapterError] = useState('')
+
+  async function handleAddFirstChapter() {
+    const defaultLabel = `Chapter ${addNextChapter.nextPosition}`
+    const input = window.prompt(
+      'Name this chapter (leave blank to just number it):',
+      defaultLabel,
+    )
+    if (input === null) return
+    setAddChapterError('')
+    try {
+      await addNextChapter.addAndAdvance(input.trim() || defaultLabel)
+      celebrate()
+    } catch (err) {
+      setAddChapterError(
+        err instanceof Error ? err.message : 'Failed to add the chapter.',
+      )
+    }
+  }
 
   const tree = useMemo(
     () => buildTree((comments ?? []) as Comment[], sortPref),
@@ -66,11 +88,30 @@ export default function Thread({ group }: { group: MyGroup }) {
   }
 
   if (chapters.length === 0) {
+    const canAddChapters = myEntry?.status === 'reading' || myEntry?.status === 'paused'
     return (
-      <p className="rounded-card bg-surface p-4 text-sm text-muted">
-        This book doesn't have any chapters yet — add some from the Chapters
-        tab.
-      </p>
+      <div className="rounded-card bg-surface p-4 text-center">
+        <p className="text-sm text-muted">
+          This book doesn't have any chapters yet.
+        </p>
+        {canAddChapters ? (
+          <button
+            onClick={handleAddFirstChapter}
+            disabled={addNextChapter.isPending}
+            className="mt-3 min-h-11 rounded-lg bg-accent px-4 py-3 text-sm font-semibold text-accent-contrast disabled:opacity-60"
+          >
+            {addNextChapter.isPending ? 'Adding…' : '+ Add chapter 1'}
+          </button>
+        ) : (
+          <p className="mt-2 text-xs text-muted">
+            Set your shelf status to "Reading now" from Overview to add the
+            first one.
+          </p>
+        )}
+        {addChapterError && (
+          <p className="mt-2 text-xs text-red-600">{addChapterError}</p>
+        )}
+      </div>
     )
   }
 

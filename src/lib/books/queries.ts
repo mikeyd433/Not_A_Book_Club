@@ -108,10 +108,12 @@ export function useAddChapters(bookId: string) {
     mutationFn: async (
       chapters: { position: number; label: string; part_label?: string | null }[],
     ) => {
-      const { error } = await supabase.from('chapters').insert(
-        chapters.map((c) => ({ book_id: bookId, ...c })),
-      )
+      const { data, error } = await supabase
+        .from('chapters')
+        .insert(chapters.map((c) => ({ book_id: bookId, ...c })))
+        .select()
       if (error) throw error
+      return data
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['chapters', bookId] })
@@ -133,6 +135,35 @@ export function useChapterSnapshot(bookId: string) {
       user_id: user.id,
       snapshot: chapters as unknown as Json,
     })
+  }
+}
+
+// "Add chapters as you go" -- for books with no table of contents, or a
+// non-numbered one that's awkward to transcribe up front, this creates
+// just the next chapter (optionally named) and immediately marks it as
+// the caller's current position, in one action -- an alternative to
+// pre-populating the whole list via ChapterSetupPanel/ChaptersEditor.
+export function useAddChapterAndAdvance(bookId: string) {
+  const { data: chapters } = useChapters(bookId)
+  const snapshot = useChapterSnapshot(bookId)
+  const addChapters = useAddChapters(bookId)
+  const upsertShelf = useUpsertShelfEntry(bookId)
+
+  const nextPosition = (chapters?.[chapters.length - 1]?.position ?? 0) + 1
+
+  async function addAndAdvance(label: string) {
+    await snapshot()
+    const inserted = await addChapters.mutateAsync([{ position: nextPosition, label }])
+    const newChapter = inserted?.[0]
+    if (!newChapter) throw new Error('Failed to add the chapter')
+    await upsertShelf.mutateAsync({ current_chapter_id: newChapter.id })
+    return newChapter
+  }
+
+  return {
+    nextPosition,
+    addAndAdvance,
+    isPending: addChapters.isPending || upsertShelf.isPending,
   }
 }
 
