@@ -193,7 +193,6 @@ export default function Thread({ group }: { group: MyGroup }) {
                   ...input,
                   madeDuringReread: myEntry!.is_rereading,
                 })
-                revealChapter(chapter.id)
               }}
               onReply={async (input, parentId) => {
                 await postComment.mutateAsync({
@@ -201,7 +200,6 @@ export default function Thread({ group }: { group: MyGroup }) {
                   parentId,
                   madeDuringReread: myEntry!.is_rereading,
                 })
-                revealChapter(chapter.id)
               }}
             />
           ))}
@@ -241,7 +239,13 @@ function ChapterSection({
   onPost: (input: ComposerSubmit) => Promise<void>
   onReply: (input: ComposerSubmit, parentId: string) => Promise<void>
 }) {
-  const count = countNodes(roots)
+  const { user } = useAuth()
+  // While hidden, posting multiple comments shouldn't require revealing
+  // everyone else's just to keep track of your own -- only other people's
+  // comments count toward "hidden" and get held back from view.
+  const myRoots = roots.filter((r) => r.comment.user_id === user?.id)
+  const otherRoots = roots.filter((r) => r.comment.user_id !== user?.id)
+  const hiddenCount = countNodes(otherRoots)
 
   return (
     <div className={`space-y-3 ${divider ? 'border-t border-border pt-5' : ''}`}>
@@ -249,35 +253,56 @@ function ChapterSection({
 
       <Composer chapters={[chapter]} defaultChapterId={chapter.id} onSubmit={onPost} />
 
-      {roots.length === 0 ? (
-        <p className="text-xs text-muted">No comments yet.</p>
-      ) : isRevealed ? (
-        <ul className="space-y-3">
-          {roots.map((node) => (
-            <CommentNode
-              key={node.comment.id}
-              node={node}
-              sectionChapterId={chapter.id}
-              taggableChapters={taggableChapters}
-              isAdmin={isAdmin}
-              bookId={bookId}
-              onReply={onReply}
-            />
-          ))}
-        </ul>
+      {isRevealed ? (
+        roots.length > 0 && (
+          <ul className="space-y-3">
+            {roots.map((node) => (
+              <CommentNode
+                key={node.comment.id}
+                node={node}
+                sectionChapterId={chapter.id}
+                taggableChapters={taggableChapters}
+                isAdmin={isAdmin}
+                bookId={bookId}
+                onReply={onReply}
+              />
+            ))}
+          </ul>
+        )
       ) : (
-        <div className="rounded-card bg-surface-alt p-3 text-center">
-          <p className="text-xs text-muted">
-            🙈 {count} comment{count === 1 ? '' : 's'} hidden
-          </p>
-          <button
-            onClick={onReveal}
-            className="mt-1 min-h-9 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-accent"
-          >
-            Reveal
-          </button>
-        </div>
+        <>
+          {myRoots.length > 0 && (
+            <ul className="space-y-3">
+              {myRoots.map((node) => (
+                <CommentNode
+                  key={node.comment.id}
+                  node={node}
+                  sectionChapterId={chapter.id}
+                  taggableChapters={taggableChapters}
+                  isAdmin={isAdmin}
+                  bookId={bookId}
+                  onReply={onReply}
+                />
+              ))}
+            </ul>
+          )}
+          {hiddenCount > 0 && (
+            <div className="rounded-card bg-surface-alt p-3 text-center">
+              <p className="text-xs text-muted">
+                🙈 {hiddenCount} comment{hiddenCount === 1 ? '' : 's'} hidden
+              </p>
+              <button
+                onClick={onReveal}
+                className="mt-1 min-h-9 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-accent"
+              >
+                Reveal
+              </button>
+            </div>
+          )}
+        </>
       )}
+
+      {roots.length === 0 && <p className="text-xs text-muted">No comments yet.</p>}
     </div>
   )
 }
