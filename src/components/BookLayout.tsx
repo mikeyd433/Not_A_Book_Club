@@ -40,7 +40,7 @@ export default function BookLayout() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none]">
         <BookTab to={`/book/${book.id}`} end>
           Overview
         </BookTab>
@@ -71,7 +71,7 @@ function BookTab({
       to={to}
       end={end}
       className={({ isActive }) =>
-        `min-h-9 rounded-full px-3 py-2 text-xs font-medium leading-tight ${
+        `min-h-9 flex-shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-xs font-medium leading-tight ${
           isActive
             ? 'bg-accent text-accent-contrast'
             : 'border border-border text-muted'
