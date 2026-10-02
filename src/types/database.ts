@@ -829,6 +829,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _ddl_probe: { Args: never; Returns: number }
+      _ddl_probe2: { Args: never; Returns: string }
       achievements_feed: {
         Args: never
         Returns: {
@@ -909,6 +911,19 @@ export type Database = {
         }[]
       }
       regenerate_invite_code: { Args: { p_group_id: string }; Returns: string }
+      reset_book_data: {
+        Args: {
+          p_achievements?: boolean
+          p_book_id: string
+          p_chapters?: boolean
+          p_covers?: boolean
+          p_discussion?: boolean
+          p_predictions?: boolean
+          p_progress?: boolean
+          p_ratings?: boolean
+        }
+        Returns: undefined
+      }
       resolve_comment_flag: {
         Args: { p_comment_id: string; p_new_chapter_id?: string }
         Returns: undefined

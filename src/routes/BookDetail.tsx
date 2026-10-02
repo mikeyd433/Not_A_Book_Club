@@ -1,12 +1,15 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
+  RESET_CATEGORIES,
   useBook,
   useBookShelfEntries,
   useChapters,
   useDeleteBook,
   useMyShelfEntry,
+  useResetBookData,
   useUpsertShelfEntry,
+  type ResetCategory,
 } from '@/lib/books/queries'
 import ChapterWheelPicker from '@/components/ChapterWheelPicker'
 import { celebrate } from '@/lib/celebrate'
@@ -22,6 +25,16 @@ const STATUSES: ShelfStatus[] = [
   'want_to_read',
 ]
 
+const RESET_CATEGORY_LABELS: Record<ResetCategory, string> = {
+  chapters: 'Table of contents (chapters)',
+  discussion: 'Discussion (comments & reactions)',
+  progress: "Everyone's reading progress",
+  ratings: 'Ratings & reviews',
+  predictions: 'Predictions',
+  covers: 'Community covers',
+  achievements: 'Achievements earned for this book',
+}
+
 export default function BookDetail({ group }: { group: MyGroup }) {
   const { bookId } = useParams<{ bookId: string }>()
   const navigate = useNavigate()
@@ -31,9 +44,11 @@ export default function BookDetail({ group }: { group: MyGroup }) {
   const { data: everyone } = useBookShelfEntries(bookId!)
   const upsert = useUpsertShelfEntry(bookId!)
   const deleteBook = useDeleteBook(group.id)
+  const resetBookData = useResetBookData(bookId!)
   const [showPicker, setShowPicker] = useState(false)
   const [showMoreOptions, setShowMoreOptions] = useState(false)
   const [showDangerZone, setShowDangerZone] = useState(false)
+  const [resetSelection, setResetSelection] = useState<Set<ResetCategory>>(new Set())
 
   function handleDelete() {
     if (!book) return
@@ -45,6 +60,38 @@ export default function BookDetail({ group }: { group: MyGroup }) {
       return
     }
     deleteBook.mutate(book.id, { onSuccess: () => navigate('/') })
+  }
+
+  function toggleResetCategory(category: ResetCategory) {
+    setResetSelection((prev) => {
+      const next = new Set(prev)
+      if (next.has(category)) {
+        next.delete(category)
+      } else {
+        next.add(category)
+      }
+      return next
+    })
+  }
+
+  function handleReset() {
+    if (!book || resetSelection.size === 0) return
+    const labels = RESET_CATEGORIES.filter((c) => resetSelection.has(c)).map(
+      (c) => RESET_CATEGORY_LABELS[c],
+    )
+    const cascadeNote = resetSelection.has('chapters')
+      ? '\n\n(Resetting chapters also clears discussion and predictions, since those are tagged to specific chapters.)'
+      : ''
+    if (
+      !window.confirm(
+        `Reset "${book.title}"'s ${labels.join(', ')}? This cannot be undone.${cascadeNote}`,
+      )
+    ) {
+      return
+    }
+    resetBookData.mutate(resetSelection, {
+      onSuccess: () => setResetSelection(new Set()),
+    })
   }
 
   const currentChapter = chapters?.find((c) => c.id === myEntry?.current_chapter_id)
@@ -201,7 +248,56 @@ export default function BookDetail({ group }: { group: MyGroup }) {
             <span>{showDangerZone ? '▲' : '▼'}</span>
           </button>
           {showDangerZone && (
-            <div className="mt-3">
+            <div className="mt-3 space-y-4">
+              <div>
+                <p className="text-sm font-semibold">Reset book data</p>
+                <p className="mt-1 text-xs text-muted">
+                  Wipe selected data for this book without deleting it — e.g.
+                  to start a reread from a clean slate. The book, its title,
+                  and its cover stay put.
+                </p>
+                <div className="mt-2 space-y-1">
+                  {RESET_CATEGORIES.map((category) => {
+                    const forcedByChapters =
+                      category === 'discussion' && resetSelection.has('chapters')
+                    return (
+                      <label
+                        key={category}
+                        className="flex min-h-9 items-center gap-2 text-sm"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={resetSelection.has(category) || forcedByChapters}
+                          disabled={forcedByChapters}
+                          onChange={() => toggleResetCategory(category)}
+                          className="size-5"
+                        />
+                        {RESET_CATEGORY_LABELS[category]}
+                        {forcedByChapters && (
+                          <span className="text-xs text-muted">
+                            (included automatically)
+                          </span>
+                        )}
+                      </label>
+                    )
+                  })}
+                </div>
+                {resetBookData.isError && (
+                  <p className="mt-2 text-xs text-red-600">
+                    {resetBookData.error instanceof Error
+                      ? resetBookData.error.message
+                      : 'Failed to reset — try again.'}
+                  </p>
+                )}
+                <button
+                  onClick={handleReset}
+                  disabled={resetSelection.size === 0 || resetBookData.isPending}
+                  className="mt-3 min-h-10 w-full rounded-lg border border-red-600 px-3 py-2 text-sm font-semibold text-red-600 disabled:opacity-60"
+                >
+                  {resetBookData.isPending ? 'Resetting…' : 'Reset selected data'}
+                </button>
+              </div>
+
               <button
                 onClick={handleDelete}
                 disabled={!book || deleteBook.isPending}

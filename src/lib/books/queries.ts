@@ -262,6 +262,98 @@ export function useDeleteBook(groupId: string) {
   })
 }
 
+export const RESET_CATEGORIES = [
+  'chapters',
+  'discussion',
+  'progress',
+  'ratings',
+  'predictions',
+  'covers',
+  'achievements',
+] as const
+
+export type ResetCategory = (typeof RESET_CATEGORIES)[number]
+
+// Admin-only. Wipes selected categories of a book's data via the
+// reset_book_data() RPC (which also enforces the admin check server-side)
+// without deleting the book row itself. Resetting chapters cascades
+// discussion/predictions server-side too (comments and predictions are
+// tagged to chapters), which is why covers/attachments storage paths have
+// to be read out *before* calling the RPC -- the rows naming them are
+// gone the moment it returns.
+export function useResetBookData(bookId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (categories: Set<ResetCategory>) => {
+      const needsCoverCleanup = categories.has('covers')
+      const needsAttachmentCleanup =
+        categories.has('chapters') || categories.has('discussion')
+
+      const [coverPaths, attachmentPaths] = await Promise.all([
+        needsCoverCleanup
+          ? supabase
+              .from('covers')
+              .select('storage_path')
+              .eq('book_id', bookId)
+              .then(({ data, error }) => {
+                if (error) throw error
+                return (data ?? []).map((c) => c.storage_path)
+              })
+          : Promise.resolve([] as string[]),
+        needsAttachmentCleanup
+          ? supabase
+              .from('comment_attachments')
+              .select('storage_path')
+              .eq('book_id', bookId)
+              .not('storage_path', 'is', null)
+              .then(({ data, error }) => {
+                if (error) throw error
+                return (data ?? [])
+                  .map((a) => a.storage_path)
+                  .filter((p): p is string => Boolean(p))
+              })
+          : Promise.resolve([] as string[]),
+      ])
+
+      const { error } = await supabase.rpc('reset_book_data', {
+        p_book_id: bookId,
+        p_chapters: categories.has('chapters'),
+        p_discussion: categories.has('discussion'),
+        p_progress: categories.has('progress'),
+        p_ratings: categories.has('ratings'),
+        p_predictions: categories.has('predictions'),
+        p_covers: categories.has('covers'),
+        p_achievements: categories.has('achievements'),
+      })
+      if (error) throw error
+
+      await Promise.all([
+        coverPaths.length > 0
+          ? supabase.storage.from('covers').remove(coverPaths)
+          : Promise.resolve(),
+        attachmentPaths.length > 0
+          ? supabase.storage.from('comment-attachments').remove(attachmentPaths)
+          : Promise.resolve(),
+      ])
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['book', bookId] })
+      queryClient.invalidateQueries({ queryKey: ['books'] })
+      queryClient.invalidateQueries({ queryKey: ['chapters', bookId] })
+      queryClient.invalidateQueries({ queryKey: ['shelf-entry', bookId] })
+      queryClient.invalidateQueries({ queryKey: ['shelf-entries', bookId] })
+      queryClient.invalidateQueries({ queryKey: ['comments', bookId] })
+      queryClient.invalidateQueries({ queryKey: ['locked-comment-count', bookId] })
+      queryClient.invalidateQueries({ queryKey: ['ratings', bookId] })
+      queryClient.invalidateQueries({ queryKey: ['predictions', bookId] })
+      queryClient.invalidateQueries({ queryKey: ['prediction-scoreboard', bookId] })
+      queryClient.invalidateQueries({ queryKey: ['covers', bookId] })
+      queryClient.invalidateQueries({ queryKey: ['achievements-feed'] })
+    },
+  })
+}
+
 export function useUpsertShelfEntry(bookId: string) {
   const queryClient = useQueryClient()
   const { user } = useAuth()
