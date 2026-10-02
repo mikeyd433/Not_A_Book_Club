@@ -72,3 +72,17 @@ body {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* Text inputs/textareas/selects across the app mostly don't set their own
+   background -- browsers default that to opaque white regardless of theme,
+   while `color` inherits the page's (near-white in dark mode), so typed
+   text became invisible: white-on-white. Themed once here instead of
+   patching every field's className individually. Excludes
+   checkbox/radio/file, whose native appearance a background color would
+   otherwise distort. */
+input:not([type='checkbox']):not([type='radio']):not([type='file']),
+textarea,
+select {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+}
