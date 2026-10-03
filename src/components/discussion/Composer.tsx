@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ChapterOption } from '@/lib/books/queries'
 import type { PendingSpoilerBlock } from '@/lib/comments/queries'
 import GifPicker from './GifPicker'
@@ -46,10 +46,25 @@ export default function Composer({
   // spoiler buttons, and Post button only show up once engaged. Stays
   // expanded if there's unsent text/attachments even after losing focus
   // (clicking Attach itself blurs the textarea), and collapses again after
-  // a successful post.
+  // a successful post or a click anywhere outside this composer.
   const [expanded, setExpanded] = useState(false)
   const showControls =
     expanded || Boolean(body.trim()) || Boolean(photo) || Boolean(gifUrl)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!expanded) return
+    function handlePointerDown(event: PointerEvent) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setExpanded(false)
+      }
+    }
+    document.addEventListener('pointerdown', handlePointerDown)
+    return () => document.removeEventListener('pointerdown', handlePointerDown)
+  }, [expanded])
 
   function handleInsertSpoiler() {
     if (!spoilerText.trim()) return
@@ -111,7 +126,7 @@ export default function Composer({
   }
 
   return (
-    <div className={compact ? '' : 'rounded-card bg-surface p-3'}>
+    <div ref={containerRef} className={compact ? '' : 'rounded-card bg-surface p-3'}>
       {chapters.length > 1 && (
         <div className="flex items-center gap-2">
           <select
