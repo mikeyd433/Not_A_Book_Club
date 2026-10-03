@@ -55,12 +55,15 @@ export default function Composer({
   useEffect(() => {
     if (!expanded) return
     function handlePointerDown(event: PointerEvent) {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
-        setExpanded(false)
-      }
+      const target = event.target as Node
+      if (containerRef.current?.contains(target)) return
+      // The tutorial's own Back/Next/Skip buttons render in a separate part
+      // of the DOM (an overlay, not inside this composer), so without this
+      // check tapping any of them while a tour step points at this
+      // composer's controls would register as an outside click first and
+      // collapse it -- eating that tap instead of advancing the step.
+      if ((target as Element)?.closest?.('[data-tutorial-overlay]')) return
+      setExpanded(false)
     }
     document.addEventListener('pointerdown', handlePointerDown)
     return () => document.removeEventListener('pointerdown', handlePointerDown)

@@ -176,11 +176,18 @@ export function TutorialProvider({
     const selector = step.target
     const startedAt = Date.now()
     let warned = false
+    let scrolled = false
     setTargetRect(null)
 
     const intervalId = window.setInterval(() => {
       const el = document.querySelector(selector)
       if (el) {
+        // Once per step, not every tick -- otherwise this would fight any
+        // manual scrolling while the step's card is up.
+        if (!scrolled) {
+          scrolled = true
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
         setTargetRect(el.getBoundingClientRect())
         return
       }

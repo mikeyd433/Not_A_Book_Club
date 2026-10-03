@@ -17,7 +17,7 @@ export default function Spotlight() {
   const body = typeof step.body === 'function' ? step.body(ctx) : step.body
 
   return (
-    <div className="fixed inset-0 z-50">
+    <div className="fixed inset-0 z-50" data-tutorial-overlay>
       {showSpotlight && targetRect ? (
         <SpotlightCutout rect={targetRect} />
       ) : (
