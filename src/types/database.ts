@@ -564,18 +564,21 @@ export type Database = {
           created_at: string
           display_name: string
           id: string
+          is_test_account: boolean
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
           display_name: string
           id: string
+          is_test_account?: boolean
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
           display_name?: string
           id?: string
+          is_test_account?: boolean
         }
         Relationships: []
       }

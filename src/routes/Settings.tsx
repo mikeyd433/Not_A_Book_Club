@@ -14,6 +14,7 @@ import {
 } from '@/lib/notifications/push'
 import { isIOS, promptInstall, useInstallPrompt } from '@/lib/pwaInstall'
 import { setTheme, useTheme, type ThemePreference } from '@/lib/theme'
+import TestAccountsPanel from '@/components/TestAccountsPanel'
 import type { MyGroup } from '@/lib/group/useMyGroup'
 
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
@@ -33,7 +34,7 @@ export default function Settings({ group }: { group: MyGroup }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('group_members')
-        .select('user_id, role, profiles(display_name)')
+        .select('user_id, role, profiles(display_name, is_test_account)')
         .eq('group_id', group.id)
 
       if (error) throw error
@@ -197,15 +198,21 @@ export default function Settings({ group }: { group: MyGroup }) {
           {members?.map((m) => {
             const displayName = m.profiles?.display_name ?? 'Someone'
             const isSelf = m.user_id === user?.id
+            const isTestAccount = Boolean(m.profiles?.is_test_account)
             return (
               <li
                 key={m.user_id}
                 className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-surface px-3 py-2 text-sm"
               >
-                <span className="min-w-0 truncate">{displayName}</span>
+                <span className="min-w-0 truncate">
+                  {displayName}
+                  {m.profiles?.is_test_account && (
+                    <span className="ml-1.5 text-xs text-muted">🧪 test</span>
+                  )}
+                </span>
                 <span className="flex items-center gap-2">
                   <span className="text-xs text-muted">{m.role}</span>
-                  {group.role === 'admin' && m.role !== 'admin' && (
+                  {group.role === 'admin' && m.role !== 'admin' && !isTestAccount && (
                     <button
                       onClick={() => promote(m.user_id)}
                       className="min-h-9 rounded-full border border-accent px-3 py-1.5 text-xs text-accent"
@@ -213,7 +220,7 @@ export default function Settings({ group }: { group: MyGroup }) {
                       Make admin
                     </button>
                   )}
-                  {group.role === 'admin' && !isSelf && (
+                  {group.role === 'admin' && !isSelf && !isTestAccount && (
                     <button
                       onClick={() => removeMember(m.user_id, displayName)}
                       className="min-h-9 rounded-full border border-border px-3 py-1.5 text-xs text-red-600"
@@ -228,6 +235,8 @@ export default function Settings({ group }: { group: MyGroup }) {
         </ul>
         {memberError && <p className="mt-2 text-xs text-red-600">{memberError}</p>}
       </div>
+
+      {group.role === 'admin' && <TestAccountsPanel />}
 
       <div>
         <h2 className="text-sm font-semibold text-muted">Notifications</h2>
