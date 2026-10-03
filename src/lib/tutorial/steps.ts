@@ -11,7 +11,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     id: 'welcome',
     kind: 'modal',
     title: 'Welcome to Not A Book Club!',
-    body: "Want a quick tour of where everything lives — adding books, tracking chapters, and how the spoiler-locked discussion works? You can always come back to this from Settings.",
+    body: 'Want a quick tour of adding books, chapters, and how the spoiler-locked discussion works? Replay anytime from Settings.',
   },
   {
     id: 'home-shelf',
@@ -20,7 +20,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: '[data-tour="home-shelf"]',
     optionalTarget: true,
     title: 'Your shelf',
-    body: "Every book your group is tracking shows up here, grouped by your reading status. Tap any book to jump into it.",
+    body: "Every book your group's tracking, grouped by status. Tap one to jump in.",
   },
   {
     id: 'add-book-button',
@@ -29,7 +29,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: '[data-tour="add-book-button"]',
     advanceOn: 'click-target',
     title: 'Adding a book',
-    body: "Tap here to add a new book to the group — search by title, or add one manually if it's not out there.",
+    body: "Tap to add a book — search by title, or add one manually.",
   },
   {
     id: 'add-book-search',
@@ -37,14 +37,14 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     route: () => '/add-book',
     target: '[data-tour="add-book-search"]',
     title: 'Search or add manually',
-    body: "Search pulls in a cover and author automatically. Can't find it? Type the title and add it manually instead — either way it lands on the group's shelf for everyone.",
+    body: "Search pulls in a cover and author automatically — or type a title and add it manually.",
   },
   {
     id: 'pick-book',
     kind: 'picker',
     shouldSkip: (ctx) => Boolean(ctx.bookId) || ctx.books.length === 0,
-    title: 'Pick a book to continue the tour',
-    body: "We'll use it to show you Chapters and Discussion.",
+    title: 'Pick a book',
+    body: "We'll use it for Chapters and Discussion.",
   },
   {
     id: 'book-tabs',
@@ -52,7 +52,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     route: bookRoute(''),
     target: '[data-tour="book-tabs"]',
     title: "A book's tabs",
-    body: "Overview for your reading status and progress, Discussion for the spoiler-locked thread, Chapters for the table of contents, Reviews once it's finished, and Covers for group-submitted art.",
+    body: 'Overview for status & progress, Discussion for the thread, Chapters for the table of contents, Reviews, and Covers.',
   },
   {
     id: 'shelf-status',
@@ -60,7 +60,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     route: bookRoute(''),
     target: '[data-tour="shelf-status"]',
     title: 'Your reading status',
-    body: '"Reading now" and "Paused" track your chapter position. "Want to read" keeps it on your radar with no tracking yet. "Read before joining" unlocks the full thread immediately — it\'s for books your group picked after you\'d already read them. "Did not finish" does NOT unlock the thread by itself — you stay locked wherever you stopped unless you also check Spoil Me.',
+    body: '"Read before joining" unlocks the full thread right away. "Did not finish" doesn\'t — you\'re still locked unless you also check Spoil Me.',
   },
   {
     id: 'spoil-reread',
@@ -70,7 +70,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     prepare: expandMoreOptions,
     optionalTarget: true,
     title: 'Rereading? It relocks the thread',
-    body: 'Starting a reread resets your chapter position and takes away full access again, even though you already finished the book once. Check "View full thread anyway" if you still want to see ahead of your reread position.',
+    body: 'Starting a reread resets your position and relocks the thread. Check "View full thread anyway" to still see ahead.',
   },
   {
     id: 'current-chapter',
@@ -79,7 +79,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: '[data-tour="current-chapter"]',
     optionalTarget: true,
     title: 'Your chapter position',
-    body: "This drives everything spoiler-related — Discussion only shows you comments up to here, unless your status above grants full access.",
+    body: "Discussion only shows comments up to here, unless your status grants full access.",
   },
   {
     id: 'add-chapter-live',
@@ -88,7 +88,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: '[data-tour="add-chapter-live"]',
     optionalTarget: true,
     title: 'Adding chapters as you go',
-    body: "Don't know the book's full chapter breakdown yet? Add one chapter at a time here as you finish each — it bumps your position automatically.",
+    body: "Don't know the full chapter breakdown yet? Add one at a time as you finish each.",
   },
   {
     id: 'chapter-setup-panel',
@@ -97,7 +97,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: '[data-tour="chapter-setup-panel"]',
     optionalTarget: true,
     title: 'Setting up the whole table of contents',
-    body: "Already know the book's structure? Paste the full table of contents here, one chapter per line — or quick-fill generic placeholders. All at once, instead of one at a time.",
+    body: "Know the book's structure already? Paste the whole table of contents here at once, or quick-fill placeholders.",
   },
   {
     id: 'discussion-composer',
@@ -106,7 +106,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: '[data-tour="chapter-top"]',
     optionalTarget: true,
     title: 'The Discussion thread',
-    body: "Each chapter gets its own section with a header and a composer to share a thought, tagged to that chapter.",
+    body: "Each chapter gets its own section — share a thought here, tagged to it.",
   },
   {
     id: 'locked-chapter',
@@ -115,7 +115,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: '[data-tour="locked-chapter"]',
     optionalTarget: true,
     title: "🔒 Chapters you haven't reached",
-    body: "Anything past your current position collapses into a bar like this. Advancing your chapter position (not tapping anything here) is what clears it.",
+    body: "Chapters past your position collapse like this — advancing your position clears it, not tapping here.",
   },
   {
     id: 'hidden-reveal',
@@ -124,7 +124,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     target: '[data-tour="hidden-reveal"]',
     optionalTarget: true,
     title: '🙈 Hidden comments',
-    body: "Even inside a chapter you've reached, other members' comments can stay tucked away until you tap Reveal — so you can post your own reaction first without theirs getting in the way.",
+    body: "Others' comments can stay hidden until you tap Reveal — so you can post your own reaction first.",
   },
   {
     id: 'prediction-checkbox',
@@ -134,7 +134,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     prepare: focusFirstComposerTextarea,
     optionalTarget: true,
     title: '🔮 Marking a prediction',
-    body: 'Guessing what happens next? Check this and your comment posts collapsed behind a "tap to reveal" line for everyone — including you later — so a right guess doesn\'t spoil anything.',
+    body: 'Guessing what happens next? This collapses your comment behind a "tap to reveal" line for everyone.',
   },
   {
     id: 'spoiler-controls',
@@ -144,16 +144,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     prepare: focusFirstComposerTextarea,
     optionalTarget: true,
     title: '❓ "No spoilers please" vs. 🙈 "Insert spoiler"',
-    body: '"No spoilers please" is just a flag — it narrows which chapter replies to your comment can be tagged to, but doesn\'t hide anything itself. "Insert spoiler" (further down) is the real lock: it hides just that bit of text from anyone who hasn\'t reached its chapter yet, even inside an otherwise-visible comment.',
-  },
-  {
-    id: 'comment-actions',
-    kind: 'spotlight',
-    route: bookRoute('/thread'),
-    target: '[data-tour="comment-actions"]',
-    optionalTarget: true,
-    title: 'Replying & reacting',
-    body: "Reply tags your response to that comment, reactions are a quick tap, and Flag immediately hides a comment from everyone but its author and admins until it's retagged or removed.",
+    body: '"No spoilers please" just limits which chapters replies can tag. "Insert spoiler" (below) really hides that text until the reader catches up.',
   },
   {
     id: 'invite-code',
@@ -161,7 +152,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     route: () => '/settings',
     target: '[data-tour="invite-code"]',
     title: 'Inviting people',
-    body: "Share this code (or the copy-link button) to bring someone else into the group.",
+    body: 'Share this code — or the copy-link button — to bring someone into the group.',
   },
   {
     id: 'replay-tutorial',
@@ -169,12 +160,12 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     route: () => '/settings',
     target: '[data-tour="replay-tutorial"]',
     title: 'Replay anytime',
-    body: "Forgot something? Come back here whenever you want to run through this again.",
+    body: 'Come back here anytime to run through this again.',
   },
   {
     id: 'done',
     kind: 'modal',
     title: "You're all set!",
-    body: "That's the whole tour — go add a book, pick a status, and start the discussion.",
+    body: 'Go add a book, pick a status, and start the discussion.',
   },
 ]

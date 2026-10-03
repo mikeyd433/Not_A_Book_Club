@@ -169,10 +169,7 @@ export default function CommentNode({
                 <AttachmentImage key={a.id} path={a.storage_path} gifUrl={a.gif_url} />
               ))}
 
-              <div
-                className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs"
-                data-tour="comment-actions"
-              >
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                 <button
                   onClick={() => setReplying((r) => !r)}
                   className="font-semibold text-accent"
