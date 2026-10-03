@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import {
+  clearAllTestData,
   createTestAccount,
   deleteTestAccount,
   listTestAccounts,
@@ -28,6 +29,7 @@ export default function TestAccountsPanel() {
   const [label, setLabel] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [clearedMessage, setClearedMessage] = useState('')
 
   async function handleCreate() {
     setBusy(true)
@@ -58,6 +60,36 @@ export default function TestAccountsPanel() {
     }
     // A successful delete of the currently-active account reloads the page
     // itself (see testAccounts.ts) -- nothing left to do here in that case.
+  }
+
+  async function handleClearAllData() {
+    if (
+      !window.confirm(
+        "Delete every comment, reaction, rating, and chapter edit made by a test account? " +
+          'This also deletes any replies to a test comment, including from real members. ' +
+          'The test accounts themselves stay — only their content goes.',
+      )
+    ) {
+      return
+    }
+    setBusy(true)
+    setError('')
+    setClearedMessage('')
+    try {
+      const result = await clearAllTestData()
+      const parts = [
+        result.comments && `${result.comments} comment${result.comments === 1 ? '' : 's'}`,
+        result.reactions && `${result.reactions} reaction${result.reactions === 1 ? '' : 's'}`,
+        result.ratings && `${result.ratings} rating${result.ratings === 1 ? '' : 's'}`,
+        result.chapterEdits &&
+          `${result.chapterEdits} chapter edit${result.chapterEdits === 1 ? '' : 's'}`,
+      ].filter(Boolean)
+      setClearedMessage(parts.length > 0 ? `Cleared ${parts.join(', ')}.` : 'Nothing to clear.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to clear test data.')
+    } finally {
+      setBusy(false)
+    }
   }
 
   async function handleViewAs(account: SavedTestAccount) {
@@ -97,6 +129,16 @@ export default function TestAccountsPanel() {
       </div>
 
       {accounts.length > 0 && (
+        <button
+          onClick={handleClearAllData}
+          disabled={busy}
+          className="mt-2 min-h-9 w-full rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted disabled:opacity-60"
+        >
+          🧹 Clear all test data
+        </button>
+      )}
+
+      {accounts.length > 0 && (
         <ul className="mt-2 space-y-1">
           {accounts.map((account) => (
             <li
@@ -125,6 +167,7 @@ export default function TestAccountsPanel() {
         </ul>
       )}
 
+      {clearedMessage && <p className="mt-2 text-xs text-muted">{clearedMessage}</p>}
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
     </div>
   )

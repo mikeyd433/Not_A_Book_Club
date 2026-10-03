@@ -178,5 +178,56 @@ Deno.serve(async (req: Request) => {
     })
   }
 
+  if (body.action === 'clear-data') {
+    // Two plain single-table queries rather than an embedded/filtered join
+    // -- this codebase has already hit a real production outage (PGRST201)
+    // from an embedded select PostgREST found ambiguous, so this avoids
+    // that whole class of bug rather than trusting a join to behave.
+    const [{ data: testProfiles, error: profilesError }, { data: groupMembers, error: groupError }] =
+      await Promise.all([
+        admin.from('profiles').select('id').eq('is_test_account', true),
+        admin.from('group_members').select('user_id').eq('group_id', groupId),
+      ])
+    if (profilesError || groupError) {
+      return new Response('Failed to look up test accounts', {
+        status: 500,
+        headers: corsHeaders,
+      })
+    }
+
+    const memberIds = new Set((groupMembers ?? []).map((m) => m.user_id))
+    const testIds = (testProfiles ?? [])
+      .map((p) => p.id)
+      .filter((id) => memberIds.has(id))
+    if (testIds.length === 0) {
+      return new Response(
+        JSON.stringify({ comments: 0, reactions: 0, ratings: 0, chapterEdits: 0 }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+
+    // Comments cascade their own reactions/spoiler_blocks/attachments (and
+    // any replies, including from real members -- the UI's confirm prompt
+    // says so), but a reaction a test account left on someone ELSE's
+    // comment isn't attached to anything of theirs that gets deleted here,
+    // so it needs clearing separately.
+    const [comments, reactions, ratings, chapterEdits] = await Promise.all([
+      admin.from('comments').delete().in('user_id', testIds).select('id'),
+      admin.from('reactions').delete().in('user_id', testIds).select('user_id'),
+      admin.from('ratings').delete().in('user_id', testIds).select('user_id'),
+      admin.from('chapter_edits').delete().in('user_id', testIds).select('user_id'),
+    ])
+
+    return new Response(
+      JSON.stringify({
+        comments: comments.data?.length ?? 0,
+        reactions: reactions.data?.length ?? 0,
+        ratings: ratings.data?.length ?? 0,
+        chapterEdits: chapterEdits.data?.length ?? 0,
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    )
+  }
+
   return new Response('Unknown action', { status: 400, headers: corsHeaders })
 })

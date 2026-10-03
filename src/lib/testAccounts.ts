@@ -87,6 +87,29 @@ export async function deleteTestAccount(userId: string): Promise<void> {
   }
 }
 
+export type ClearedTestData = {
+  comments: number
+  reactions: number
+  ratings: number
+  chapterEdits: number
+}
+
+// Wipes every test account's comments/reactions/ratings/chapter edits
+// across the whole group without deleting the accounts themselves -- for
+// clearing out a mess made mid-test-session without having to recreate
+// (and re-add to your shelf, re-position in chapters, etc.) the accounts
+// you were using. Deleting a test comment cascades its own replies too,
+// including from real members -- the confirm prompt in TestAccountsPanel
+// says so up front rather than this function silently doing it.
+export async function clearAllTestData(): Promise<ClearedTestData> {
+  const { data, error } = await supabase.functions.invoke<ClearedTestData>('test-accounts', {
+    body: { action: 'clear-data' },
+  })
+  if (error) throw error
+  if (!data) throw new Error('No response from server.')
+  return data
+}
+
 function readSavedSession(key: string): SavedSession | null {
   try {
     const raw = window.localStorage.getItem(key)
