@@ -14,6 +14,9 @@ import ChapterSection from '@/components/discussion/ChapterSection'
 import QueryError from '@/components/QueryError'
 import type { MyGroup } from '@/lib/group/useMyGroup'
 
+type ChapterOrder = 'asc' | 'desc'
+const CHAPTER_ORDER_KEY = 'nabc-chapter-order'
+
 export default function Thread({ group }: { group: MyGroup }) {
   const { bookId } = useParams<{ bookId: string }>()
   const { data: chapters } = useChapters(bookId!)
@@ -32,6 +35,21 @@ export default function Thread({ group }: { group: MyGroup }) {
 
   const isAdmin = group.role === 'admin'
   const [addChapterError, setAddChapterError] = useState('')
+  // Per-device, not synced to the account -- this is just "which end do I
+  // want to scroll from today," not a collaborative setting like the
+  // per-chapter reveal state, so it doesn't need a shelf_entries round trip.
+  const [chapterOrder, setChapterOrder] = useState<ChapterOrder>(() => {
+    if (typeof window === 'undefined') return 'asc'
+    return window.localStorage.getItem(CHAPTER_ORDER_KEY) === 'desc' ? 'desc' : 'asc'
+  })
+
+  function toggleChapterOrder() {
+    setChapterOrder((prev) => {
+      const next: ChapterOrder = prev === 'asc' ? 'desc' : 'asc'
+      window.localStorage.setItem(CHAPTER_ORDER_KEY, next)
+      return next
+    })
+  }
 
   async function handleAddFirstChapter() {
     const defaultLabel = `Chapter ${addNextChapter.nextPosition}`
@@ -72,6 +90,14 @@ export default function Thread({ group }: { group: MyGroup }) {
     }
     return map
   }, [allRoots])
+
+  // The reply/retag chapter dropdowns (passed to ChapterSection as
+  // taggableChapters) always stay in natural reading order regardless of
+  // this -- only the order the sections themselves are stacked in changes.
+  const orderedChapters = useMemo(
+    () => (chapterOrder === 'asc' ? taggableChapters : [...taggableChapters].reverse()),
+    [taggableChapters, chapterOrder],
+  )
 
   const revealedChapterIds = myEntry?.revealed_chapter_ids ?? []
 
@@ -151,7 +177,17 @@ export default function Thread({ group }: { group: MyGroup }) {
         </p>
       ) : (
         <div className="space-y-5">
-          {taggableChapters.map((chapter, i) => (
+          {taggableChapters.length > 1 && (
+            <div className="flex justify-end">
+              <button
+                onClick={toggleChapterOrder}
+                className="min-h-9 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted active:bg-surface-alt"
+              >
+                {chapterOrder === 'asc' ? '↓ Oldest first' : '↑ Newest first'}
+              </button>
+            </div>
+          )}
+          {orderedChapters.map((chapter, i) => (
             <ChapterSection
               key={chapter.id}
               chapter={chapter}
