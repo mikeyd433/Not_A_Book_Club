@@ -1,7 +1,7 @@
 import type { Tables } from '@/types/database'
 
 export type Comment = Tables<'comments'> & {
-  profiles: { display_name: string } | null
+  profiles: { display_name: string; avatar_url: string | null } | null
   chapters: { label: string; position: number } | null
   reactions: { user_id: string; emoji: string }[]
   spoiler_blocks: { id: string; ordinal: number; content: string }[]

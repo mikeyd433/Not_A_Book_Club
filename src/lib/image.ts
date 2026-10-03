@@ -163,6 +163,37 @@ export async function resizeForUpload(
   })
 }
 
+// Center-crops to a square and downscales -- for an avatar, unlike a
+// comment photo (resizeForUpload, kept as whatever shape it was) or a book
+// cover (the full drag/zoom/rotate pipeline above, overkill for a small
+// profile picture). Whichever dimension is longer gets trimmed evenly off
+// both sides rather than offering a repositionable crop frame.
+export async function resizeSquareForUpload(
+  file: File,
+  size = 400,
+  quality = 0.85,
+): Promise<Blob> {
+  const dataUrl = await fileToDataUrl(file)
+  const image = await loadImage(dataUrl)
+  const side = Math.min(image.width, image.height)
+  const sx = (image.width - side) / 2
+  const sy = (image.height - side) / 2
+
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext('2d')!
+  ctx.drawImage(image, sx, sy, side, side, 0, 0, size, size)
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error('Export failed.'))),
+      'image/jpeg',
+      quality,
+    )
+  })
+}
+
 // A readable text color for a given background hex, computed from the hex
 // alone — used to theme a book's pages from its stored accent_color without
 // re-fetching the cover image.

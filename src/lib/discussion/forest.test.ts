@@ -13,7 +13,7 @@ function makeComment(overrides: Partial<Comment> & { id: string }): Comment {
     made_during_reread: false,
     is_prediction: false,
     flagged: false,
-    profiles: { display_name: 'Someone' },
+    profiles: { display_name: 'Someone', avatar_url: null },
     chapters: { label: 'Chapter 1', position: 1 },
     reactions: [],
     spoiler_blocks: [],

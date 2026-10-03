@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth/AuthProvider'
@@ -13,8 +13,14 @@ import {
   unsubscribeFromPush,
 } from '@/lib/notifications/push'
 import { isIOS, promptInstall, useInstallPrompt } from '@/lib/pwaInstall'
-import { useMyProfile, useUpdateDisplayName } from '@/lib/profile/queries'
+import {
+  useMyProfile,
+  useRemoveAvatar,
+  useUpdateDisplayName,
+  useUploadAvatar,
+} from '@/lib/profile/queries'
 import { setTheme, useTheme, type ThemePreference } from '@/lib/theme'
+import Avatar from '@/components/Avatar'
 import TestAccountsPanel from '@/components/TestAccountsPanel'
 import type { MyGroup } from '@/lib/group/useMyGroup'
 
@@ -35,7 +41,7 @@ export default function Settings({ group }: { group: MyGroup }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('group_members')
-        .select('user_id, role, profiles(display_name, is_test_account)')
+        .select('user_id, role, profiles(display_name, avatar_url, is_test_account)')
         .eq('group_id', group.id)
 
       if (error) throw error
@@ -127,7 +133,7 @@ export default function Settings({ group }: { group: MyGroup }) {
 
   return (
     <div className="space-y-6">
-      <DisplayNameField />
+      <ProfileField />
 
       <div>
         <h2 className="text-sm font-semibold text-muted">Appearance</h2>
@@ -207,11 +213,14 @@ export default function Settings({ group }: { group: MyGroup }) {
                 key={m.user_id}
                 className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-surface px-3 py-2 text-sm"
               >
-                <span className="min-w-0 truncate">
-                  {displayName}
-                  {m.profiles?.is_test_account && (
-                    <span className="ml-1.5 text-xs text-muted">🧪 test</span>
-                  )}
+                <span className="flex min-w-0 items-center gap-2">
+                  <Avatar path={m.profiles?.avatar_url} name={displayName} size={28} />
+                  <span className="truncate">
+                    {displayName}
+                    {m.profiles?.is_test_account && (
+                      <span className="ml-1.5 text-xs text-muted">🧪 test</span>
+                    )}
+                  </span>
                 </span>
                 <span className="flex items-center gap-2">
                   <span className="text-xs text-muted">{m.role}</span>
@@ -317,15 +326,20 @@ export default function Settings({ group }: { group: MyGroup }) {
   )
 }
 
-function DisplayNameField() {
+function ProfileField() {
   const { data: profile } = useMyProfile()
   const updateName = useUpdateDisplayName()
+  const uploadAvatar = useUploadAvatar()
+  const removeAvatar = useRemoveAvatar()
+  const photoInputRef = useRef<HTMLInputElement>(null)
+
   const [name, setName] = useState('')
   // Sync the input once the fetched name arrives, then leave it alone --
   // otherwise a background refetch (e.g. after a mutation elsewhere)
   // would stomp on text someone's mid-edit.
   const [synced, setSynced] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [avatarError, setAvatarError] = useState('')
 
   useEffect(() => {
     if (profile && !synced) {
@@ -334,7 +348,7 @@ function DisplayNameField() {
     }
   }, [profile, synced])
 
-  async function handleSave() {
+  async function handleSaveName() {
     setSaved(false)
     try {
       await updateName.mutateAsync(name)
@@ -344,10 +358,64 @@ function DisplayNameField() {
     }
   }
 
+  async function handlePhotoChosen(file: File | undefined) {
+    if (!file) return
+    setAvatarError('')
+    try {
+      await uploadAvatar.mutateAsync(file)
+    } catch (err) {
+      setAvatarError(err instanceof Error ? err.message : 'Failed to upload photo.')
+    }
+  }
+
+  async function handleRemovePhoto() {
+    if (!profile?.avatar_url) return
+    setAvatarError('')
+    try {
+      await removeAvatar.mutateAsync(profile.avatar_url)
+    } catch (err) {
+      setAvatarError(err instanceof Error ? err.message : 'Failed to remove photo.')
+    }
+  }
+
   return (
     <div>
-      <h2 className="text-sm font-semibold text-muted">Display name</h2>
-      <p className="mt-1 text-xs text-muted">
+      <h2 className="text-sm font-semibold text-muted">Profile</h2>
+
+      <div className="mt-2 flex items-center gap-3">
+        <Avatar path={profile?.avatar_url} name={name || 'Someone'} size={56} />
+        <div className="flex flex-col items-start gap-1">
+          <button
+            onClick={() => photoInputRef.current?.click()}
+            disabled={uploadAvatar.isPending}
+            className="min-h-9 rounded-full border border-border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+          >
+            {uploadAvatar.isPending ? 'Uploading…' : '📷 Change photo'}
+          </button>
+          {profile?.avatar_url && (
+            <button
+              onClick={handleRemovePhoto}
+              disabled={removeAvatar.isPending}
+              className="min-h-9 px-3 text-xs text-red-600 disabled:opacity-60"
+            >
+              Remove photo
+            </button>
+          )}
+        </div>
+        <input
+          ref={photoInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            void handlePhotoChosen(e.target.files?.[0])
+            e.target.value = ''
+          }}
+        />
+      </div>
+      {avatarError && <p className="mt-1 text-xs text-red-600">{avatarError}</p>}
+
+      <p className="mt-3 text-xs text-muted">
         Shown on your comments and in the member list, instead of your email.
       </p>
       <div className="mt-2 flex gap-2">
@@ -362,7 +430,7 @@ function DisplayNameField() {
           className="min-h-11 flex-1 rounded-lg border border-border bg-surface px-2 py-2 text-base"
         />
         <button
-          onClick={handleSave}
+          onClick={handleSaveName}
           disabled={updateName.isPending || !name.trim()}
           className="min-h-11 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-accent-contrast disabled:opacity-60"
         >

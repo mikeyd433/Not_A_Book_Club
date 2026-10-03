@@ -1,6 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth/AuthProvider'
+import { resizeSquareForUpload } from '@/lib/image'
+
+export function avatarPublicUrl(storagePath: string) {
+  return supabase.storage.from('avatars').getPublicUrl(storagePath).data.publicUrl
+}
 
 export function useMyProfile() {
   const { user } = useAuth()
@@ -11,7 +16,7 @@ export function useMyProfile() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('display_name')
+        .select('display_name, avatar_url')
         .eq('id', user!.id)
         .single()
 
@@ -21,12 +26,18 @@ export function useMyProfile() {
   })
 }
 
-// display_name is embedded by its own select('profiles(display_name)') in
-// a lot of places (comments, group members, ratings, ...) rather than one
-// shared query, so there's no single cache key to invalidate everywhere it
-// shows up -- those will just pick up the change the next time they
-// refetch. my-profile and group-members (visible live on the same
-// Settings page as this control) are worth refreshing immediately.
+// display_name/avatar_url are embedded by their own
+// select('profiles(...)') in a lot of places (comments, group members,
+// ratings, ...) rather than one shared query, so there's no single cache
+// key to invalidate everywhere they show up -- those will just pick up
+// the change the next time they refetch. my-profile and group-members
+// (visible live on the same Settings page as these controls) are worth
+// refreshing immediately.
+function invalidateProfileConsumers(queryClient: ReturnType<typeof useQueryClient>, userId?: string) {
+  queryClient.invalidateQueries({ queryKey: ['my-profile', userId] })
+  queryClient.invalidateQueries({ queryKey: ['group-members'] })
+}
+
 export function useUpdateDisplayName() {
   const queryClient = useQueryClient()
   const { user } = useAuth()
@@ -45,9 +56,56 @@ export function useUpdateDisplayName() {
       if (error) throw error
       return trimmed
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-profile', user?.id] })
-      queryClient.invalidateQueries({ queryKey: ['group-members'] })
+    onSuccess: () => invalidateProfileConsumers(queryClient, user?.id),
+  })
+}
+
+export function useUploadAvatar() {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+
+  return useMutation({
+    mutationFn: async (file: File) => {
+      if (!user) throw new Error('Not signed in')
+      const resized = await resizeSquareForUpload(file)
+      // Fixed filename per user (not a random one, unlike cover/comment
+      // uploads) -- upsert overwrites it in place instead of accumulating
+      // one orphaned file in storage per photo someone's ever tried.
+      const path = `${user.id}/avatar.jpg`
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(path, resized, { contentType: 'image/jpeg', upsert: true })
+      if (uploadError) throw uploadError
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: path })
+        .eq('id', user.id)
+      if (updateError) throw updateError
+
+      return path
     },
+    onSuccess: () => invalidateProfileConsumers(queryClient, user?.id),
+  })
+}
+
+export function useRemoveAvatar() {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+
+  return useMutation({
+    mutationFn: async (currentPath: string) => {
+      if (!user) throw new Error('Not signed in')
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: null })
+        .eq('id', user.id)
+      if (updateError) throw updateError
+
+      await supabase.storage.from('avatars').remove([currentPath])
+    },
+    onSuccess: () => invalidateProfileConsumers(queryClient, user?.id),
   })
 }
