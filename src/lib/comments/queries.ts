@@ -12,7 +12,13 @@ export function useComments(bookId: string) {
       const { data, error } = await supabase
         .from('comments')
         .select(
-          '*, profiles(display_name), chapters(label, position), reactions(user_id, emoji), spoiler_blocks(id, ordinal, content), comment_attachments(id, storage_path, gif_url)',
+          // profiles!comments_user_id_fkey: comments also reaches profiles
+          // indirectly through reactions (comment_id -> comments, user_id ->
+          // profiles), which PostgREST treats as a second comments<->profiles
+          // path once reactions is embedded in the same query -- the plain
+          // 'profiles(display_name)' is ambiguous between the two and fails
+          // the whole request with PGRST201.
+          '*, profiles!comments_user_id_fkey(display_name), chapters(label, position), reactions(user_id, emoji), spoiler_blocks(id, ordinal, content), comment_attachments(id, storage_path, gif_url)',
         )
         .eq('book_id', bookId)
         .order('created_at', { ascending: true })
