@@ -280,6 +280,29 @@ export function useBookShelfEntries(bookId: string) {
   })
 }
 
+// For a member profile page -- every book on someone else's shelf, across
+// the whole group, not just one book's. Same RLS as useBookShelfEntries
+// (any group member can read any shelf_entries row for a book in their
+// group), just queried the other way around: one user, every book,
+// instead of one book, every user.
+export function useMemberShelf(userId: string) {
+  return useQuery({
+    queryKey: ['member-shelf', userId],
+    enabled: Boolean(userId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('shelf_entries')
+        .select(
+          'book_id, status, current_chapter_id, books(id, title, author, open_library_cover_url, default_cover:covers!books_default_cover_id_fkey(storage_path))',
+        )
+        .eq('user_id', userId)
+
+      if (error) throw error
+      return data
+    },
+  })
+}
+
 // The spoiler-gate rule for the whole app: whether this member can see a
 // book's full, unlocked content rather than just up to their current
 // chapter. Previously reimplemented independently in Thread, Reviews and

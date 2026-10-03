@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth/AuthProvider'
@@ -213,7 +214,10 @@ export default function Settings({ group }: { group: MyGroup }) {
                 key={m.user_id}
                 className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-surface px-3 py-2 text-sm"
               >
-                <span className="flex min-w-0 items-center gap-2">
+                <Link
+                  to={`/member/${m.user_id}`}
+                  className="flex min-w-0 items-center gap-2"
+                >
                   <Avatar path={m.profiles?.avatar_url} name={displayName} size={28} />
                   <span className="truncate">
                     {displayName}
@@ -221,7 +225,7 @@ export default function Settings({ group }: { group: MyGroup }) {
                       <span className="ml-1.5 text-xs text-muted">🧪 test</span>
                     )}
                   </span>
-                </span>
+                </Link>
                 <span className="flex items-center gap-2">
                   <span className="text-xs text-muted">{m.role}</span>
                   {group.role === 'admin' && m.role !== 'admin' && !isTestAccount && (

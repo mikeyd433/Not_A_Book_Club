@@ -22,6 +22,7 @@ const ChaptersEditor = lazy(() => import('@/routes/ChaptersEditor'))
 const Reviews = lazy(() => import('@/routes/Reviews'))
 const Settings = lazy(() => import('@/routes/Settings'))
 const CoverGallery = lazy(() => import('@/routes/CoverGallery'))
+const MemberProfile = lazy(() => import('@/routes/MemberProfile'))
 
 export default function App() {
   const { user, loading: authLoading } = useAuth()
@@ -50,6 +51,7 @@ export default function App() {
           <Route path="/" element={<Home group={group} />} />
           <Route path="/achievements" element={<Achievements />} />
           <Route path="/add-book" element={<AddBook group={group} />} />
+          <Route path="/member/:userId" element={<MemberProfile />} />
           <Route element={<BookLayout />}>
             <Route path="/book/:bookId" element={<BookDetail group={group} />} />
             <Route

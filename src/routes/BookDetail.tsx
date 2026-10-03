@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   RESET_CATEGORIES,
   useAddChapterAndAdvance,
@@ -279,15 +279,17 @@ export default function BookDetail({ group }: { group: MyGroup }) {
             const pos = chapters?.find((c) => c.id === entry.current_chapter_id)
               ?.position
             return (
-              <li
-                key={entry.user_id}
-                className="flex items-center justify-between rounded-lg bg-surface px-3 py-2 text-sm"
-              >
-                <span>{entry.profiles?.display_name ?? 'Someone'}</span>
-                <span className="text-muted">
-                  {entry.is_rereading ? '🔁 Rereading' : SHELF_STATUS_LABELS[entry.status as ShelfStatus]}
-                  {pos ? ` · Ch. ${pos}` : ''}
-                </span>
+              <li key={entry.user_id}>
+                <Link
+                  to={`/member/${entry.user_id}`}
+                  className="flex items-center justify-between rounded-lg bg-surface px-3 py-2 text-sm active:bg-surface-alt"
+                >
+                  <span>{entry.profiles?.display_name ?? 'Someone'}</span>
+                  <span className="text-muted">
+                    {entry.is_rereading ? '🔁 Rereading' : SHELF_STATUS_LABELS[entry.status as ShelfStatus]}
+                    {pos ? ` · Ch. ${pos}` : ''}
+                  </span>
+                </Link>
               </li>
             )
           })}

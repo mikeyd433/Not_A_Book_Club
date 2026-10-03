@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { useAchievementsCatalog, useAchievementsFeed } from '@/lib/achievements/queries'
 import { useAuth } from '@/lib/auth/AuthProvider'
 
@@ -47,9 +48,13 @@ export default function Achievements() {
           {feed?.map((f) => (
             <li key={f.id} className="rounded-card bg-surface p-3">
               <p className="text-sm">
-                <span className="font-semibold">
-                  {f.user_id === user?.id ? 'You' : f.display_name}
-                </span>{' '}
+                {f.user_id === user?.id ? (
+                  <span className="font-semibold">You</span>
+                ) : (
+                  <Link to={`/member/${f.user_id}`} className="font-semibold">
+                    {f.display_name}
+                  </Link>
+                )}{' '}
                 earned <span className="font-semibold">🏆 {f.name}</span>
                 {f.book_title && <span className="text-muted"> — {f.book_title}</span>}
               </p>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { ChapterOption } from '@/lib/books/queries'
 import {
   useDeleteComment,
@@ -70,14 +71,17 @@ export default function CommentNode({
     <li className={depth > 0 ? 'ml-4 border-l border-border pl-3' : ''}>
       <div className="rounded-card bg-surface p-3">
         <div className="flex items-center justify-between text-xs text-muted">
-          <span className="flex min-w-0 items-center gap-1.5 font-semibold text-text">
+          <Link
+            to={`/member/${comment.user_id}`}
+            className="flex min-w-0 items-center gap-1.5 font-semibold text-text"
+          >
             <Avatar
               path={comment.profiles?.avatar_url}
               name={comment.profiles?.display_name ?? 'Someone'}
               size={20}
             />
             <span className="truncate">{comment.profiles?.display_name ?? 'Someone'}</span>
-          </span>
+          </Link>
           <span className="flex items-center gap-1">
             {comment.is_prediction && <span title="Prediction">🔮</span>}
             {comment.no_spoilers && (

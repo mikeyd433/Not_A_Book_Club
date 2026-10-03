@@ -26,6 +26,26 @@ export function useMyProfile() {
   })
 }
 
+// Same shape as useMyProfile but for viewing someone else's -- the
+// "profiles are readable by authenticated users" RLS policy already
+// allows reading any member's profile, not just your own.
+export function useMemberProfile(userId: string) {
+  return useQuery({
+    queryKey: ['member-profile', userId],
+    enabled: Boolean(userId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('display_name, avatar_url')
+        .eq('id', userId)
+        .single()
+
+      if (error) throw error
+      return data
+    },
+  })
+}
+
 // display_name/avatar_url are embedded by their own
 // select('profiles(...)') in a lot of places (comments, group members,
 // ratings, ...) rather than one shared query, so there's no single cache
