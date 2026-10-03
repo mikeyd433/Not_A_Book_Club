@@ -10,7 +10,7 @@ import {
 import { celebrate } from '@/lib/celebrate'
 import { useComments, useLockedCommentCount, usePostComment } from '@/lib/comments/queries'
 import { buildForest, type Comment, type TreeNode } from '@/lib/discussion/forest'
-import ChapterSection from '@/components/discussion/ChapterSection'
+import ChapterSection, { LockedChapterBar } from '@/components/discussion/ChapterSection'
 import QueryError from '@/components/QueryError'
 import type { MyGroup } from '@/lib/group/useMyGroup'
 
@@ -91,12 +91,20 @@ export default function Thread({ group }: { group: MyGroup }) {
     return map
   }, [allRoots])
 
-  // The reply/retag chapter dropdowns (passed to ChapterSection as
-  // taggableChapters) always stay in natural reading order regardless of
-  // this -- only the order the sections themselves are stacked in changes.
-  const orderedChapters = useMemo(
-    () => (chapterOrder === 'asc' ? taggableChapters : [...taggableChapters].reverse()),
-    [taggableChapters, chapterOrder],
+  // Every chapter gets stacked here, not just taggable ones -- chapters
+  // past the reader's current position render as a locked bar (below)
+  // instead of being silently omitted, so Discussion still shows the whole
+  // book's shape. The reply/retag chapter dropdowns (passed to
+  // ChapterSection as taggableChapters) always stay in natural reading
+  // order regardless of this -- only the order sections are stacked in
+  // changes.
+  const orderedChapters = useMemo(() => {
+    const list = chapters ?? []
+    return chapterOrder === 'asc' ? list : [...list].reverse()
+  }, [chapters, chapterOrder])
+  const taggableIds = useMemo(
+    () => new Set(taggableChapters.map((c) => c.id)),
+    [taggableChapters],
   )
 
   const revealedChapterIds = myEntry?.revealed_chapter_ids ?? []
@@ -171,23 +179,19 @@ export default function Thread({ group }: { group: MyGroup }) {
 
   return (
     <div className="space-y-4">
-      {taggableChapters.length === 0 ? (
-        <p className="rounded-lg bg-surface-alt p-3 text-xs text-muted">
-          Set your current chapter to start commenting.
-        </p>
-      ) : (
-        <div className="space-y-5">
-          {taggableChapters.length > 1 && (
-            <div className="flex justify-end">
-              <button
-                onClick={toggleChapterOrder}
-                className="min-h-9 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted active:bg-surface-alt"
-              >
-                {chapterOrder === 'asc' ? '↓ Oldest first' : '↑ Newest first'}
-              </button>
-            </div>
-          )}
-          {orderedChapters.map((chapter) => (
+      <div className="space-y-5">
+        {chapters.length > 1 && (
+          <div className="flex justify-end">
+            <button
+              onClick={toggleChapterOrder}
+              className="min-h-9 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted active:bg-surface-alt"
+            >
+              {chapterOrder === 'asc' ? '↓ Oldest first' : '↑ Newest first'}
+            </button>
+          </div>
+        )}
+        {orderedChapters.map((chapter) =>
+          taggableIds.has(chapter.id) ? (
             <ChapterSection
               key={chapter.id}
               chapter={chapter}
@@ -211,16 +215,18 @@ export default function Thread({ group }: { group: MyGroup }) {
                 })
               }}
             />
-          ))}
+          ) : (
+            <LockedChapterBar key={chapter.id} label={chapter.label} />
+          ),
+        )}
 
-          {Boolean(lockedCount) && (
-            <p className="rounded-lg bg-surface-alt p-3 text-center text-xs text-muted">
-              🔒 {lockedCount} comment{lockedCount === 1 ? '' : 's'} ahead — keep
-              reading to unlock
-            </p>
-          )}
-        </div>
-      )}
+        {Boolean(lockedCount) && (
+          <p className="rounded-lg bg-surface-alt p-3 text-center text-xs text-muted">
+            🔒 {lockedCount} comment{lockedCount === 1 ? '' : 's'} ahead — keep
+            reading to unlock
+          </p>
+        )}
+      </div>
     </div>
   )
 }

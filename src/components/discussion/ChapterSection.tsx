@@ -4,6 +4,17 @@ import { countNodes, type TreeNode } from '@/lib/discussion/forest'
 import CommentNode from './CommentNode'
 import Composer, { type ComposerSubmit } from './Composer'
 
+// A chapter past the reader's current position -- no composer, no
+// comments, just the label, so Discussion still shows the book's whole
+// shape instead of silently omitting chapters they haven't reached yet.
+export function LockedChapterBar({ label }: { label: string }) {
+  return (
+    <div className="-mx-4 bg-surface-alt px-4 py-2 text-center">
+      <h2 className="truncate text-sm text-muted">🔒 {label}</h2>
+    </div>
+  )
+}
+
 export default function ChapterSection({
   chapter,
   roots,
