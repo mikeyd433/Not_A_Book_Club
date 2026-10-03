@@ -2,6 +2,7 @@ import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { NavLink, Outlet, useLocation, useParams } from 'react-router-dom'
 import { useBook, useChapters, useMyShelfEntry, useUpsertShelfEntry } from '@/lib/books/queries'
 import { celebrate } from '@/lib/celebrate'
+import { confirmAdvance } from '@/lib/books/confirmAdvance'
 import { contrastForHex } from '@/lib/image'
 import { CONDENSED_BAR_SHOW_AFTER, useScrolledPast } from '@/lib/useScrolledPast'
 import ChapterWheelPicker from '@/components/ChapterWheelPicker'
@@ -23,6 +24,10 @@ export default function BookLayout() {
   const upsert = useUpsertShelfEntry(bookId!)
 
   const [showChapterPicker, setShowChapterPicker] = useState(false)
+  // Bumped on a cancelled advance to force the wheel picker to remount and
+  // re-settle on the still-current chapter -- see BookDetail's picker for
+  // why this is needed.
+  const [pickerResetKey, setPickerResetKey] = useState(0)
   // Thread's own condensed bar carries a chapter picker too, once scrolled
   // past this same threshold -- this one is only for the gap before that,
   // while BookLayout's header (with the bell this sits under) is still the
@@ -39,9 +44,14 @@ export default function BookLayout() {
     isDiscussion && !scrolledPastHeader && Boolean(myEntry) && (chapters?.length ?? 0) > 0
 
   function handleChapterPicked(chapterId: string) {
-    const newPosition = chapters?.find((c) => c.id === chapterId)?.position
+    const newChapter = chapters?.find((c) => c.id === chapterId)
+    if (!newChapter) return
     const oldPosition = currentChapter?.position
-    if (newPosition !== undefined && (oldPosition === undefined || newPosition > oldPosition)) {
+    if (!confirmAdvance(chapters ?? [], oldPosition, newChapter)) {
+      setPickerResetKey((k) => k + 1)
+      return
+    }
+    if (oldPosition === undefined || newChapter.position > oldPosition) {
       celebrate()
     }
     upsert.mutate({ current_chapter_id: chapterId })
@@ -107,6 +117,7 @@ export default function BookLayout() {
       {showPickerTrigger && showChapterPicker && (
         <div className="rounded-card bg-surface p-2">
           <ChapterWheelPicker
+            key={pickerResetKey}
             items={(chapters ?? []).map((c) => ({ id: c.id, label: c.label }))}
             value={myEntry?.current_chapter_id ?? null}
             onChange={handleChapterPicked}

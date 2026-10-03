@@ -14,6 +14,7 @@ import {
 } from '@/lib/books/queries'
 import ChapterWheelPicker from '@/components/ChapterWheelPicker'
 import { celebrate } from '@/lib/celebrate'
+import { confirmAdvance } from '@/lib/books/confirmAdvance'
 import { SHELF_STATUS_LABELS, type ShelfStatus } from '@/types/domain'
 import type { MyGroup } from '@/lib/group/useMyGroup'
 
@@ -47,6 +48,11 @@ export default function BookDetail({ group }: { group: MyGroup }) {
   const resetBookData = useResetBookData(bookId!)
   const addNextChapter = useAddChapterAndAdvance(bookId!)
   const [showPicker, setShowPicker] = useState(false)
+  // Bumped on a cancelled advance to force the wheel picker to remount and
+  // re-settle on the still-current chapter -- it snaps to wherever the user
+  // scrolled before onChange ever runs, so left alone it would keep showing
+  // the chapter they backed out of instead of reverting.
+  const [pickerResetKey, setPickerResetKey] = useState(0)
   const [showMoreOptions, setShowMoreOptions] = useState(false)
   const [showDangerZone, setShowDangerZone] = useState(false)
   const [resetSelection, setResetSelection] = useState<Set<ResetCategory>>(new Set())
@@ -97,6 +103,20 @@ export default function BookDetail({ group }: { group: MyGroup }) {
   }
 
   const currentChapter = chapters?.find((c) => c.id === myEntry?.current_chapter_id)
+
+  function handleChapterPicked(chapterId: string) {
+    const newChapter = chapters?.find((c) => c.id === chapterId)
+    if (!newChapter) return
+    const oldPosition = currentChapter?.position
+    if (!confirmAdvance(chapters ?? [], oldPosition, newChapter)) {
+      setPickerResetKey((k) => k + 1)
+      return
+    }
+    if (oldPosition === undefined || newChapter.position > oldPosition) {
+      celebrate()
+    }
+    upsert.mutate({ current_chapter_id: chapterId })
+  }
 
   async function handleAddNextChapter() {
     if (myEntry?.status !== 'reading' && myEntry?.status !== 'paused') {
@@ -181,16 +201,10 @@ export default function BookDetail({ group }: { group: MyGroup }) {
           {showPicker && (chapters?.length ?? 0) > 0 && (
             <div className="mt-2 rounded-card bg-surface p-2">
               <ChapterWheelPicker
+                key={pickerResetKey}
                 items={(chapters ?? []).map((c) => ({ id: c.id, label: c.label }))}
                 value={myEntry.current_chapter_id}
-                onChange={(chapterId) => {
-                  const newPosition = chapters?.find((c) => c.id === chapterId)?.position
-                  const oldPosition = currentChapter?.position
-                  if (newPosition !== undefined && (oldPosition === undefined || newPosition > oldPosition)) {
-                    celebrate()
-                  }
-                  upsert.mutate({ current_chapter_id: chapterId })
-                }}
+                onChange={handleChapterPicked}
               />
             </div>
           )}
