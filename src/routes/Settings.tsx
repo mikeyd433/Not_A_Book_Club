@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth/AuthProvider'
@@ -13,6 +13,7 @@ import {
   unsubscribeFromPush,
 } from '@/lib/notifications/push'
 import { isIOS, promptInstall, useInstallPrompt } from '@/lib/pwaInstall'
+import { useMyProfile, useUpdateDisplayName } from '@/lib/profile/queries'
 import { setTheme, useTheme, type ThemePreference } from '@/lib/theme'
 import TestAccountsPanel from '@/components/TestAccountsPanel'
 import type { MyGroup } from '@/lib/group/useMyGroup'
@@ -126,6 +127,8 @@ export default function Settings({ group }: { group: MyGroup }) {
 
   return (
     <div className="space-y-6">
+      <DisplayNameField />
+
       <div>
         <h2 className="text-sm font-semibold text-muted">Appearance</h2>
         <div className="mt-2 grid grid-cols-3 gap-2">
@@ -310,6 +313,72 @@ export default function Settings({ group }: { group: MyGroup }) {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+function DisplayNameField() {
+  const { data: profile } = useMyProfile()
+  const updateName = useUpdateDisplayName()
+  const [name, setName] = useState('')
+  // Sync the input once the fetched name arrives, then leave it alone --
+  // otherwise a background refetch (e.g. after a mutation elsewhere)
+  // would stomp on text someone's mid-edit.
+  const [synced, setSynced] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    if (profile && !synced) {
+      setName(profile.display_name)
+      setSynced(true)
+    }
+  }, [profile, synced])
+
+  async function handleSave() {
+    setSaved(false)
+    try {
+      await updateName.mutateAsync(name)
+      setSaved(true)
+    } catch {
+      // Surfaced below via updateName.error.
+    }
+  }
+
+  return (
+    <div>
+      <h2 className="text-sm font-semibold text-muted">Display name</h2>
+      <p className="mt-1 text-xs text-muted">
+        Shown on your comments and in the member list, instead of your email.
+      </p>
+      <div className="mt-2 flex gap-2">
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => {
+            setName(e.target.value)
+            setSaved(false)
+          }}
+          maxLength={60}
+          className="min-h-11 flex-1 rounded-lg border border-border bg-surface px-2 py-2 text-base"
+        />
+        <button
+          onClick={handleSave}
+          disabled={updateName.isPending || !name.trim()}
+          className="min-h-11 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-accent-contrast disabled:opacity-60"
+        >
+          {updateName.isPending ? 'Saving…' : 'Save'}
+        </button>
+      </div>
+      {saved && !updateName.isPending && (
+        <p className="mt-1 text-xs text-muted">Saved.</p>
+      )}
+      {updateName.isError && (
+        <p className="mt-1 text-xs text-red-600">
+          {updateName.error instanceof Error
+            ? updateName.error.message
+            : 'Failed to save.'}
+        </p>
+      )}
     </div>
   )
 }
