@@ -17,11 +17,13 @@ import CoverThumb from '@/components/CoverThumb'
 import QueryError from '@/components/QueryError'
 import type { MyGroup } from '@/lib/group/useMyGroup'
 
-// Matches the global header's own rendered height (see Layout.tsx: a
-// max(0.75rem, safe-area-inset) top pad + 0.75rem bottom pad around ~44px
-// of content) so this bar docks directly beneath it instead of
-// overlapping -- there's no DOM measurement, just mirroring that formula.
-const CONDENSED_BAR_TOP = 'calc(3.5rem + max(0.75rem, env(safe-area-inset-top)))'
+// Flush with the very top of the viewport (just clearing the
+// notch/status-bar inset) rather than leaving room for Layout's global
+// header above it -- that header is itself position: sticky, which isn't
+// actually staying put in the WebView this installed PWA runs in (same
+// reason this bar switched away from sticky), so reserving space for it
+// here just left a gap with scrolled-past content showing through.
+const CONDENSED_BAR_TOP = 'env(safe-area-inset-top)'
 // How far past the top BookLayout's own cover/title/tabs header has
 // scrolled before the condensed bar below takes over -- position: sticky
 // turned out unreliable in the WebView this app actually runs in (the
@@ -228,7 +230,7 @@ export default function Thread({ group }: { group: MyGroup }) {
           this installed PWA actually runs in. */}
       {showCondensedBar && (
         <div
-          className="fixed inset-x-0 z-[5] bg-surface"
+          className="fixed inset-x-0 z-20 bg-surface"
           style={{ top: CONDENSED_BAR_TOP }}
         >
           <div className="flex items-center gap-2 border-b border-border px-4 py-2">
