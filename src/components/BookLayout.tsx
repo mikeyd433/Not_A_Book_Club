@@ -78,7 +78,7 @@ export default function BookLayout() {
               personalCoverPath={myEntry?.personal_cover?.storage_path}
             />
           </NavLink>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h1 className="break-words text-lg font-bold">{book.title}</h1>
             <p className="break-words text-sm text-muted">{book.author}</p>
           </div>
@@ -106,9 +106,10 @@ export default function BookLayout() {
           {showPickerTrigger && (
             <button
               onClick={() => setShowChapterPicker((s) => !s)}
-              className="flex-shrink-0 rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-accent"
+              className="flex max-w-[9.5rem] flex-shrink-0 items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-accent"
             >
-              {currentChapter?.label ?? 'Set chapter'} ▾
+              <span className="min-w-0 truncate">{currentChapter?.label ?? 'Set chapter'}</span>
+              <span className="flex-shrink-0">▾</span>
             </button>
           )}
         </div>
