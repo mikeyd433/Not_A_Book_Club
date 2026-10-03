@@ -83,37 +83,38 @@ export default function BookLayout() {
             <p className="break-words text-sm text-muted">{book.author}</p>
           </div>
         </div>
-        <div className="flex flex-shrink-0 flex-col items-end gap-2">
-          {myEntry && (
-            <button
-              onClick={() => upsert.mutate({ muted: !myEntry.muted })}
-              disabled={upsert.isPending}
-              aria-label={
-                myEntry.muted
-                  ? 'Unmute notifications for this book'
-                  : 'Mute notifications for this book'
-              }
-              title={
-                myEntry.muted
-                  ? 'Notifications muted for this book'
-                  : 'Notifications on for this book'
-              }
-              className="flex size-10 flex-shrink-0 items-center justify-center rounded-full border border-border text-lg disabled:opacity-60"
-            >
-              {myEntry.muted ? '🔕' : '🔔'}
-            </button>
-          )}
-          {showPickerTrigger && (
-            <button
-              onClick={() => setShowChapterPicker((s) => !s)}
-              className="flex max-w-[9.5rem] flex-shrink-0 items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-accent"
-            >
-              <span className="min-w-0 truncate">{currentChapter?.label ?? 'Set chapter'}</span>
-              <span className="flex-shrink-0">▾</span>
-            </button>
-          )}
-        </div>
+        {myEntry && (
+          <button
+            onClick={() => upsert.mutate({ muted: !myEntry.muted })}
+            disabled={upsert.isPending}
+            aria-label={
+              myEntry.muted
+                ? 'Unmute notifications for this book'
+                : 'Mute notifications for this book'
+            }
+            title={
+              myEntry.muted
+                ? 'Notifications muted for this book'
+                : 'Notifications on for this book'
+            }
+            className="flex size-10 flex-shrink-0 items-center justify-center rounded-full border border-border text-lg disabled:opacity-60"
+          >
+            {myEntry.muted ? '🔕' : '🔔'}
+          </button>
+        )}
       </div>
+
+      {showPickerTrigger && (
+        <div className="flex justify-end">
+          <button
+            onClick={() => setShowChapterPicker((s) => !s)}
+            className="flex max-w-[12rem] items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-accent"
+          >
+            <span className="min-w-0 truncate">{currentChapter?.label ?? 'Set chapter'}</span>
+            <span className="flex-shrink-0">▾</span>
+          </button>
+        </div>
+      )}
 
       {showPickerTrigger && showChapterPicker && (
         <div className="rounded-card bg-surface p-2">
