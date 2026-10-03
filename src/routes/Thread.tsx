@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import {
   useAddChapterAndAdvance,
+  useBook,
   useChapters,
   useMyShelfEntry,
   useTaggableChapters,
@@ -11,14 +12,23 @@ import { celebrate } from '@/lib/celebrate'
 import { useComments, useLockedCommentCount, usePostComment } from '@/lib/comments/queries'
 import { buildForest, type Comment, type TreeNode } from '@/lib/discussion/forest'
 import ChapterSection, { LockedChapterBar } from '@/components/discussion/ChapterSection'
+import ChapterWheelPicker from '@/components/ChapterWheelPicker'
+import CoverThumb from '@/components/CoverThumb'
 import QueryError from '@/components/QueryError'
 import type { MyGroup } from '@/lib/group/useMyGroup'
+
+// Matches the global header's own rendered height (see Layout.tsx: a
+// max(0.75rem, safe-area-inset) top pad + 0.75rem bottom pad around ~44px
+// of content) so this bar sticks directly beneath it instead of
+// overlapping -- there's no DOM measurement, just mirroring that formula.
+const STICKY_TOP = 'calc(3.5rem + max(0.75rem, env(safe-area-inset-top)))'
 
 type ChapterOrder = 'asc' | 'desc'
 const CHAPTER_ORDER_KEY = 'nabc-chapter-order'
 
 export default function Thread({ group }: { group: MyGroup }) {
   const { bookId } = useParams<{ bookId: string }>()
+  const { data: book } = useBook(bookId!)
   const { data: chapters } = useChapters(bookId!)
   const { data: myEntry } = useMyShelfEntry(bookId!)
   const {
@@ -35,6 +45,7 @@ export default function Thread({ group }: { group: MyGroup }) {
 
   const isAdmin = group.role === 'admin'
   const [addChapterError, setAddChapterError] = useState('')
+  const [showChapterPicker, setShowChapterPicker] = useState(false)
   // Per-device, not synced to the account -- this is just "which end do I
   // want to scroll from today," not a collaborative setting like the
   // per-chapter reveal state, so it doesn't need a shelf_entries round trip.
@@ -177,8 +188,53 @@ export default function Thread({ group }: { group: MyGroup }) {
     return <QueryError error={commentsErrorDetail} onRetry={() => refetchComments()} />
   }
 
+  const currentChapter = chapters.find((c) => c.id === myEntry.current_chapter_id)
+
+  function handleChapterPicked(chapterId: string) {
+    const newPosition = chapters?.find((c) => c.id === chapterId)?.position
+    const oldPosition = currentChapter?.position
+    if (
+      newPosition !== undefined &&
+      (oldPosition === undefined || newPosition > oldPosition)
+    ) {
+      celebrate()
+    }
+    upsertShelf.mutate({ current_chapter_id: chapterId })
+  }
+
   return (
     <div className="space-y-4">
+      {/* Sticks directly beneath the global header once BookLayout's own
+          cover/title/tabs scroll past -- same book, same current-chapter
+          control as Overview, just reachable without leaving Discussion. */}
+      <div
+        className="sticky z-[5] -mx-4 flex items-center gap-2 border-b border-border bg-surface px-4 py-2"
+        style={{ top: STICKY_TOP }}
+      >
+        <CoverThumb
+          book={book ?? { title: '', open_library_cover_url: null, default_cover: null }}
+          personalCoverPath={myEntry.personal_cover?.storage_path}
+          className="w-8 flex-shrink-0"
+        />
+        <p className="min-w-0 flex-1 truncate text-sm font-semibold">{book?.title}</p>
+        <button
+          onClick={() => setShowChapterPicker((s) => !s)}
+          className="flex-shrink-0 rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-accent"
+        >
+          {currentChapter?.label ?? 'Set chapter'} ▾
+        </button>
+      </div>
+
+      {showChapterPicker && (
+        <div className="rounded-card bg-surface p-2">
+          <ChapterWheelPicker
+            items={chapters.map((c) => ({ id: c.id, label: c.label }))}
+            value={myEntry.current_chapter_id}
+            onChange={handleChapterPicked}
+          />
+        </div>
+      )}
+
       <div className="space-y-5">
         {chapters.length > 1 && (
           <div className="flex justify-end">
