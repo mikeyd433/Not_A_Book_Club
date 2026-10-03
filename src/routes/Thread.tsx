@@ -187,7 +187,7 @@ export default function Thread({ group }: { group: MyGroup }) {
               </button>
             </div>
           )}
-          {orderedChapters.map((chapter, i) => (
+          {orderedChapters.map((chapter) => (
             <ChapterSection
               key={chapter.id}
               chapter={chapter}
@@ -197,7 +197,6 @@ export default function Thread({ group }: { group: MyGroup }) {
               taggableChapters={taggableChapters}
               isAdmin={isAdmin}
               bookId={bookId!}
-              divider={i > 0}
               onPost={async (input) => {
                 await postComment.mutateAsync({
                   ...input,

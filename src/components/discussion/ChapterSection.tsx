@@ -12,7 +12,6 @@ export default function ChapterSection({
   taggableChapters,
   isAdmin,
   bookId,
-  divider,
   onPost,
   onReply,
 }: {
@@ -23,7 +22,6 @@ export default function ChapterSection({
   taggableChapters: ChapterOption[]
   isAdmin: boolean
   bookId: string
-  divider: boolean
   onPost: (input: ComposerSubmit) => Promise<void>
   onReply: (input: ComposerSubmit, parentId: string) => Promise<void>
 }) {
@@ -36,8 +34,10 @@ export default function ChapterSection({
   const hiddenCount = countNodes(otherRoots)
 
   return (
-    <div className={`space-y-2 ${divider ? 'border-t border-border pt-4' : ''}`}>
-      <h2 className="text-base font-bold">{chapter.label}</h2>
+    <div className="space-y-2">
+      <div className="-mx-4 bg-surface-alt px-4 py-2 text-center">
+        <h2 className="truncate text-sm font-bold uppercase tracking-wide">{chapter.label}</h2>
+      </div>
 
       <Composer chapters={[chapter]} defaultChapterId={chapter.id} onSubmit={onPost} />
 
