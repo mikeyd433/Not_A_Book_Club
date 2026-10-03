@@ -37,7 +37,7 @@ export default function ChapterSetupPanel({ bookId }: { bookId: string }) {
   }
 
   return (
-    <div className="rounded-card bg-surface p-3">
+    <div className="rounded-card bg-surface p-3" data-tour="chapter-setup-panel">
       <p className="text-sm font-semibold">Add chapters</p>
       <p className="mt-1 text-xs text-muted">
         Paste a table of contents (one label per line), or just add generic

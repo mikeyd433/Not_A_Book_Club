@@ -9,7 +9,7 @@ import Composer, { type ComposerSubmit } from './Composer'
 // shape instead of silently omitting chapters they haven't reached yet.
 export function LockedChapterBar({ label }: { label: string }) {
   return (
-    <div className="-mx-4 bg-surface-alt px-4 py-2 text-center">
+    <div className="-mx-4 bg-surface-alt px-4 py-2 text-center" data-tour="locked-chapter">
       <h2 className="truncate text-sm text-muted">🔒 {label}</h2>
     </div>
   )
@@ -46,11 +46,13 @@ export default function ChapterSection({
 
   return (
     <div className="space-y-2">
-      <div className="-mx-4 bg-surface-alt px-4 py-2 text-center">
-        <h2 className="truncate text-sm font-bold uppercase tracking-wide">{chapter.label}</h2>
-      </div>
+      <div className="space-y-2" data-tour="chapter-top">
+        <div className="-mx-4 bg-surface-alt px-4 py-2 text-center">
+          <h2 className="truncate text-sm font-bold uppercase tracking-wide">{chapter.label}</h2>
+        </div>
 
-      <Composer chapters={[chapter]} defaultChapterId={chapter.id} onSubmit={onPost} />
+        <Composer chapters={[chapter]} defaultChapterId={chapter.id} onSubmit={onPost} />
+      </div>
 
       {isRevealed ? (
         roots.length > 0 && (
@@ -86,7 +88,7 @@ export default function ChapterSection({
             </ul>
           )}
           {hiddenCount > 0 && (
-            <div className="rounded-card bg-surface-alt p-3 text-center">
+            <div className="rounded-card bg-surface-alt p-3 text-center" data-tour="hidden-reveal">
               <p className="text-xs text-muted">
                 🙈 {hiddenCount} comment{hiddenCount === 1 ? '' : 's'} hidden
               </p>

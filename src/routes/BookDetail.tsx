@@ -144,7 +144,7 @@ export default function BookDetail({ group }: { group: MyGroup }) {
 
   return (
     <div className="space-y-5">
-      <div>
+      <div data-tour="shelf-status">
         <h2 className="text-sm font-semibold text-muted">Your shelf</h2>
         {!myEntry ? (
           <div className="mt-2">
@@ -190,6 +190,7 @@ export default function BookDetail({ group }: { group: MyGroup }) {
           {(chapters?.length ?? 0) > 0 && (
             <button
               onClick={() => setShowPicker((s) => !s)}
+              data-tour="current-chapter"
               className="flex w-full items-center justify-between rounded-card bg-surface p-3 text-left"
             >
               <span className="text-sm font-semibold">Current chapter</span>
@@ -212,6 +213,7 @@ export default function BookDetail({ group }: { group: MyGroup }) {
           <button
             onClick={handleAddNextChapter}
             disabled={addNextChapter.isPending}
+            data-tour="add-chapter-live"
             className={`flex min-h-11 w-full items-center justify-center rounded-card border border-dashed border-border px-3 py-2 text-sm font-semibold text-accent disabled:opacity-60 ${
               (chapters?.length ?? 0) > 0 ? 'mt-2' : ''
             }`}
@@ -227,9 +229,11 @@ export default function BookDetail({ group }: { group: MyGroup }) {
       )}
 
       {myEntry && (myEntry.status === 'finished' || myEntry.status === 'dnf' || myEntry.is_rereading) && (
-        <div className="rounded-card bg-surface p-3">
+        <div className="rounded-card bg-surface p-3" data-tour="spoil-reread">
           <button
             onClick={() => setShowMoreOptions((s) => !s)}
+            data-tour="more-options-toggle"
+            aria-expanded={showMoreOptions}
             className="flex min-h-9 w-full items-center justify-between text-left text-sm font-semibold text-muted"
           >
             More options

@@ -21,6 +21,7 @@ import {
   useUploadAvatar,
 } from '@/lib/profile/queries'
 import { setTheme, useTheme, type ThemePreference } from '@/lib/theme'
+import { useTutorial } from '@/lib/tutorial/TutorialProvider'
 import Avatar from '@/components/Avatar'
 import TestAccountsPanel from '@/components/TestAccountsPanel'
 import type { MyGroup } from '@/lib/group/useMyGroup'
@@ -34,6 +35,7 @@ const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
 export default function Settings({ group }: { group: MyGroup }) {
   const queryClient = useQueryClient()
   const { user } = useAuth()
+  const tutorial = useTutorial()
   const inviteUrl = `${window.location.origin}/nabc/?invite=${group.invite_code}`
   const [memberError, setMemberError] = useState('')
 
@@ -177,7 +179,7 @@ export default function Settings({ group }: { group: MyGroup }) {
         </div>
       )}
 
-      <div>
+      <div data-tour="invite-code">
         <h1 className="text-lg font-bold">{group.name}</h1>
         <p className="text-sm text-muted">Invite code</p>
         <div className="mt-1 flex flex-wrap items-center gap-2">
@@ -201,6 +203,15 @@ export default function Settings({ group }: { group: MyGroup }) {
           )}
         </div>
       </div>
+
+      <button
+        onClick={() => tutorial.start()}
+        data-tour="replay-tutorial"
+        className="flex min-h-11 w-full items-center justify-between rounded-card bg-surface px-3 py-2 text-left text-sm font-semibold active:bg-surface-alt"
+      >
+        🎓 Replay tutorial
+        <span className="text-muted">→</span>
+      </button>
 
       <div>
         <h2 className="text-sm font-semibold text-muted">Members</h2>

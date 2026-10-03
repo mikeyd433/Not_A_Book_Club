@@ -16,7 +16,7 @@ export function useMyProfile() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('display_name, avatar_url')
+        .select('display_name, avatar_url, has_seen_tutorial')
         .eq('id', user!.id)
         .single()
 
@@ -75,6 +75,26 @@ export function useUpdateDisplayName() {
 
       if (error) throw error
       return trimmed
+    },
+    onSuccess: () => invalidateProfileConsumers(queryClient, user?.id),
+  })
+}
+
+// One-way flip -- once seen, there's no need to un-set it. Settings'
+// "Replay tutorial" button starts the tour directly and doesn't touch this
+// flag, so replaying never un-marks a first-timer's account.
+export function useMarkTutorialSeen() {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error('Not signed in')
+      const { error } = await supabase
+        .from('profiles')
+        .update({ has_seen_tutorial: true })
+        .eq('id', user.id)
+      if (error) throw error
     },
     onSuccess: () => invalidateProfileConsumers(queryClient, user?.id),
   })

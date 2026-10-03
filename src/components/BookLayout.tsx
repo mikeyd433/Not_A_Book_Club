@@ -125,7 +125,10 @@ export default function BookLayout() {
         </div>
       )}
 
-      <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none]">
+      <div
+        data-tour="book-tabs"
+        className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none]"
+      >
         <BookTab to={`/book/${book.id}`} end>
           Overview
         </BookTab>

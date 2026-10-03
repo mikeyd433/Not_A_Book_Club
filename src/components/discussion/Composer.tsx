@@ -150,6 +150,7 @@ export default function Composer({
         onChange={(e) => setBody(e.target.value)}
         onFocus={() => setExpanded(true)}
         placeholder="Share a thought…"
+        data-tour="composer-textarea"
         className="mt-2 w-full rounded-lg border border-border p-2 text-base"
         rows={2}
       />
@@ -223,7 +224,10 @@ export default function Composer({
       {showControls && (
         <>
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
-            <label className="flex min-h-9 items-center gap-1.5 text-xs text-muted">
+            <label
+              className="flex min-h-9 items-center gap-1.5 text-xs text-muted"
+              data-tour="no-spoilers-checkbox"
+            >
               <input
                 type="checkbox"
                 checked={noSpoilers}
@@ -232,7 +236,10 @@ export default function Composer({
               />
               ❓ No spoilers please
             </label>
-            <label className="flex min-h-9 items-center gap-1.5 text-xs text-muted">
+            <label
+              className="flex min-h-9 items-center gap-1.5 text-xs text-muted"
+              data-tour="prediction-checkbox"
+            >
               <input
                 type="checkbox"
                 checked={isPrediction}
