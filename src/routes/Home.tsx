@@ -4,12 +4,14 @@ import { useQuery } from '@tanstack/react-query'
 import {
   useChapters,
   useGroupBooks,
+  useGroupShelfActivity,
   useMyShelfEntry,
   useMyShelfStatuses,
 } from '@/lib/books/queries'
 import { useAchievementsCatalog, useAchievementsFeed } from '@/lib/achievements/queries'
 import { useAuth } from '@/lib/auth/AuthProvider'
 import { supabase } from '@/lib/supabase'
+import Avatar from '@/components/Avatar'
 import CoverThumb from '@/components/CoverThumb'
 import ProgressBar from '@/components/ProgressBar'
 import QueryError from '@/components/QueryError'
@@ -23,6 +25,13 @@ type GroupBook = {
   open_library_cover_url: string | null
   default_cover: { storage_path: string } | null
   created_at: string
+}
+
+type OtherReader = {
+  userId: string
+  status: ShelfStatus
+  displayName: string
+  avatarUrl: string | null
 }
 
 const SORT_LABELS = {
@@ -50,6 +59,7 @@ const STATUS_GROUP_LABELS: Record<ShelfStatus | 'none', string> = {
 }
 
 export default function Home({ group }: { group: MyGroup }) {
+  const { user } = useAuth()
   const { data: books, isLoading, isError, error, refetch } = useGroupBooks(group.id)
   const [sortMode, setSortMode] = useState<SortMode>('status')
 
@@ -60,6 +70,35 @@ export default function Home({ group }: { group: MyGroup }) {
     myStatuses?.forEach((e) => map.set(e.book_id, e.status as ShelfStatus))
     return map
   }, [myStatuses])
+
+  // Books someone else has shelved that aren't on mine -- a discovery
+  // prompt, not just "every book nobody's touched yet" (which the 'none'
+  // status group below already covers regardless of what anyone else has
+  // done with it).
+  const { data: shelfActivity } = useGroupShelfActivity(bookIds)
+  const othersByBook = useMemo(() => {
+    const map = new Map<string, OtherReader[]>()
+    shelfActivity?.forEach((e) => {
+      if (e.user_id === user?.id) return
+      const reader: OtherReader = {
+        userId: e.user_id,
+        status: e.status as ShelfStatus,
+        displayName: e.profiles?.display_name ?? 'Someone',
+        avatarUrl: e.profiles?.avatar_url ?? null,
+      }
+      const list = map.get(e.book_id)
+      if (list) list.push(reader)
+      else map.set(e.book_id, [reader])
+    })
+    return map
+  }, [shelfActivity, user?.id])
+  const discoverBooks = useMemo(
+    () =>
+      (books as GroupBook[] | undefined)?.filter(
+        (b) => !statusByBook.has(b.id) && (othersByBook.get(b.id)?.length ?? 0) > 0,
+      ) ?? [],
+    [books, statusByBook, othersByBook],
+  )
 
   if (isLoading) return <p className="text-sm text-muted">Loading…</p>
 
@@ -103,6 +142,23 @@ export default function Home({ group }: { group: MyGroup }) {
         </select>
       </div>
       <AchievementsStrip />
+
+      {discoverBooks.length > 0 && (
+        <div className="space-y-2">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">
+            📚 On others' shelves
+          </h2>
+          <div className="space-y-2">
+            {discoverBooks.map((book) => (
+              <DiscoverBookRow
+                key={book.id}
+                book={book}
+                others={othersByBook.get(book.id) ?? []}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {sortMode === 'status'
         ? STATUS_GROUPS.map((status) => {
@@ -205,6 +261,46 @@ function BookRow({
             {activity.lastAt && ` · ${formatRelativeTime(activity.lastAt)}`}
           </p>
         )}
+      </div>
+    </Link>
+  )
+}
+
+function DiscoverBookRow({
+  book,
+  others,
+}: {
+  book: GroupBook
+  others: OtherReader[]
+}) {
+  const summary =
+    others.length === 1
+      ? `${others[0].displayName} · ${SHELF_STATUS_LABELS[others[0].status]}`
+      : `${others.length} people have this`
+
+  return (
+    <Link
+      to={`/book/${book.id}`}
+      className="flex gap-3 rounded-card bg-surface p-3 active:bg-surface-alt"
+    >
+      <CoverThumb book={book} className="w-14 flex-shrink-0" />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold">{book.title}</p>
+        <p className="truncate text-xs text-muted">{book.author}</p>
+        <div className="mt-1 flex items-center gap-1.5">
+          <div className="flex -space-x-1.5">
+            {others.slice(0, 4).map((o) => (
+              <Avatar
+                key={o.userId}
+                path={o.avatarUrl}
+                name={o.displayName}
+                size={18}
+                className="ring-2 ring-surface"
+              />
+            ))}
+          </div>
+          <span className="truncate text-xs text-muted">{summary}</span>
+        </div>
       </div>
     </Link>
   )

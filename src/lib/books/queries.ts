@@ -265,6 +265,28 @@ export function useMyShelfStatuses(bookIds: string[]) {
   })
 }
 
+// For Home's "On others' shelves" discovery section -- every shelf_entries
+// row for the given books, not just the viewer's own (unlike
+// useMyShelfStatuses above). Same RLS as useBookShelfEntries/useMemberShelf:
+// any group member can already read any shelf_entries row for a book in
+// their group, so filtering out the viewer's own rows to find "others" is
+// purely a client-side concern, not an access one.
+export function useGroupShelfActivity(bookIds: string[]) {
+  return useQuery({
+    queryKey: ['group-shelf-activity', bookIds],
+    enabled: bookIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('shelf_entries')
+        .select('book_id, user_id, status, profiles(display_name, avatar_url)')
+        .in('book_id', bookIds)
+
+      if (error) throw error
+      return data
+    },
+  })
+}
+
 export function useBookShelfEntries(bookId: string) {
   return useQuery({
     queryKey: ['shelf-entries', bookId],
