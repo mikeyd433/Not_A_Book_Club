@@ -212,7 +212,7 @@ export default function BookDetail({ group }: { group: MyGroup }) {
         </div>
       )}
 
-      {myEntry && (
+      {myEntry && (myEntry.status === 'finished' || myEntry.status === 'dnf' || myEntry.is_rereading) && (
         <div className="rounded-card bg-surface p-3">
           <button
             onClick={() => setShowMoreOptions((s) => !s)}
@@ -223,16 +223,6 @@ export default function BookDetail({ group }: { group: MyGroup }) {
           </button>
           {showMoreOptions && (
             <div className="mt-3 space-y-3">
-              <label className="flex min-h-11 items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={myEntry.muted}
-                  onChange={(e) => upsert.mutate({ muted: e.target.checked })}
-                  className="size-5"
-                />
-                🔕 Mute notifications for this book
-              </label>
-
               {myEntry.status === 'finished' && (
                 <div>
                   {myEntry.is_rereading ? (

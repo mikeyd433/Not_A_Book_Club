@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { NavLink, Outlet, useParams } from 'react-router-dom'
-import { useBook, useChapters, useMyShelfEntry } from '@/lib/books/queries'
+import { useBook, useChapters, useMyShelfEntry, useUpsertShelfEntry } from '@/lib/books/queries'
 import { contrastForHex } from '@/lib/image'
 import CoverThumb from '@/components/CoverThumb'
 import QueryError from '@/components/QueryError'
@@ -16,6 +16,7 @@ export default function BookLayout() {
   const { data: book, isError, error, refetch } = useBook(bookId!)
   const { data: chapters } = useChapters(bookId!)
   const { data: myEntry } = useMyShelfEntry(bookId!)
+  const upsert = useUpsertShelfEntry(bookId!)
 
   const style: CSSProperties | undefined = book?.accent_color
     ? ({
@@ -30,17 +31,38 @@ export default function BookLayout() {
 
   return (
     <div style={style} className="space-y-4">
-      <div className="flex gap-3">
-        <NavLink to={`/book/${book.id}`} end className="w-16 flex-shrink-0">
-          <CoverThumb
-            book={book}
-            personalCoverPath={myEntry?.personal_cover?.storage_path}
-          />
-        </NavLink>
-        <div className="min-w-0">
-          <h1 className="break-words text-lg font-bold">{book.title}</h1>
-          <p className="break-words text-sm text-muted">{book.author}</p>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 gap-3">
+          <NavLink to={`/book/${book.id}`} end className="w-16 flex-shrink-0">
+            <CoverThumb
+              book={book}
+              personalCoverPath={myEntry?.personal_cover?.storage_path}
+            />
+          </NavLink>
+          <div className="min-w-0">
+            <h1 className="break-words text-lg font-bold">{book.title}</h1>
+            <p className="break-words text-sm text-muted">{book.author}</p>
+          </div>
         </div>
+        {myEntry && (
+          <button
+            onClick={() => upsert.mutate({ muted: !myEntry.muted })}
+            disabled={upsert.isPending}
+            aria-label={
+              myEntry.muted
+                ? 'Unmute notifications for this book'
+                : 'Mute notifications for this book'
+            }
+            title={
+              myEntry.muted
+                ? 'Notifications muted for this book'
+                : 'Notifications on for this book'
+            }
+            className="flex size-10 flex-shrink-0 items-center justify-center rounded-full border border-border text-lg disabled:opacity-60"
+          >
+            {myEntry.muted ? '🔕' : '🔔'}
+          </button>
+        )}
       </div>
 
       <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none]">
