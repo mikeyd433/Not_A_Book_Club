@@ -11,6 +11,7 @@ import {
 import { useAchievementsCatalog, useAchievementsFeed } from '@/lib/achievements/queries'
 import { useAuth } from '@/lib/auth/AuthProvider'
 import { supabase } from '@/lib/supabase'
+import { formatRelativeTime } from '@/lib/time'
 import Avatar from '@/components/Avatar'
 import CoverThumb from '@/components/CoverThumb'
 import ProgressBar from '@/components/ProgressBar'
@@ -323,14 +324,3 @@ function useUnlockedCommentActivity(bookId: string) {
   })
 }
 
-function formatRelativeTime(isoTimestamp: string): string {
-  const diffMs = Date.now() - new Date(isoTimestamp).getTime()
-  const minutes = Math.floor(diffMs / 60_000)
-  if (minutes < 1) return 'just now'
-  if (minutes < 60) return `${minutes}m ago`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
-  const days = Math.floor(hours / 24)
-  if (days < 7) return `${days}d ago`
-  return new Date(isoTimestamp).toLocaleDateString()
-}

@@ -36,14 +36,14 @@ export default function ChapterSection({
   const hiddenCount = countNodes(otherRoots)
 
   return (
-    <div className={`space-y-3 ${divider ? 'border-t border-border pt-5' : ''}`}>
+    <div className={`space-y-2 ${divider ? 'border-t border-border pt-4' : ''}`}>
       <h2 className="text-base font-bold">{chapter.label}</h2>
 
       <Composer chapters={[chapter]} defaultChapterId={chapter.id} onSubmit={onPost} />
 
       {isRevealed ? (
         roots.length > 0 && (
-          <ul className="space-y-3">
+          <ul>
             {roots.map((node) => (
               <CommentNode
                 key={node.comment.id}
@@ -60,7 +60,7 @@ export default function ChapterSection({
       ) : (
         <>
           {myRoots.length > 0 && (
-            <ul className="space-y-3">
+            <ul>
               {myRoots.map((node) => (
                 <CommentNode
                   key={node.comment.id}
