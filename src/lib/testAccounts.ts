@@ -1,4 +1,20 @@
+import { FunctionsHttpError } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+
+// supabase-js's own error for a non-2xx response from an Edge Function is
+// always the same unhelpful "Edge Function returned a non-2xx status code"
+// -- the actual reason (e.g. "Only a group admin can manage test accounts",
+// or the Anonymous Sign-Ins hint) is sitting in the response body, which
+// FunctionsHttpError exposes as `.context` (a Response) rather than in
+// `.message`. Without unwrapping it, every failure here looks identical
+// and undiagnosable from the UI alone.
+async function describeFunctionError(error: unknown): Promise<Error> {
+  if (error instanceof FunctionsHttpError) {
+    const body = await error.context.text().catch(() => '')
+    return new Error(body || error.message)
+  }
+  return error instanceof Error ? error : new Error('Something went wrong.')
+}
 
 // Lets an admin create a throwaway, email-less member (a real Supabase
 // anonymous auth user, added to the group server-side -- see the
@@ -57,7 +73,7 @@ export async function createTestAccount(label: string): Promise<SavedTestAccount
     access_token: string
     refresh_token: string
   }>('test-accounts', { body: { action: 'create', label } })
-  if (error) throw error
+  if (error) throw await describeFunctionError(error)
   if (!data) throw new Error('No response from server.')
 
   const account: SavedTestAccount = {
@@ -73,7 +89,7 @@ export async function deleteTestAccount(userId: string): Promise<void> {
   const { error } = await supabase.functions.invoke('test-accounts', {
     body: { action: 'delete', userId },
   })
-  if (error) throw error
+  if (error) throw await describeFunctionError(error)
 
   writeAccounts(readAccounts().filter((a) => a.userId !== userId))
 
@@ -105,7 +121,7 @@ export async function clearAllTestData(): Promise<ClearedTestData> {
   const { data, error } = await supabase.functions.invoke<ClearedTestData>('test-accounts', {
     body: { action: 'clear-data' },
   })
-  if (error) throw error
+  if (error) throw await describeFunctionError(error)
   if (!data) throw new Error('No response from server.')
   return data
 }
