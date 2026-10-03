@@ -56,10 +56,10 @@ export default function AddBook({ group }: { group: MyGroup }) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-tour="add-book-search">
       <h1 className="text-lg font-bold">Add a book</h1>
 
-      <div className="flex gap-2" data-tour="add-book-search">
+      <div className="flex gap-2">
         <input
           type="text"
           placeholder="Search by title or author…"
