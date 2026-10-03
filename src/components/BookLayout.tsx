@@ -3,6 +3,7 @@ import { NavLink, Outlet, useParams } from 'react-router-dom'
 import { useBook, useChapters, useMyShelfEntry } from '@/lib/books/queries'
 import { contrastForHex } from '@/lib/image'
 import CoverThumb from '@/components/CoverThumb'
+import QueryError from '@/components/QueryError'
 
 // Wraps every /book/:bookId/* route: themes it with the accent color
 // pulled from the displayed cover, and gives every sub-page (Overview,
@@ -12,7 +13,7 @@ import CoverThumb from '@/components/CoverThumb'
 // straight into Discussion -- left no way to reach the others.
 export default function BookLayout() {
   const { bookId } = useParams<{ bookId: string }>()
-  const { data: book } = useBook(bookId!)
+  const { data: book, isError, error, refetch } = useBook(bookId!)
   const { data: chapters } = useChapters(bookId!)
   const { data: myEntry } = useMyShelfEntry(bookId!)
 
@@ -22,6 +23,8 @@ export default function BookLayout() {
         '--color-accent-contrast': contrastForHex(book.accent_color),
       } as CSSProperties)
     : undefined
+
+  if (isError) return <QueryError error={error} onRetry={() => refetch()} />
 
   if (!book) return <div style={style} />
 

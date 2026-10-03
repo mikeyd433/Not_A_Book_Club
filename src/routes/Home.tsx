@@ -12,6 +12,7 @@ import { useAuth } from '@/lib/auth/AuthProvider'
 import { supabase } from '@/lib/supabase'
 import CoverThumb from '@/components/CoverThumb'
 import ProgressBar from '@/components/ProgressBar'
+import QueryError from '@/components/QueryError'
 import { SHELF_STATUS_LABELS, type ShelfStatus } from '@/types/domain'
 import type { MyGroup } from '@/lib/group/useMyGroup'
 
@@ -49,7 +50,7 @@ const STATUS_GROUP_LABELS: Record<ShelfStatus | 'none', string> = {
 }
 
 export default function Home({ group }: { group: MyGroup }) {
-  const { data: books, isLoading } = useGroupBooks(group.id)
+  const { data: books, isLoading, isError, error, refetch } = useGroupBooks(group.id)
   const [sortMode, setSortMode] = useState<SortMode>('status')
 
   const bookIds = useMemo(() => (books ?? []).map((b) => b.id), [books])
@@ -61,6 +62,8 @@ export default function Home({ group }: { group: MyGroup }) {
   }, [myStatuses])
 
   if (isLoading) return <p className="text-sm text-muted">Loading…</p>
+
+  if (isError) return <QueryError error={error} onRetry={() => refetch()} />
 
   if (!books || books.length === 0) {
     return (

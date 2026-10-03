@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from '@/lib/auth/AuthProvider'
 import { useMyGroup } from '@/lib/group/useMyGroup'
@@ -6,14 +7,21 @@ import JoinOrCreateGroup from '@/routes/JoinOrCreateGroup'
 import Layout from '@/components/Layout'
 import BookLayout from '@/components/BookLayout'
 import Home from '@/routes/Home'
-import Achievements from '@/routes/Achievements'
-import AddBook from '@/routes/AddBook'
 import BookDetail from '@/routes/BookDetail'
-import ChaptersEditor from '@/routes/ChaptersEditor'
 import Thread from '@/routes/Thread'
-import Reviews from '@/routes/Reviews'
-import Settings from '@/routes/Settings'
-import CoverGallery from '@/routes/CoverGallery'
+
+// Everyone hits Home, BookLayout, BookDetail, and Thread (the default
+// landing point from Home) on essentially every visit -- those stay in the
+// main bundle. Everything below is reached less often (once a session, or
+// rarely at all), so it's worth a separate chunk each rather than making
+// people reading Discussion on mobile download the admin/reset tooling,
+// the achievements feed, and the review form upfront.
+const Achievements = lazy(() => import('@/routes/Achievements'))
+const AddBook = lazy(() => import('@/routes/AddBook'))
+const ChaptersEditor = lazy(() => import('@/routes/ChaptersEditor'))
+const Reviews = lazy(() => import('@/routes/Reviews'))
+const Settings = lazy(() => import('@/routes/Settings'))
+const CoverGallery = lazy(() => import('@/routes/CoverGallery'))
 
 export default function App() {
   const { user, loading: authLoading } = useAuth()
@@ -36,34 +44,36 @@ export default function App() {
   }
 
   return (
-    <Routes>
-      <Route element={<Layout group={group} />}>
-        <Route path="/" element={<Home group={group} />} />
-        <Route path="/achievements" element={<Achievements />} />
-        <Route path="/add-book" element={<AddBook group={group} />} />
-        <Route element={<BookLayout />}>
-          <Route path="/book/:bookId" element={<BookDetail group={group} />} />
-          <Route
-            path="/book/:bookId/chapters"
-            element={<ChaptersEditor group={group} />}
-          />
-          <Route
-            path="/book/:bookId/thread"
-            element={<Thread group={group} />}
-          />
-          <Route
-            path="/book/:bookId/reviews"
-            element={<Reviews group={group} />}
-          />
-          <Route
-            path="/book/:bookId/covers"
-            element={<CoverGallery group={group} />}
-          />
+    <Suspense fallback={<FullScreenSpinner />}>
+      <Routes>
+        <Route element={<Layout group={group} />}>
+          <Route path="/" element={<Home group={group} />} />
+          <Route path="/achievements" element={<Achievements />} />
+          <Route path="/add-book" element={<AddBook group={group} />} />
+          <Route element={<BookLayout />}>
+            <Route path="/book/:bookId" element={<BookDetail group={group} />} />
+            <Route
+              path="/book/:bookId/chapters"
+              element={<ChaptersEditor group={group} />}
+            />
+            <Route
+              path="/book/:bookId/thread"
+              element={<Thread group={group} />}
+            />
+            <Route
+              path="/book/:bookId/reviews"
+              element={<Reviews group={group} />}
+            />
+            <Route
+              path="/book/:bookId/covers"
+              element={<CoverGallery group={group} />}
+            />
+          </Route>
+          <Route path="/settings" element={<Settings group={group} />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
-        <Route path="/settings" element={<Settings group={group} />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Route>
-    </Routes>
+      </Routes>
+    </Suspense>
   )
 }
 
