@@ -31,7 +31,6 @@ const RESET_CATEGORY_LABELS: Record<ResetCategory, string> = {
   discussion: 'Discussion (comments & reactions)',
   progress: "Everyone's reading progress",
   ratings: 'Ratings & reviews',
-  predictions: 'Predictions',
   covers: 'Community covers',
   achievements: 'Achievements earned for this book',
 }
@@ -83,7 +82,7 @@ export default function BookDetail({ group }: { group: MyGroup }) {
       (c) => RESET_CATEGORY_LABELS[c],
     )
     const cascadeNote = resetSelection.has('chapters')
-      ? '\n\n(Resetting chapters also clears discussion and predictions, since those are tagged to specific chapters.)'
+      ? '\n\n(Resetting chapters also clears discussion, since comments are tagged to specific chapters.)'
       : ''
     if (
       !window.confirm(

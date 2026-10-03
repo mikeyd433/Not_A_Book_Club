@@ -320,8 +320,8 @@ export function useTaggableChapters(bookId: string): ChapterOption[] {
 }
 
 // Admin-only. Deleting the book row cascades through chapters, comments,
-// ratings, predictions, shelf_entries, etc. server-side (FK ON DELETE
-// CASCADE) -- covers row deletion cascades too, but their files in Storage
+// ratings, shelf_entries, etc. server-side (FK ON DELETE CASCADE) --
+// covers row deletion cascades too, but their files in Storage
 // don't disappear just because the DB row referencing them does, so those
 // are removed here as a best-effort client-side step, same as
 // useDeleteCover already does for a single cover.
@@ -359,7 +359,6 @@ export const RESET_CATEGORIES = [
   'discussion',
   'progress',
   'ratings',
-  'predictions',
   'covers',
   'achievements',
 ] as const
@@ -369,10 +368,9 @@ export type ResetCategory = (typeof RESET_CATEGORIES)[number]
 // Admin-only. Wipes selected categories of a book's data via the
 // reset_book_data() RPC (which also enforces the admin check server-side)
 // without deleting the book row itself. Resetting chapters cascades
-// discussion/predictions server-side too (comments and predictions are
-// tagged to chapters), which is why covers/attachments storage paths have
-// to be read out *before* calling the RPC -- the rows naming them are
-// gone the moment it returns.
+// discussion server-side too (comments are tagged to chapters), which is
+// why covers/attachments storage paths have to be read out *before*
+// calling the RPC -- the rows naming them are gone the moment it returns.
 export function useResetBookData(bookId: string) {
   const queryClient = useQueryClient()
 
@@ -414,7 +412,6 @@ export function useResetBookData(bookId: string) {
         p_discussion: categories.has('discussion'),
         p_progress: categories.has('progress'),
         p_ratings: categories.has('ratings'),
-        p_predictions: categories.has('predictions'),
         p_covers: categories.has('covers'),
         p_achievements: categories.has('achievements'),
       })
@@ -438,8 +435,6 @@ export function useResetBookData(bookId: string) {
       queryClient.invalidateQueries({ queryKey: ['comments', bookId] })
       queryClient.invalidateQueries({ queryKey: ['locked-comment-count', bookId] })
       queryClient.invalidateQueries({ queryKey: ['ratings', bookId] })
-      queryClient.invalidateQueries({ queryKey: ['predictions', bookId] })
-      queryClient.invalidateQueries({ queryKey: ['prediction-scoreboard', bookId] })
       queryClient.invalidateQueries({ queryKey: ['covers', bookId] })
       queryClient.invalidateQueries({ queryKey: ['achievements-feed'] })
     },
@@ -481,12 +476,10 @@ export function useUpsertShelfEntry(bookId: string) {
       // A patch here can change full-access status (e.g. starting a reread
       // re-locks the thread), so anything gated by chapter position needs
       // to be refetched too -- otherwise a still-fresh cached query can
-      // keep serving comments/predictions/ratings from before the lock
-      // changed, for as long as its staleTime window lasts.
+      // keep serving comments/ratings from before the lock changed, for as
+      // long as its staleTime window lasts.
       queryClient.invalidateQueries({ queryKey: ['comments', bookId] })
       queryClient.invalidateQueries({ queryKey: ['locked-comment-count', bookId] })
-      queryClient.invalidateQueries({ queryKey: ['predictions', bookId] })
-      queryClient.invalidateQueries({ queryKey: ['prediction-scoreboard', bookId] })
       queryClient.invalidateQueries({ queryKey: ['ratings', bookId] })
     },
   })
