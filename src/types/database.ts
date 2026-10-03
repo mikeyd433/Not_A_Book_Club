@@ -704,6 +704,7 @@ export type Database = {
       shelf_entries: {
         Row: {
           book_id: string
+          comments_seen_at: string | null
           created_at: string
           current_chapter_id: string | null
           finished_at: string | null
@@ -721,6 +722,7 @@ export type Database = {
         }
         Insert: {
           book_id: string
+          comments_seen_at?: string | null
           created_at?: string
           current_chapter_id?: string | null
           finished_at?: string | null
@@ -738,6 +740,7 @@ export type Database = {
         }
         Update: {
           book_id?: string
+          comments_seen_at?: string | null
           created_at?: string
           current_chapter_id?: string | null
           finished_at?: string | null

@@ -226,7 +226,7 @@ function BookRow({
 }) {
   const { data: chapters } = useChapters(book.id)
   const { data: entry } = useMyShelfEntry(book.id)
-  const { data: activity } = useUnlockedCommentActivity(book.id)
+  const { data: activity } = useUnlockedCommentActivity(book.id, entry?.comments_seen_at)
 
   const currentPosition = chapters?.find(
     (c) => c.id === entry?.current_chapter_id,
@@ -307,14 +307,21 @@ function DiscoverBookRow({
   )
 }
 
-function useUnlockedCommentActivity(bookId: string) {
+// Counts comments since the reader last opened this book's Discussion tab
+// (Thread marks that moment via shelf_entries.comments_seen_at), so the
+// badge clears once they've actually seen the activity instead of running
+// up an all-time total forever. Never having visited (comments_seen_at
+// null) falls back to every comment on the book, same as before this
+// tracked seen-state existed.
+function useUnlockedCommentActivity(bookId: string, seenAt: string | null | undefined) {
   return useQuery({
-    queryKey: ['unlocked-comment-activity', bookId],
+    queryKey: ['unlocked-comment-activity', bookId, seenAt],
     queryFn: async () => {
       const { data, error, count } = await supabase
         .from('comments')
         .select('created_at', { count: 'exact' })
         .eq('book_id', bookId)
+        .gt('created_at', seenAt ?? '1970-01-01')
         .order('created_at', { ascending: false })
         .limit(1)
 

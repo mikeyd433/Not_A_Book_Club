@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import {
   useAddChapterAndAdvance,
@@ -62,6 +62,21 @@ export default function Thread({ group }: { group: MyGroup }) {
     if (typeof window === 'undefined') return 'asc'
     return window.localStorage.getItem(CHAPTER_ORDER_KEY) === 'desc' ? 'desc' : 'asc'
   })
+
+  // Marks this book's comment activity as seen once the reader actually
+  // reaches the discussion (not the "read chapter 1 to start" gate above
+  // it) -- Home's unlocked-comment badge reads this back to only count
+  // what's happened since. The ref guards against re-firing on every
+  // render once myEntry settles; it's reset per book so switching between
+  // books in the same session still marks each one independently.
+  const markedSeenForBookRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!myEntry?.id || !myEntry.current_chapter_id) return
+    if (markedSeenForBookRef.current === bookId) return
+    markedSeenForBookRef.current = bookId ?? null
+    upsertShelf.mutate({ comments_seen_at: new Date().toISOString() })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bookId, myEntry?.id, myEntry?.current_chapter_id])
 
   function toggleChapterOrder() {
     setChapterOrder((prev) => {

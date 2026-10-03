@@ -499,6 +499,7 @@ export function useUpsertShelfEntry(bookId: string) {
       muted?: boolean
       is_rereading?: boolean
       revealed_chapter_ids?: string[]
+      comments_seen_at?: string
     }) => {
       if (!user) throw new Error('Not signed in')
 
