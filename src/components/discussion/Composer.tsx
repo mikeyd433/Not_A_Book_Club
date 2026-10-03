@@ -136,7 +136,7 @@ export default function Composer({
         onFocus={() => setExpanded(true)}
         placeholder="Share a thought…"
         className="mt-2 w-full rounded-lg border border-border p-2 text-base"
-        rows={compact ? 2 : 3}
+        rows={2}
       />
 
       {showControls && addingSpoiler && (
