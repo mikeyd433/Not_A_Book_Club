@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import {
   useAddChapterAndAdvance,
@@ -19,9 +19,16 @@ import type { MyGroup } from '@/lib/group/useMyGroup'
 
 // Matches the global header's own rendered height (see Layout.tsx: a
 // max(0.75rem, safe-area-inset) top pad + 0.75rem bottom pad around ~44px
-// of content) so this bar sticks directly beneath it instead of
+// of content) so this bar docks directly beneath it instead of
 // overlapping -- there's no DOM measurement, just mirroring that formula.
-const STICKY_TOP = 'calc(3.5rem + max(0.75rem, env(safe-area-inset-top)))'
+const CONDENSED_BAR_TOP = 'calc(3.5rem + max(0.75rem, env(safe-area-inset-top)))'
+// How far past the top BookLayout's own cover/title/tabs header has
+// scrolled before the condensed bar below takes over -- position: sticky
+// turned out unreliable in the WebView this app actually runs in (the
+// installed-PWA Chrome on Android), so this is a plain scroll-tracked
+// position: fixed instead, which doesn't depend on any ancestor's
+// containing-block/overflow setup the way sticky does.
+const CONDENSED_BAR_SHOW_AFTER = 120
 
 type ChapterOrder = 'asc' | 'desc'
 const CHAPTER_ORDER_KEY = 'nabc-chapter-order'
@@ -46,6 +53,16 @@ export default function Thread({ group }: { group: MyGroup }) {
   const isAdmin = group.role === 'admin'
   const [addChapterError, setAddChapterError] = useState('')
   const [showChapterPicker, setShowChapterPicker] = useState(false)
+  const [showCondensedBar, setShowCondensedBar] = useState(false)
+
+  useEffect(() => {
+    function handleScroll() {
+      setShowCondensedBar(window.scrollY > CONDENSED_BAR_SHOW_AFTER)
+    }
+    handleScroll()
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
   // Per-device, not synced to the account -- this is just "which end do I
   // want to scroll from today," not a collaborative setting like the
   // per-chapter reveal state, so it doesn't need a shelf_entries round trip.
@@ -204,34 +221,40 @@ export default function Thread({ group }: { group: MyGroup }) {
 
   return (
     <div className="space-y-4">
-      {/* Sticks directly beneath the global header once BookLayout's own
-          cover/title/tabs scroll past -- same book, same current-chapter
-          control as Overview, just reachable without leaving Discussion. */}
-      <div
-        className="sticky z-[5] -mx-4 flex items-center gap-2 border-b border-border bg-surface px-4 py-2"
-        style={{ top: STICKY_TOP }}
-      >
-        <CoverThumb
-          book={book ?? { title: '', open_library_cover_url: null, default_cover: null }}
-          personalCoverPath={myEntry.personal_cover?.storage_path}
-          className="w-8 flex-shrink-0"
-        />
-        <p className="min-w-0 flex-1 truncate text-sm font-semibold">{book?.title}</p>
-        <button
-          onClick={() => setShowChapterPicker((s) => !s)}
-          className="flex-shrink-0 rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-accent"
+      {/* Only exists in the DOM once scrolled past BookLayout's own
+          cover/title/tabs header -- not shown at the very top, where that
+          header is already doing the same job. position: fixed rather than
+          sticky: sticky turned out not to reliably stay put in the WebView
+          this installed PWA actually runs in. */}
+      {showCondensedBar && (
+        <div
+          className="fixed inset-x-0 z-[5] bg-surface"
+          style={{ top: CONDENSED_BAR_TOP }}
         >
-          {currentChapter?.label ?? 'Set chapter'} ▾
-        </button>
-      </div>
+          <div className="flex items-center gap-2 border-b border-border px-4 py-2">
+            <CoverThumb
+              book={book ?? { title: '', open_library_cover_url: null, default_cover: null }}
+              personalCoverPath={myEntry.personal_cover?.storage_path}
+              className="w-8 flex-shrink-0"
+            />
+            <p className="min-w-0 flex-1 truncate text-sm font-semibold">{book?.title}</p>
+            <button
+              onClick={() => setShowChapterPicker((s) => !s)}
+              className="flex-shrink-0 rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-accent"
+            >
+              {currentChapter?.label ?? 'Set chapter'} ▾
+            </button>
+          </div>
 
-      {showChapterPicker && (
-        <div className="rounded-card bg-surface p-2">
-          <ChapterWheelPicker
-            items={chapters.map((c) => ({ id: c.id, label: c.label }))}
-            value={myEntry.current_chapter_id}
-            onChange={handleChapterPicked}
-          />
+          {showChapterPicker && (
+            <div className="border-b border-border bg-surface p-2">
+              <ChapterWheelPicker
+                items={chapters.map((c) => ({ id: c.id, label: c.label }))}
+                value={myEntry.current_chapter_id}
+                onChange={handleChapterPicked}
+              />
+            </div>
+          )}
         </div>
       )}
 
