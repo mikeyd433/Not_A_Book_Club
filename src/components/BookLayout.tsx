@@ -1,7 +1,10 @@
-import type { CSSProperties, ReactNode } from 'react'
-import { NavLink, Outlet, useParams } from 'react-router-dom'
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import { NavLink, Outlet, useLocation, useParams } from 'react-router-dom'
 import { useBook, useChapters, useMyShelfEntry, useUpsertShelfEntry } from '@/lib/books/queries'
+import { celebrate } from '@/lib/celebrate'
 import { contrastForHex } from '@/lib/image'
+import { CONDENSED_BAR_SHOW_AFTER, useScrolledPast } from '@/lib/useScrolledPast'
+import ChapterWheelPicker from '@/components/ChapterWheelPicker'
 import CoverThumb from '@/components/CoverThumb'
 import QueryError from '@/components/QueryError'
 
@@ -13,10 +16,36 @@ import QueryError from '@/components/QueryError'
 // straight into Discussion -- left no way to reach the others.
 export default function BookLayout() {
   const { bookId } = useParams<{ bookId: string }>()
+  const { pathname } = useLocation()
   const { data: book, isError, error, refetch } = useBook(bookId!)
   const { data: chapters } = useChapters(bookId!)
   const { data: myEntry } = useMyShelfEntry(bookId!)
   const upsert = useUpsertShelfEntry(bookId!)
+
+  const [showChapterPicker, setShowChapterPicker] = useState(false)
+  // Thread's own condensed bar carries a chapter picker too, once scrolled
+  // past this same threshold -- this one is only for the gap before that,
+  // while BookLayout's header (with the bell this sits under) is still the
+  // thing on screen.
+  const scrolledPastHeader = useScrolledPast(CONDENSED_BAR_SHOW_AFTER)
+  const isDiscussion = pathname === `/book/${bookId}/thread`
+
+  useEffect(() => {
+    if (scrolledPastHeader) setShowChapterPicker(false)
+  }, [scrolledPastHeader])
+
+  const currentChapter = chapters?.find((c) => c.id === myEntry?.current_chapter_id)
+  const showPickerTrigger =
+    isDiscussion && !scrolledPastHeader && Boolean(myEntry) && (chapters?.length ?? 0) > 0
+
+  function handleChapterPicked(chapterId: string) {
+    const newPosition = chapters?.find((c) => c.id === chapterId)?.position
+    const oldPosition = currentChapter?.position
+    if (newPosition !== undefined && (oldPosition === undefined || newPosition > oldPosition)) {
+      celebrate()
+    }
+    upsert.mutate({ current_chapter_id: chapterId })
+  }
 
   const style: CSSProperties | undefined = book?.accent_color
     ? ({
@@ -44,26 +73,46 @@ export default function BookLayout() {
             <p className="break-words text-sm text-muted">{book.author}</p>
           </div>
         </div>
-        {myEntry && (
-          <button
-            onClick={() => upsert.mutate({ muted: !myEntry.muted })}
-            disabled={upsert.isPending}
-            aria-label={
-              myEntry.muted
-                ? 'Unmute notifications for this book'
-                : 'Mute notifications for this book'
-            }
-            title={
-              myEntry.muted
-                ? 'Notifications muted for this book'
-                : 'Notifications on for this book'
-            }
-            className="flex size-10 flex-shrink-0 items-center justify-center rounded-full border border-border text-lg disabled:opacity-60"
-          >
-            {myEntry.muted ? '🔕' : '🔔'}
-          </button>
-        )}
+        <div className="flex flex-shrink-0 flex-col items-end gap-2">
+          {myEntry && (
+            <button
+              onClick={() => upsert.mutate({ muted: !myEntry.muted })}
+              disabled={upsert.isPending}
+              aria-label={
+                myEntry.muted
+                  ? 'Unmute notifications for this book'
+                  : 'Mute notifications for this book'
+              }
+              title={
+                myEntry.muted
+                  ? 'Notifications muted for this book'
+                  : 'Notifications on for this book'
+              }
+              className="flex size-10 flex-shrink-0 items-center justify-center rounded-full border border-border text-lg disabled:opacity-60"
+            >
+              {myEntry.muted ? '🔕' : '🔔'}
+            </button>
+          )}
+          {showPickerTrigger && (
+            <button
+              onClick={() => setShowChapterPicker((s) => !s)}
+              className="flex-shrink-0 rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-accent"
+            >
+              {currentChapter?.label ?? 'Set chapter'} ▾
+            </button>
+          )}
+        </div>
       </div>
+
+      {showPickerTrigger && showChapterPicker && (
+        <div className="rounded-card bg-surface p-2">
+          <ChapterWheelPicker
+            items={(chapters ?? []).map((c) => ({ id: c.id, label: c.label }))}
+            value={myEntry?.current_chapter_id ?? null}
+            onChange={handleChapterPicked}
+          />
+        </div>
+      )}
 
       <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none]">
         <BookTab to={`/book/${book.id}`} end>

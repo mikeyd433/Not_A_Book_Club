@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import {
   useAddChapterAndAdvance,
@@ -16,6 +16,7 @@ import ChapterWheelPicker from '@/components/ChapterWheelPicker'
 import CoverThumb from '@/components/CoverThumb'
 import QueryError from '@/components/QueryError'
 import type { MyGroup } from '@/lib/group/useMyGroup'
+import { CONDENSED_BAR_SHOW_AFTER, useScrolledPast } from '@/lib/useScrolledPast'
 
 // Flush with the very top of the viewport (just clearing the
 // notch/status-bar inset) rather than leaving room for Layout's global
@@ -24,13 +25,6 @@ import type { MyGroup } from '@/lib/group/useMyGroup'
 // reason this bar switched away from sticky), so reserving space for it
 // here just left a gap with scrolled-past content showing through.
 const CONDENSED_BAR_TOP = 'env(safe-area-inset-top)'
-// How far past the top BookLayout's own cover/title/tabs header has
-// scrolled before the condensed bar below takes over -- position: sticky
-// turned out unreliable in the WebView this app actually runs in (the
-// installed-PWA Chrome on Android), so this is a plain scroll-tracked
-// position: fixed instead, which doesn't depend on any ancestor's
-// containing-block/overflow setup the way sticky does.
-const CONDENSED_BAR_SHOW_AFTER = 120
 
 type ChapterOrder = 'asc' | 'desc'
 const CHAPTER_ORDER_KEY = 'nabc-chapter-order'
@@ -55,16 +49,7 @@ export default function Thread({ group }: { group: MyGroup }) {
   const isAdmin = group.role === 'admin'
   const [addChapterError, setAddChapterError] = useState('')
   const [showChapterPicker, setShowChapterPicker] = useState(false)
-  const [showCondensedBar, setShowCondensedBar] = useState(false)
-
-  useEffect(() => {
-    function handleScroll() {
-      setShowCondensedBar(window.scrollY > CONDENSED_BAR_SHOW_AFTER)
-    }
-    handleScroll()
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+  const showCondensedBar = useScrolledPast(CONDENSED_BAR_SHOW_AFTER)
   // Per-device, not synced to the account -- this is just "which end do I
   // want to scroll from today," not a collaborative setting like the
   // per-chapter reveal state, so it doesn't need a shelf_entries round trip.
@@ -233,13 +218,13 @@ export default function Thread({ group }: { group: MyGroup }) {
           className="fixed inset-x-0 z-20 bg-surface"
           style={{ top: CONDENSED_BAR_TOP }}
         >
-          <div className="flex items-center gap-2 border-b border-border px-4 py-2">
+          <div className="flex items-start gap-2 border-b border-border px-4 py-2">
             <CoverThumb
               book={book ?? { title: '', open_library_cover_url: null, default_cover: null }}
               personalCoverPath={myEntry.personal_cover?.storage_path}
               className="w-8 flex-shrink-0"
             />
-            <p className="min-w-0 flex-1 truncate text-sm font-semibold">{book?.title}</p>
+            <p className="min-w-0 flex-1 break-words text-sm font-semibold">{book?.title}</p>
             <button
               onClick={() => setShowChapterPicker((s) => !s)}
               className="flex-shrink-0 rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-accent"
