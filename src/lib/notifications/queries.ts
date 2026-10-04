@@ -6,6 +6,10 @@ export type NotificationPrefs = {
   quiet_start?: string
   quiet_end?: string
   timezone?: string
+  // Off by default -- opting in notifies for books you've finished (or
+  // read before joining) too, not just ones you're actively reading/
+  // paused on. Muting a specific book still overrides this either way.
+  notify_finished?: boolean
 }
 
 export function useMyNotificationPrefs(groupId: string) {
