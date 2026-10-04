@@ -131,7 +131,7 @@ export async function computeAccentColor(
   b = Math.round(b / count)
 
   const toHex = (n: number) => n.toString(16).padStart(2, '0')
-  const accent = `#${toHex(r)}${toHex(g)}${toHex(b)}`
+  const accent = clampAccentForReadability(`#${toHex(r)}${toHex(g)}${toHex(b)}`)
   return { accent, contrast: contrastForHex(accent) }
 }
 
@@ -225,11 +225,85 @@ export async function computeAccentColorFromUrl(
         { body: { imageUrl: url } },
       )
       if (error || !data?.accent) return null
-      return { accent: data.accent, contrast: contrastForHex(data.accent) }
+      const accent = clampAccentForReadability(data.accent)
+      return { accent, contrast: contrastForHex(accent) }
     } catch {
       return null
     }
   }
+}
+
+const MIN_ACCENT_LIGHTNESS = 0.3
+const MAX_ACCENT_LIGHTNESS = 0.7
+const MIN_ACCENT_SATURATION = 0.3
+
+function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
+  r /= 255
+  g /= 255
+  b /= 255
+  const max = Math.max(r, g, b)
+  const min = Math.min(r, g, b)
+  const l = (max + min) / 2
+  if (max === min) return [0, 0, l]
+  const d = max - min
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+  let h: number
+  switch (max) {
+    case r:
+      h = (g - b) / d + (g < b ? 6 : 0)
+      break
+    case g:
+      h = (b - r) / d + 2
+      break
+    default:
+      h = (r - g) / d + 4
+  }
+  return [h / 6, s, l]
+}
+
+function hslToRgb(h: number, s: number, l: number): [number, number, number] {
+  if (s === 0) {
+    const v = Math.round(l * 255)
+    return [v, v, v]
+  }
+  const hue2rgb = (p: number, q: number, t: number) => {
+    let tt = t
+    if (tt < 0) tt += 1
+    if (tt > 1) tt -= 1
+    if (tt < 1 / 6) return p + (q - p) * 6 * tt
+    if (tt < 1 / 2) return q
+    if (tt < 2 / 3) return p + (q - p) * (2 / 3 - tt) * 6
+    return p
+  }
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s
+  const p = 2 * l - q
+  return [
+    Math.round(hue2rgb(p, q, h + 1 / 3) * 255),
+    Math.round(hue2rgb(p, q, h) * 255),
+    Math.round(hue2rgb(p, q, h - 1 / 3) * 255),
+  ]
+}
+
+// Averaging a whole cover can land on a color too close to either theme's
+// page background to read as an accent at all -- a predominantly dark,
+// moody cover (Piranesi's near-black jacket) averaged down to #211b18,
+// practically invisible against the dark theme's own near-black
+// background (confirmed live: unreadable chapter labels, picker text).
+// Clamps lightness into a band that reads against both the near-black
+// dark background and the near-white light one, and saturation away from
+// a muddy, flat gray -- without touching hue, so the result still reads
+// as "that cover's color," just usable as UI.
+function clampAccentForReadability(hex: string): string {
+  const clean = hex.replace('#', '')
+  const r = parseInt(clean.slice(0, 2), 16)
+  const g = parseInt(clean.slice(2, 4), 16)
+  const b = parseInt(clean.slice(4, 6), 16)
+  const [h, s, l] = rgbToHsl(r, g, b)
+  const clampedL = Math.min(MAX_ACCENT_LIGHTNESS, Math.max(MIN_ACCENT_LIGHTNESS, l))
+  const clampedS = Math.max(MIN_ACCENT_SATURATION, s)
+  const [cr, cg, cb] = hslToRgb(h, clampedS, clampedL)
+  const toHex = (n: number) => n.toString(16).padStart(2, '0')
+  return `#${toHex(cr)}${toHex(cg)}${toHex(cb)}`
 }
 
 // A readable text color for a given background hex, computed from the hex

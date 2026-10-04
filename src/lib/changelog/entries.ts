@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'accent-readability-clamp',
+    date: '2026-10-04',
+    title: 'Fixed hard-to-read cover colors on dark, moody covers',
+    body: 'A book with a mostly dark cover (like Piranesi) could end up with a color too close to black to read as text. Colors sampled from a cover are now kept bright and saturated enough to stay legible, in both light and dark mode — existing books with an already-too-dark color were fixed too.',
+  },
+  {
     id: 'reuse-chapter-layout',
     date: '2026-10-04',
     title: 'Reuse a chapter layout from another group',
