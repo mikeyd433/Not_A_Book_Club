@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import AchievementWatcher from '@/components/AchievementWatcher'
+import ScrollToTop from '@/components/ScrollToTop'
 import Spotlight from '@/components/tutorial/Spotlight'
 import { TutorialProvider } from '@/lib/tutorial/TutorialProvider'
 import { getActiveTestAccount, switchToReal } from '@/lib/testAccounts'
@@ -22,14 +23,6 @@ export default function Layout({ group }: { group: MyGroup }) {
   const [switching, setSwitching] = useState(false)
   const hasUnseenChangelog = useHasUnseenChangelog()
 
-  // React Router doesn't reset scroll on navigation the way a full page
-  // load does -- without this, opening a book (or switching its tabs)
-  // from partway down a scrolled list/page lands already scrolled to
-  // that same offset instead of at the top of the new page.
-  useEffect(() => {
-    window.scrollTo(0, 0)
-  }, [pathname])
-
   async function handleBackToReal() {
     setSwitching(true)
     try {
@@ -41,6 +34,7 @@ export default function Layout({ group }: { group: MyGroup }) {
 
   return (
     <TutorialProvider group={group}>
+      <ScrollToTop />
       <div
         className={
           isRoot
