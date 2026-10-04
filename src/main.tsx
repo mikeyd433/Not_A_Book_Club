@@ -12,6 +12,9 @@ import '@/lib/theme'
 // Attaches the beforeinstallprompt listener immediately, not just once
 // someone happens to visit Settings -- see pwaInstall.ts for why.
 import '@/lib/pwaInstall'
+// Captures ?invite=CODE from the URL before anything else runs -- see
+// pendingInvite.ts for why this has to happen this early.
+import '@/lib/pendingInvite'
 
 const queryClient = new QueryClient({
   defaultOptions: {

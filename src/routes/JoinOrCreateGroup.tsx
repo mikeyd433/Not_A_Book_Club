@@ -1,16 +1,20 @@
 import { useState, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
+import { consumePendingInvite } from '@/lib/pendingInvite'
 import { supabase } from '@/lib/supabase'
 
 // Reached after login when the signed-in user isn't in a group yet. If they
-// arrived via an invite link (?invite=CODE) the code is pre-filled; the
-// "create a group" option only really matters for the very first person.
+// arrived via an invite link (?invite=CODE) the code is pre-filled -- from
+// the URL if they were already logged in, or from pendingInvite.ts's
+// localStorage stash if reaching this page required a magic-link round
+// trip that dropped the query param along the way. The "create a group"
+// option only really matters for the very first person.
 export default function JoinOrCreateGroup() {
   const [searchParams] = useSearchParams()
   const queryClient = useQueryClient()
-  const [inviteCode, setInviteCode] = useState(
-    searchParams.get('invite')?.toUpperCase() ?? '',
+  const [inviteCode, setInviteCode] = useState(() =>
+    (searchParams.get('invite') ?? consumePendingInvite() ?? '').toUpperCase(),
   )
   const [groupName, setGroupName] = useState('')
   const [busy, setBusy] = useState(false)
