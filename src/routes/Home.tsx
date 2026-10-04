@@ -235,9 +235,13 @@ function BookRow({
   const { data: entry } = useMyShelfEntry(book.id)
   const { data: activity } = useUnlockedCommentActivity(book.id, entry?.comments_seen_at)
 
-  const currentPosition = chapters?.find(
-    (c) => c.id === entry?.current_chapter_id,
-  )?.position
+  // Rank (1-based) within the sorted chapter list, not the chapter's raw
+  // position -- position is an insertion-order integer that can start above
+  // 1 or skip values after edits, which would otherwise make the "of total"
+  // progress bar below show a number larger than the chapter count.
+  const currentRank = chapters
+    ? chapters.findIndex((c) => c.id === entry?.current_chapter_id) + 1
+    : 0
 
   return (
     <Link
@@ -258,7 +262,7 @@ function BookRow({
         {entry && (chapters?.length ?? 0) > 0 && (
           <div className="mt-1">
             <ProgressBar
-              current={currentPosition ?? 0}
+              current={currentRank}
               total={chapters?.length ?? 0}
             />
           </div>

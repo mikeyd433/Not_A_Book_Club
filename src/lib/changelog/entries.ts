@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'progress-shows-chapter-label',
+    date: '2026-10-04',
+    title: "Fixed a confusing \"wrong chapter\" display",
+    body: "A friend's progress (in \"Everyone's progress\" and on comments) could show a different chapter number than the one they actually picked, because it displayed an internal ordering number instead of the chapter's own name. Everywhere a chapter shows up now uses its actual name consistently.",
+  },
+  {
     id: 'wordmark-font',
     date: '2026-10-04',
     title: 'A little more personality in the header',

@@ -91,7 +91,7 @@ export default function CommentNode({
             )}
             {showChapterTag && comment.chapters && (
               <span className="rounded-full bg-surface-alt px-1.5 py-0.5 text-xs text-muted">
-                Ch. {comment.chapters.position}
+                {comment.chapters.label}
               </span>
             )}
           </div>

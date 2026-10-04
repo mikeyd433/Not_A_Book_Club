@@ -110,7 +110,10 @@ function MemberShelfRow({
   }
 }) {
   const { data: chapters } = useChapters(entry.book_id)
-  const currentPosition = chapters?.find((c) => c.id === entry.current_chapter_id)?.position
+  // Rank (1-based), not raw position -- see the matching comment in Home.tsx.
+  const currentRank = chapters
+    ? chapters.findIndex((c) => c.id === entry.current_chapter_id) + 1
+    : 0
 
   if (!entry.books) return null
 
@@ -127,7 +130,7 @@ function MemberShelfRow({
         </p>
         {(chapters?.length ?? 0) > 0 && (
           <div className="mt-1">
-            <ProgressBar current={currentPosition ?? 0} total={chapters?.length ?? 0} />
+            <ProgressBar current={currentRank} total={chapters?.length ?? 0} />
           </div>
         )}
       </div>

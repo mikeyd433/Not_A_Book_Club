@@ -323,8 +323,13 @@ export default function BookDetail({ group }: { group: MyGroup }) {
         </h2>
         <ul className="mt-2 space-y-1">
           {everyone?.map((entry) => {
-            const pos = chapters?.find((c) => c.id === entry.current_chapter_id)
-              ?.position
+            // Show the chapter's own label here, not its internal position
+            // number -- position is just an insertion-order integer (it can
+            // start above 1 or skip values after edits) and isn't guaranteed
+            // to match the chapter number a person actually wrote, which is
+            // what "Current chapter" above shows for the viewer's own entry.
+            const label = chapters?.find((c) => c.id === entry.current_chapter_id)
+              ?.label
             return (
               <li key={entry.user_id}>
                 <Link
@@ -334,7 +339,7 @@ export default function BookDetail({ group }: { group: MyGroup }) {
                   <span>{entry.profiles?.display_name ?? 'Someone'}</span>
                   <span className="text-muted">
                     {entry.is_rereading ? '🔁 Rereading' : SHELF_STATUS_LABELS[entry.status as ShelfStatus]}
-                    {pos ? ` · Ch. ${pos}` : ''}
+                    {label ? ` · ${label}` : ''}
                   </span>
                 </Link>
               </li>
