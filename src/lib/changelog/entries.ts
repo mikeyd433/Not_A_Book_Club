@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'update-available-prompt',
+    date: '2026-10-04',
+    title: "You'll now be told when an update is ready",
+    body: "Updates used to apply themselves silently in the background, with no way to tell whether you were on the latest version. A banner now appears with a one-tap Refresh when a new version is ready.",
+  },
+  {
     id: 'scroll-to-top-on-navigate',
     date: '2026-10-04',
     title: 'Fixed pages sometimes opening already scrolled down',

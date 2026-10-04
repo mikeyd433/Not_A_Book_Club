@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import App from './App'
 import ErrorBoundary from '@/components/ErrorBoundary'
+import UpdateBanner from '@/components/UpdateBanner'
 import { AuthProvider } from '@/lib/auth/AuthProvider'
 import './index.css'
 // Applies the stored theme preference before the app renders, rather
@@ -28,6 +29,11 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
+      {/* Outside Layout/App on purpose -- Layout only renders once someone
+          is signed in and in a group, but the service worker (and the
+          "update available" prompt it drives) needs to register
+          regardless, same as the plain <script> tag this replaced did. */}
+      <UpdateBanner />
       <BrowserRouter basename="/nabc">
         <QueryClientProvider client={queryClient}>
           <AuthProvider>

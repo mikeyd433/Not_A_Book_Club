@@ -16,7 +16,13 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
+      // Registration happens through the useRegisterSW() hook in
+      // UpdateBanner.tsx instead (needs the needRefresh/updateServiceWorker
+      // state to show a prompt) -- the default auto-injected <script> tag
+      // would register a second, redundant service-worker client alongside
+      // it.
+      injectRegister: false,
       includeAssets: ['favicon-32.png', 'apple-touch-icon.png'],
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
