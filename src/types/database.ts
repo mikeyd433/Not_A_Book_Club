@@ -994,6 +994,23 @@ export type Database = {
         Args: { p_book_id?: string; p_key: string; p_user_id: string }
         Returns: undefined
       }
+      copy_chapter_layout: {
+        Args: { p_book_id: string; p_source_book_id: string }
+        Returns: {
+          book_id: string
+          created_at: string
+          id: string
+          label: string
+          part_label: string | null
+          position: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "chapters"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       create_group: {
         Args: { p_name: string }
         Returns: {
@@ -1011,6 +1028,13 @@ export type Database = {
         }
       }
       dispatch_notifications: { Args: never; Returns: undefined }
+      find_chapter_layouts: {
+        Args: { p_book_id: string }
+        Returns: {
+          chapter_count: number
+          source_book_id: string
+        }[]
+      }
       flag_comment: { Args: { p_comment_id: string }; Returns: undefined }
       flag_post: { Args: { p_post_id: string }; Returns: undefined }
       generate_invite_code: { Args: never; Returns: string }

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth/AuthProvider'
 
@@ -41,6 +41,24 @@ export function useMyGroup() {
         invite_code: data.groups.invite_code,
         role: data.role as 'admin' | 'member',
       }
+    },
+  })
+}
+
+// Admin-only at the RLS level (0045's "admins can update their group"
+// policy) -- a non-admin's call fails server-side even though nothing
+// client-side besides Settings' own admin check stops them from trying.
+export function useUpdateGroupName(groupId: string) {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+
+  return useMutation({
+    mutationFn: async (name: string) => {
+      const { error } = await supabase.from('groups').update({ name }).eq('id', groupId)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-group', user?.id] })
     },
   })
 }

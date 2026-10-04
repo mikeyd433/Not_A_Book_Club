@@ -11,6 +11,18 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'reuse-chapter-layout',
+    date: '2026-10-04',
+    title: 'Reuse a chapter layout from another group',
+    body: "Adding a book that's already set up with chapters in another group now offers a one-tap way to copy that layout, instead of retyping the whole table of contents.",
+  },
+  {
+    id: 'rename-group',
+    date: '2026-10-04',
+    title: 'Admins can rename the group',
+    body: "Tap the group name in Settings (with a ✏️ next to it) to rename it — admins only.",
+  },
+  {
     id: 'cover-accent-cors-fix',
     date: '2026-10-04',
     title: "Fixed theming for books still stuck on the default color",

@@ -161,6 +161,43 @@ export function useAddChapters(bookId: string) {
   })
 }
 
+// Only ever non-empty for a book added via Open Library search (manually
+// added books have no open_library_id to match on -- see 0046). Each
+// match is just a source book id + chapter count, never which group it
+// came from -- find_chapter_layouts() itself keeps that boundary, not
+// anything client-side.
+export function useChapterLayoutMatches(bookId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['chapter-layout-matches', bookId],
+    enabled,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('find_chapter_layouts', {
+        p_book_id: bookId,
+      })
+      if (error) throw error
+      return data
+    },
+  })
+}
+
+export function useCopyChapterLayout(bookId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (sourceBookId: string) => {
+      const { data, error } = await supabase.rpc('copy_chapter_layout', {
+        p_book_id: bookId,
+        p_source_book_id: sourceBookId,
+      })
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['chapters', bookId] })
+    },
+  })
+}
+
 // A revert point before a chapter-list edit -- shared by ChaptersEditor's
 // own insert/rename/delete handlers and ChapterSetupPanel's quick-fill/
 // bulk-paste, so both record history the same way instead of drifting.

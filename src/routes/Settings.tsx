@@ -7,6 +7,7 @@ import {
   useMyNotificationPrefs,
   useUpdateNotificationPrefs,
 } from '@/lib/notifications/queries'
+import { useUpdateGroupName } from '@/lib/group/useMyGroup'
 import {
   getExistingSubscription,
   isPushSupported,
@@ -182,7 +183,11 @@ export default function Settings({ group }: { group: MyGroup }) {
       )}
 
       <div data-tour="invite-code">
-        <h1 className="text-lg font-bold">{group.name}</h1>
+        {group.role === 'admin' ? (
+          <GroupNameField group={group} />
+        ) : (
+          <h1 className="text-lg font-bold">{group.name}</h1>
+        )}
         <p className="text-sm text-muted">Invite code</p>
         <div className="mt-1 flex flex-wrap items-center gap-2">
           <code className="min-h-11 rounded-lg bg-surface-alt px-3 py-2 text-sm font-bold leading-7 tracking-wide">
@@ -376,6 +381,88 @@ export default function Settings({ group }: { group: MyGroup }) {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+// Admin-only -- a plain <h1> renders instead for everyone else (see the
+// group.role check at the call site). Synced-once-then-left-alone, same
+// reasoning as ProfileField's name input below: a background refetch
+// shouldn't stomp on text someone's mid-edit.
+function GroupNameField({ group }: { group: MyGroup }) {
+  const [name, setName] = useState('')
+  const [synced, setSynced] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const updateName = useUpdateGroupName(group.id)
+
+  useEffect(() => {
+    if (!synced) {
+      setName(group.name)
+      setSynced(true)
+    }
+  }, [group.name, synced])
+
+  async function handleSave() {
+    const trimmed = name.trim()
+    if (!trimmed || trimmed === group.name) {
+      setEditing(false)
+      return
+    }
+    try {
+      await updateName.mutateAsync(trimmed)
+      setEditing(false)
+    } catch {
+      // Surfaced below via updateName.error.
+    }
+  }
+
+  if (!editing) {
+    return (
+      <button
+        onClick={() => setEditing(true)}
+        className="flex items-center gap-1.5 text-left"
+      >
+        <h1 className="text-lg font-bold">{group.name}</h1>
+        <span className="text-xs text-muted">✏️</span>
+      </button>
+    )
+  }
+
+  return (
+    <div>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          maxLength={60}
+          autoFocus
+          className="min-h-11 flex-1 rounded-lg border border-border bg-surface px-2 py-2 text-base font-bold"
+        />
+        <button
+          onClick={handleSave}
+          disabled={updateName.isPending || !name.trim()}
+          className="min-h-11 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-accent-contrast disabled:opacity-60"
+        >
+          {updateName.isPending ? 'Saving…' : 'Save'}
+        </button>
+        <button
+          onClick={() => {
+            setName(group.name)
+            setEditing(false)
+          }}
+          className="min-h-11 rounded-lg border border-border px-3 py-2 text-sm font-semibold"
+        >
+          Cancel
+        </button>
+      </div>
+      {updateName.isError && (
+        <p className="mt-1 text-xs text-red-600">
+          {updateName.error instanceof Error
+            ? updateName.error.message
+            : 'Failed to save.'}
+        </p>
+      )}
     </div>
   )
 }

@@ -1,5 +1,11 @@
 import { useState } from 'react'
-import { useAddChapters, useChapterSnapshot, useChapters } from '@/lib/books/queries'
+import {
+  useAddChapters,
+  useChapterLayoutMatches,
+  useChapterSnapshot,
+  useChapters,
+  useCopyChapterLayout,
+} from '@/lib/books/queries'
 
 // The "add chapters" half of ChaptersEditor, pulled out so AddBook's
 // just-created-a-book step can offer the same quick-fill/bulk-paste tools
@@ -9,6 +15,22 @@ export default function ChapterSetupPanel({ bookId }: { bookId: string }) {
   const { data: chapters } = useChapters(bookId)
   const addChapters = useAddChapters(bookId)
   const snapshot = useChapterSnapshot(bookId)
+  // Only offered before anything else has been added -- "reuse a layout"
+  // means establishing the base structure, not appending someone else's
+  // whole table of contents onto chapters already in progress.
+  const hasNoChapters = (chapters?.length ?? 0) === 0
+  const layoutMatches = useChapterLayoutMatches(bookId, hasNoChapters)
+  const copyLayout = useCopyChapterLayout(bookId)
+  const [copyError, setCopyError] = useState('')
+
+  async function handleCopyLayout(sourceBookId: string) {
+    setCopyError('')
+    try {
+      await copyLayout.mutateAsync(sourceBookId)
+    } catch (err) {
+      setCopyError(err instanceof Error ? err.message : 'Failed to copy that layout.')
+    }
+  }
   // Kept as the raw typed text, not a number -- a number state forced back
   // to 0 (via Number('')) the instant the field was cleared, so a
   // controlled input bound to it could never actually show empty: clearing
@@ -48,6 +70,30 @@ export default function ChapterSetupPanel({ bookId }: { bookId: string }) {
 
   return (
     <div className="rounded-card bg-surface p-3" data-tour="chapter-setup-panel">
+      {hasNoChapters && (layoutMatches.data?.length ?? 0) > 0 && (
+        <div className="mb-3 rounded-lg bg-surface-alt p-2">
+          <p className="text-xs font-semibold">📚 Already set up elsewhere</p>
+          <p className="mt-0.5 text-xs text-muted">
+            Another group has this book's chapters laid out already — reuse
+            it instead of retyping the table of contents.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {layoutMatches.data!.map((match, i) => (
+              <button
+                key={match.source_book_id}
+                onClick={() => handleCopyLayout(match.source_book_id)}
+                disabled={copyLayout.isPending}
+                className="min-h-9 rounded-md border border-accent px-2 py-1.5 text-xs font-semibold text-accent disabled:opacity-60"
+              >
+                {layoutMatches.data!.length > 1 ? `Use layout ${i + 1}` : 'Use this layout'} (
+                {match.chapter_count} chapters)
+              </button>
+            ))}
+          </div>
+          {copyError && <p className="mt-2 text-xs text-red-600">{copyError}</p>}
+        </div>
+      )}
+
       <p className="text-sm font-semibold">Add chapters</p>
       <p className="mt-1 text-xs text-muted">
         Paste a table of contents (one label per line), or just add generic
