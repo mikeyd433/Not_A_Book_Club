@@ -101,6 +101,7 @@ export default function Layout({ group }: { group: MyGroup }) {
           <nav className="fixed inset-x-0 bottom-0 z-10 flex border-t border-border bg-surface pb-[env(safe-area-inset-bottom)]">
             <NavLink
               to="/"
+              end
               className={({ isActive }) =>
                 `flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-semibold ${
                   isActive ? 'text-accent' : 'text-muted'
