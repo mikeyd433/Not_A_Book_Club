@@ -336,8 +336,8 @@ export function useFullAccess(bookId: string): boolean {
 
   return Boolean(
     myEntry &&
-      (myEntry.status === 'read_before_joining' ||
-        (myEntry.status === 'finished' && (!myEntry.is_rereading || myEntry.spoil_me)) ||
+      (((myEntry.status === 'read_before_joining' || myEntry.status === 'finished') &&
+        (!myEntry.is_rereading || myEntry.spoil_me)) ||
         (myEntry.status === 'dnf' && myEntry.spoil_me)),
   )
 }

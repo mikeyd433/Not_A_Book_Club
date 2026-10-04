@@ -1,4 +1,4 @@
-import { expandMoreOptions, focusFirstComposerTextarea } from './dom'
+import { focusFirstComposerTextarea } from './dom'
 import type { TutorialStep } from './types'
 
 const bookRoute =
@@ -67,7 +67,6 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     kind: 'spotlight',
     route: bookRoute(''),
     target: '[data-tour="spoil-reread"]',
-    prepare: expandMoreOptions,
     optionalTarget: true,
     title: 'Rereading? It relocks the thread',
     body: 'Starting a reread resets your position and relocks the thread. Check "View full thread anyway" to still see ahead.',

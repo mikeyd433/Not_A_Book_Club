@@ -53,7 +53,6 @@ export default function BookDetail({ group }: { group: MyGroup }) {
   // scrolled before onChange ever runs, so left alone it would keep showing
   // the chapter they backed out of instead of reverting.
   const [pickerResetKey, setPickerResetKey] = useState(0)
-  const [showMoreOptions, setShowMoreOptions] = useState(false)
   const [showDangerZone, setShowDangerZone] = useState(false)
   const [resetSelection, setResetSelection] = useState<Set<ResetCategory>>(new Set())
   const [addChapterError, setAddChapterError] = useState('')
@@ -232,63 +231,51 @@ export default function BookDetail({ group }: { group: MyGroup }) {
         </div>
       )}
 
-      {myEntry && (myEntry.status === 'finished' || myEntry.status === 'dnf' || myEntry.is_rereading) && (
-        <div className="rounded-card bg-surface p-3" data-tour="spoil-reread">
-          <button
-            onClick={() => setShowMoreOptions((s) => !s)}
-            data-tour="more-options-toggle"
-            aria-expanded={showMoreOptions}
-            className="flex min-h-9 w-full items-center justify-between text-left text-sm font-semibold text-muted"
-          >
-            More options
-            <span>{showMoreOptions ? '▲' : '▼'}</span>
-          </button>
-          {showMoreOptions && (
-            <div className="mt-3 space-y-3">
-              {myEntry.status === 'finished' && (
-                <div>
-                  {myEntry.is_rereading ? (
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-semibold">🔁 Rereading</span>
-                      <button
-                        onClick={() => upsert.mutate({ is_rereading: false })}
-                        className="min-h-9 rounded-full border border-border px-3 py-2 text-xs font-medium leading-tight"
-                      >
-                        Finish reread
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() =>
-                        upsert.mutate({
-                          is_rereading: true,
-                          current_chapter_id: null,
-                          spoil_me: false,
-                        })
-                      }
-                      className="min-h-9 w-full rounded-full border border-border px-3 py-2 text-xs font-medium leading-tight"
-                    >
-                      🔁 Start a reread
-                    </button>
-                  )}
-                </div>
-              )}
+      {myEntry &&
+        (myEntry.status === 'finished' ||
+          myEntry.status === 'read_before_joining' ||
+          myEntry.is_rereading) && (
+          <div className="rounded-card bg-surface p-3" data-tour="spoil-reread">
+            {myEntry.is_rereading ? (
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-semibold">🔁 Rereading</span>
+                <button
+                  onClick={() => upsert.mutate({ is_rereading: false })}
+                  className="min-h-9 rounded-full border border-border px-3 py-2 text-xs font-medium leading-tight"
+                >
+                  Finish reread
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() =>
+                  upsert.mutate({
+                    is_rereading: true,
+                    current_chapter_id: null,
+                    spoil_me: false,
+                  })
+                }
+                className="flex min-h-11 w-full items-center justify-center rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-contrast"
+              >
+                🔁 Start a reread
+              </button>
+            )}
+          </div>
+        )}
 
-              {(myEntry.status === 'dnf' || myEntry.is_rereading) && (
-                <label className="flex min-h-11 items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={myEntry.spoil_me}
-                    onChange={(e) => upsert.mutate({ spoil_me: e.target.checked })}
-                    className="size-5"
-                  />
-                  {myEntry.is_rereading
-                    ? 'View full thread anyway — see comments ahead of your reread position'
-                    : 'Spoil me — unlock full access anyway'}
-                </label>
-              )}
-            </div>
-          )}
+      {myEntry && (myEntry.status === 'dnf' || myEntry.is_rereading) && (
+        <div className="rounded-card bg-surface p-3">
+          <label className="flex min-h-11 items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={myEntry.spoil_me}
+              onChange={(e) => upsert.mutate({ spoil_me: e.target.checked })}
+              className="size-5"
+            />
+            {myEntry.is_rereading
+              ? 'View full thread anyway — see comments ahead of your reread position'
+              : 'Spoil me — unlock full access anyway'}
+          </label>
         </div>
       )}
 
