@@ -98,10 +98,7 @@ export default function Layout({ group }: { group: MyGroup }) {
         </main>
 
         {isRoot && (
-          <nav
-            className="fixed inset-x-0 bottom-0 z-10 flex border-t border-border bg-surface pb-[env(safe-area-inset-bottom)]"
-            data-tour="bottom-nav"
-          >
+          <nav className="fixed inset-x-0 bottom-0 z-10 flex border-t border-border bg-surface pb-[env(safe-area-inset-bottom)]">
             <NavLink
               to="/"
               className={({ isActive }) =>
@@ -115,6 +112,7 @@ export default function Layout({ group }: { group: MyGroup }) {
             </NavLink>
             <NavLink
               to="/bulletin"
+              data-tour="bulletin-tab"
               className={({ isActive }) =>
                 `flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-semibold ${
                   isActive ? 'text-accent' : 'text-muted'

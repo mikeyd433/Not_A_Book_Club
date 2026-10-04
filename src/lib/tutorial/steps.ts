@@ -23,6 +23,14 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     body: "Every book your group's tracking, grouped by status. Tap one to jump in.",
   },
   {
+    id: 'bulletin-tab',
+    kind: 'spotlight',
+    route: () => '/',
+    target: '[data-tour="bulletin-tab"]',
+    title: '📌 Bulletin Board',
+    body: "Not tied to any one book — post anything to the whole group here. It has its own notification toggle in Settings, separate from book comments.",
+  },
+  {
     id: 'add-book-button',
     kind: 'spotlight',
     route: () => '/',
