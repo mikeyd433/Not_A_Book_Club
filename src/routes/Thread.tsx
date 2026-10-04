@@ -4,6 +4,7 @@ import {
   useAddChapterAndAdvance,
   useBook,
   useChapters,
+  useFullAccess,
   useMyShelfEntry,
   useTaggableChapters,
   useUpsertShelfEntry,
@@ -46,6 +47,7 @@ export default function Thread({ group }: { group: MyGroup }) {
   const postComment = usePostComment(bookId!)
   const taggableChapters = useTaggableChapters(bookId!)
   const addNextChapter = useAddChapterAndAdvance(bookId!)
+  const fullAccess = useFullAccess(bookId!)
 
   const isAdmin = group.role === 'admin'
   const [addChapterError, setAddChapterError] = useState('')
@@ -71,12 +73,12 @@ export default function Thread({ group }: { group: MyGroup }) {
   // books in the same session still marks each one independently.
   const markedSeenForBookRef = useRef<string | null>(null)
   useEffect(() => {
-    if (!myEntry?.id || !myEntry.current_chapter_id) return
+    if (!myEntry?.id || (!myEntry.current_chapter_id && !fullAccess)) return
     if (markedSeenForBookRef.current === bookId) return
     markedSeenForBookRef.current = bookId ?? null
     upsertShelf.mutate({ comments_seen_at: new Date().toISOString() })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bookId, myEntry?.id, myEntry?.current_chapter_id])
+  }, [bookId, myEntry?.id, myEntry?.current_chapter_id, fullAccess])
 
   function toggleChapterOrder() {
     setChapterOrder((prev) => {
@@ -194,7 +196,12 @@ export default function Thread({ group }: { group: MyGroup }) {
   // chapter read on their behalf -- only shown this once, since it
   // disappears for good the moment a real position is set (here or via
   // Overview's chapter picker).
-  if (!myEntry?.current_chapter_id) {
+  // Full access (finished, or read before joining) has nothing to "catch
+  // up" on -- useTaggableChapters already unlocks every chapter for them
+  // regardless of current_chapter_id, so this gate must skip for them too,
+  // or they'd be stuck being told to "read Chapter 1" on a book they've
+  // already finished.
+  if (!myEntry || (!myEntry.current_chapter_id && !fullAccess)) {
     return (
       <div className="rounded-card bg-surface p-4 text-center">
         <p className="text-sm text-muted">
