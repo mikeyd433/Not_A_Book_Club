@@ -42,9 +42,12 @@ const SORT_LABELS = {
 } as const
 type SortMode = keyof typeof SORT_LABELS
 
-// "none" covers a book nobody's added to their shelf yet -- shown last,
-// since it's the least relevant group day-to-day and mainly a prompt to
-// pick a status at all.
+// "none" covers a book nobody in the group has shelved at all -- shown
+// last, since it's the least relevant group day-to-day and mainly a
+// prompt to pick a status at all. A book someone else has shelved but
+// you haven't is excluded from this group -- it's already surfaced by
+// the "On others' shelves" strip above, so counting it here too would
+// just show the same book twice.
 const STATUS_GROUPS: (ShelfStatus | 'none')[] = [
   'reading',
   'paused',
@@ -56,7 +59,7 @@ const STATUS_GROUPS: (ShelfStatus | 'none')[] = [
 ]
 const STATUS_GROUP_LABELS: Record<ShelfStatus | 'none', string> = {
   ...SHELF_STATUS_LABELS,
-  none: 'Not on your shelf',
+  none: "Not on anyone's shelf",
 }
 
 export default function Home({ group }: { group: MyGroup }) {
@@ -73,9 +76,8 @@ export default function Home({ group }: { group: MyGroup }) {
   }, [myStatuses])
 
   // Books someone else has shelved that aren't on mine -- a discovery
-  // prompt, not just "every book nobody's touched yet" (which the 'none'
-  // status group below already covers regardless of what anyone else has
-  // done with it).
+  // prompt, distinct from the 'none' status group below ("not on anyone's
+  // shelf"), which excludes these so the same book doesn't show up twice.
   const { data: shelfActivity } = useGroupShelfActivity(bookIds)
   const othersByBook = useMemo(() => {
     const map = new Map<string, OtherReader[]>()
@@ -163,9 +165,14 @@ export default function Home({ group }: { group: MyGroup }) {
 
       {sortMode === 'status'
         ? STATUS_GROUPS.map((status) => {
-            const groupBooks = (books as GroupBook[]).filter(
-              (b) => (statusByBook.get(b.id) ?? 'none') === status,
-            )
+            const groupBooks = (books as GroupBook[]).filter((b) => {
+              if (status === 'none') {
+                return (
+                  !statusByBook.has(b.id) && (othersByBook.get(b.id)?.length ?? 0) === 0
+                )
+              }
+              return statusByBook.get(b.id) === status
+            })
             if (groupBooks.length === 0) return null
             return (
               <div key={status} className="space-y-2">

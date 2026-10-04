@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'not-on-anyones-shelf',
+    date: '2026-10-04',
+    title: 'Cleaned up Home\'s "Not on your shelf" group',
+    body: 'Renamed to "Not on anyone\'s shelf" and it no longer repeats books already shown in "On others\' shelves" above it — each book now shows up once instead of twice when sorted by status.',
+  },
+  {
     id: 'bulletin-board',
     date: '2026-10-04',
     title: '📌 Bulletin Board',
