@@ -328,8 +328,15 @@ export default function BookDetail({ group }: { group: MyGroup }) {
             // start above 1 or skip values after edits) and isn't guaranteed
             // to match the chapter number a person actually wrote, which is
             // what "Current chapter" above shows for the viewer's own entry.
-            const label = chapters?.find((c) => c.id === entry.current_chapter_id)
-              ?.label
+            // Skip it entirely for finished/read-before-joining: they have
+            // full access to the whole book, so whatever chapter they
+            // happen to be parked on isn't "their progress" -- it'd just be
+            // confusing next to a status that already means "all of it."
+            const hasMeaningfulChapter =
+              entry.status !== 'finished' && entry.status !== 'read_before_joining'
+            const label = hasMeaningfulChapter
+              ? chapters?.find((c) => c.id === entry.current_chapter_id)?.label
+              : undefined
             return (
               <li key={entry.user_id}>
                 <Link

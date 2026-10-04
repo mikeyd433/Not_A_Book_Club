@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'progress-hide-chapter-for-full-access',
+    date: '2026-10-04',
+    title: 'Simplified "Everyone\'s progress" for finished readers',
+    body: 'Someone who\'s finished a book (or read it before joining) no longer shows a specific chapter next to their name there — just "Finished" or "Read before joining," since they have the whole thing either way.',
+  },
+  {
     id: 'discussion-gate-full-access',
     date: '2026-10-04',
     title: 'Fixed "read before joining" books gating Discussion at chapter 1',
