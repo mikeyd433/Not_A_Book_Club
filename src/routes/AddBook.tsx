@@ -132,7 +132,7 @@ function BookSetupStep({ book, onDone }: { book: Book; onDone: () => void }) {
   const canEditChapters = myEntry?.status === 'reading' || myEntry?.status === 'paused'
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5" data-tour="add-book-search">
       <div className="rounded-card bg-surface p-3">
         <p className="text-sm font-semibold">✅ Added "{book.title}"</p>
         <p className="mt-1 text-xs text-muted">
