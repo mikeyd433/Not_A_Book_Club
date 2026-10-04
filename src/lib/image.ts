@@ -2,6 +2,7 @@
 // cover — camera, photo library, or a pasted URL — goes through the same
 // export step so storage always holds a standardized ~2:3 JPEG, never the
 // original arbitrary-shaped source.
+import { supabase } from '@/lib/supabase'
 
 export const EXPORT_WIDTH = 600
 export const EXPORT_HEIGHT = 900 // 2:3
@@ -199,6 +200,17 @@ export async function resizeSquareForUpload(
 // (the auto-fetched Open Library cover). Resolves to null rather than
 // throwing on a load/CORS failure, since this always runs as a best-effort
 // side effect alongside something else that must still succeed without it.
+//
+// Confirmed live (2026-10-04): covers.openlibrary.org doesn't send
+// Access-Control-Allow-Origin, so getImageData() always throws a
+// SecurityError for it regardless of crossOrigin -- every book relying on
+// its auto-fetched cover stayed untheme'd even after this function first
+// shipped. For that one source specifically, fall back to the
+// compute-cover-accent edge function, which samples the image server-side
+// instead (a plain fetch() there isn't subject to CORS at all). Anything
+// else failing here (our own public covers bucket, a bad URL, a transient
+// load error) isn't a CORS problem and wouldn't be fixed by that fallback,
+// so it stays out of scope for it.
 export async function computeAccentColorFromUrl(
   url: string,
 ): Promise<{ accent: string; contrast: string } | null> {
@@ -206,7 +218,17 @@ export async function computeAccentColorFromUrl(
     const image = await loadImage(url)
     return await computeAccentColor(image)
   } catch {
-    return null
+    if (!url.startsWith('https://covers.openlibrary.org/')) return null
+    try {
+      const { data, error } = await supabase.functions.invoke<{ accent: string }>(
+        'compute-cover-accent',
+        { body: { imageUrl: url } },
+      )
+      if (error || !data?.accent) return null
+      return { accent: data.accent, contrast: contrastForHex(data.accent) }
+    } catch {
+      return null
+    }
   }
 }
 

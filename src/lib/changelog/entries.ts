@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'cover-accent-cors-fix',
+    date: '2026-10-04',
+    title: "Fixed theming for books still stuck on the default color",
+    body: "The earlier fix for this didn't actually work for most books — their auto-fetched cover couldn't be sampled in the browser at all. Color sampling for those now happens on the server instead, so every book's page should pick up its own color.",
+  },
+  {
     id: 'owns-physical-copy',
     date: '2026-10-04',
     title: '📚 Flag books you own a physical copy of',
