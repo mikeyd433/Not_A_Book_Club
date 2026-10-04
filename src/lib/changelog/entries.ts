@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'wordmark-font',
+    date: '2026-10-04',
+    title: 'A little more personality in the header',
+    body: '"Not A Book Club" in the top-left now has its own distinctive typeface instead of the plain system font.',
+  },
+  {
     id: 'multiple-groups',
     date: '2026-10-04',
     title: 'Join or start more than one group',

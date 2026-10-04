@@ -19,6 +19,11 @@ export default {
       borderRadius: {
         card: '1rem',
       },
+      // Just the header wordmark (Layout.tsx) -- everything else stays on
+      // the system sans stack.
+      fontFamily: {
+        display: ['"Playfair Display"', 'serif'],
+      },
     },
   },
   plugins: [],

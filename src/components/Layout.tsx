@@ -70,7 +70,9 @@ export default function Layout({ group }: { group: MyGroup }) {
               <p className="truncate text-xs uppercase tracking-wide text-muted">
                 {group.name}
               </p>
-              <p className="text-lg font-bold text-accent">Not A Book Club</p>
+              <p className="truncate font-display text-xl font-bold italic tracking-tight text-accent">
+                Not A Book Club
+              </p>
             </div>
           </div>
           <div className="flex flex-shrink-0 items-center gap-2">
