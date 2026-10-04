@@ -17,11 +17,17 @@ export default function Spotlight() {
   const body = typeof step.body === 'function' ? step.body(ctx) : step.body
 
   return (
-    <div className="fixed inset-0 z-50" data-tutorial-overlay>
+    // pointer-events-none here is load-bearing: this div's own box spans
+    // the full viewport regardless of what its children paint, so without
+    // this, it would swallow every click across the whole screen -- even
+    // over the spotlight's "hole," where nothing is actually painted. Each
+    // piece that should actually catch clicks (the dark bands, the plain
+    // backdrop, the card) opts back in with its own pointer-events-auto.
+    <div className="pointer-events-none fixed inset-0 z-50" data-tutorial-overlay>
       {showSpotlight && targetRect ? (
         <SpotlightCutout rect={targetRect} />
       ) : (
-        <div className="absolute inset-0 bg-black/60" />
+        <div className="pointer-events-auto absolute inset-0 bg-black/60" />
       )}
 
       <TutorialCard rect={showSpotlight ? targetRect : null}>
@@ -86,9 +92,10 @@ export default function Spotlight() {
 }
 
 // Four dark bands around the target's rect, leaving it (and only it)
-// clickable -- simpler and more broadly compatible than a CSS mask/clip-path
-// cutout, and needs no pointer-events trickery: the bands naturally block
-// clicks, and the untouched gap naturally doesn't.
+// clickable -- simpler and more broadly compatible than a CSS mask/
+// clip-path cutout. Each band opts into pointer-events itself (the parent
+// overlay is pointer-events-none), so the untouched gap between them has
+// nothing there to intercept a click/tap and it reaches the real page.
 function SpotlightCutout({ rect }: { rect: DOMRect }) {
   const pad = 6
   const top = Math.max(0, rect.top - pad)
@@ -98,11 +105,20 @@ function SpotlightCutout({ rect }: { rect: DOMRect }) {
 
   return (
     <>
-      <div className="fixed inset-x-0 top-0 bg-black/60" style={{ height: top }} />
-      <div className="fixed inset-x-0 bottom-0 bg-black/60" style={{ top: bottom }} />
-      <div className="fixed bg-black/60" style={{ top, left: 0, width: left, height: bottom - top }} />
       <div
-        className="fixed bg-black/60"
+        className="pointer-events-auto fixed inset-x-0 top-0 bg-black/60"
+        style={{ height: top }}
+      />
+      <div
+        className="pointer-events-auto fixed inset-x-0 bottom-0 bg-black/60"
+        style={{ top: bottom }}
+      />
+      <div
+        className="pointer-events-auto fixed bg-black/60"
+        style={{ top, left: 0, width: left, height: bottom - top }}
+      />
+      <div
+        className="pointer-events-auto fixed bg-black/60"
         style={{ top, left: right, right: 0, height: bottom - top }}
       />
       <div
@@ -116,7 +132,7 @@ function SpotlightCutout({ rect }: { rect: DOMRect }) {
 function TutorialCard({ rect, children }: { rect: DOMRect | null; children: ReactNode }) {
   if (!rect) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center p-4">
+      <div className="pointer-events-auto fixed inset-0 flex items-center justify-center p-4">
         <div className="w-full max-w-sm rounded-card bg-surface p-4 shadow-lg">{children}</div>
       </div>
     )
@@ -129,7 +145,7 @@ function TutorialCard({ rect, children }: { rect: DOMRect | null; children: Reac
 
   return (
     <div
-      className="fixed rounded-card bg-surface p-4 shadow-lg"
+      className="pointer-events-auto fixed rounded-card bg-surface p-4 shadow-lg"
       style={{
         width: Math.min(CARD_WIDTH, viewportW - EDGE_GAP * 2),
         left,
