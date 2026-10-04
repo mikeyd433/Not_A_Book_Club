@@ -120,16 +120,19 @@ export default function AddBook({ group }: { group: MyGroup }) {
   )
 }
 
-// Chapters can only be added by someone currently reading/paused on the
-// book (RLS requires it, same as ChaptersEditor's own canEdit check) --
-// a book you *just* created has no shelf entry at all yet, so this offers
-// one tap to mark yourself as reading before handing off to the real
-// chapter-setup tool. Covers have no such restriction, so that panel is
-// always available.
+// Chapters can only be added by someone currently reading/paused (or who
+// read it before joining) on the book (RLS requires it, same as
+// ChaptersEditor's own canEdit check) -- a book you *just* created has no
+// shelf entry at all yet, so this offers one tap to mark yourself as
+// reading before handing off to the real chapter-setup tool. Covers have
+// no such restriction, so that panel is always available.
 function BookSetupStep({ book, onDone }: { book: Book; onDone: () => void }) {
   const { data: myEntry } = useMyShelfEntry(book.id)
   const upsertShelf = useUpsertShelfEntry(book.id)
-  const canEditChapters = myEntry?.status === 'reading' || myEntry?.status === 'paused'
+  const canEditChapters =
+    myEntry?.status === 'reading' ||
+    myEntry?.status === 'paused' ||
+    myEntry?.status === 'read_before_joining'
 
   return (
     <div className="space-y-5" data-tour="add-book-search">

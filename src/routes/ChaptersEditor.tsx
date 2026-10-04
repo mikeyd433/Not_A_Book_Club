@@ -28,7 +28,10 @@ export default function ChaptersEditor({ group: _group }: { group: MyGroup }) {
   const snapshot = useChapterSnapshot(bookId!)
   const setComplete = useSetBookComplete(bookId!)
 
-  const canEdit = myEntry?.status === 'reading' || myEntry?.status === 'paused'
+  const canEdit =
+    myEntry?.status === 'reading' ||
+    myEntry?.status === 'paused' ||
+    myEntry?.status === 'read_before_joining'
 
   const [showHistory, setShowHistory] = useState(false)
 
@@ -101,7 +104,8 @@ export default function ChaptersEditor({ group: _group }: { group: MyGroup }) {
 
       {!canEdit && (
         <p className="rounded-lg bg-surface-alt p-3 text-xs text-muted">
-          Only members currently reading this book can edit its chapter list.
+          Only members currently reading this book, or who read it before
+          joining, can edit its chapter list.
         </p>
       )}
 

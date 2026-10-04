@@ -156,7 +156,10 @@ export default function Thread({ group }: { group: MyGroup }) {
   }
 
   if (chapters.length === 0) {
-    const canAddChapters = myEntry?.status === 'reading' || myEntry?.status === 'paused'
+    const canAddChapters =
+      myEntry?.status === 'reading' ||
+      myEntry?.status === 'paused' ||
+      myEntry?.status === 'read_before_joining'
     return (
       <div className="rounded-card bg-surface p-4 text-center">
         <p className="text-sm text-muted">

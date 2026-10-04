@@ -119,9 +119,13 @@ export default function BookDetail({ group }: { group: MyGroup }) {
   }
 
   async function handleAddNextChapter() {
-    if (myEntry?.status !== 'reading' && myEntry?.status !== 'paused') {
+    if (
+      myEntry?.status !== 'reading' &&
+      myEntry?.status !== 'paused' &&
+      myEntry?.status !== 'read_before_joining'
+    ) {
       setAddChapterError(
-        'Set your shelf status to "Reading now" or "Paused" to add new chapters.',
+        'Set your shelf status to "Reading now", "Paused", or "Read before joining" to add new chapters.',
       )
       return
     }
