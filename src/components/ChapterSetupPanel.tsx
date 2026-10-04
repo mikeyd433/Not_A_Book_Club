@@ -9,16 +9,26 @@ export default function ChapterSetupPanel({ bookId }: { bookId: string }) {
   const { data: chapters } = useChapters(bookId)
   const addChapters = useAddChapters(bookId)
   const snapshot = useChapterSnapshot(bookId)
-  const [quickFillCount, setQuickFillCount] = useState(10)
+  // Kept as the raw typed text, not a number -- a number state forced back
+  // to 0 (via Number('')) the instant the field was cleared, so a
+  // controlled input bound to it could never actually show empty: clearing
+  // the last digit just re-rendered a "0" right back in, making it look
+  // like backspace didn't work. Parsed only where the count is actually
+  // used.
+  const [quickFillCount, setQuickFillCount] = useState('10')
   const [bulkText, setBulkText] = useState('')
 
   const nextPosition = (chapters?.[chapters.length - 1]?.position ?? 0) + 1
+  const parsedQuickFillCount = Math.floor(Number(quickFillCount))
+  const quickFillCountValid =
+    quickFillCount.trim() !== '' && Number.isFinite(parsedQuickFillCount) && parsedQuickFillCount >= 1
 
   async function handleQuickFill() {
+    if (!quickFillCountValid) return
     await snapshot()
     const start = nextPosition
     await addChapters.mutateAsync(
-      Array.from({ length: quickFillCount }, (_, i) => ({
+      Array.from({ length: parsedQuickFillCount }, (_, i) => ({
         position: start + i,
         label: `Chapter ${start + i}`,
       })),
@@ -63,12 +73,13 @@ export default function ChapterSetupPanel({ bookId }: { bookId: string }) {
           type="number"
           min={1}
           value={quickFillCount}
-          onChange={(e) => setQuickFillCount(Number(e.target.value))}
+          onChange={(e) => setQuickFillCount(e.target.value)}
           className="min-h-11 w-20 rounded-lg border border-border px-2 py-2 text-base"
         />
         <button
           onClick={handleQuickFill}
-          className="min-h-11 flex-1 rounded-lg border border-border px-3 py-2 text-sm font-semibold"
+          disabled={!quickFillCountValid}
+          className="min-h-11 flex-1 rounded-lg border border-border px-3 py-2 text-sm font-semibold disabled:opacity-60"
         >
           generic "Chapter N" placeholders
         </button>
