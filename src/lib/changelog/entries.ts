@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'scroll-to-top-on-navigate',
+    date: '2026-10-04',
+    title: 'Fixed pages sometimes opening already scrolled down',
+    body: "Opening a book (or switching its tabs) from partway down a scrolled page could land you mid-page instead of at the top. Every page now starts scrolled to the top.",
+  },
+  {
     id: 'accent-readability-clamp',
     date: '2026-10-04',
     title: 'Fixed hard-to-read cover colors on dark, moody covers',
