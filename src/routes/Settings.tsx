@@ -21,6 +21,7 @@ import {
   useUploadAvatar,
 } from '@/lib/profile/queries'
 import { setTheme, useTheme, type ThemePreference } from '@/lib/theme'
+import { useHasUnseenChangelog } from '@/lib/changelog/seen'
 import { useTutorial } from '@/lib/tutorial/TutorialProvider'
 import Avatar from '@/components/Avatar'
 import TestAccountsPanel from '@/components/TestAccountsPanel'
@@ -133,6 +134,7 @@ export default function Settings({ group }: { group: MyGroup }) {
   const installState = useInstallPrompt()
   const showManualInstallHint = !installState.installed && !installState.canPrompt && isIOS()
   const theme = useTheme()
+  const hasUnseenChangelog = useHasUnseenChangelog()
 
   return (
     <div className="space-y-6">
@@ -203,6 +205,19 @@ export default function Settings({ group }: { group: MyGroup }) {
           )}
         </div>
       </div>
+
+      <Link
+        to="/changelog"
+        className="flex min-h-11 w-full items-center justify-between rounded-card bg-surface px-3 py-2 text-left text-sm font-semibold active:bg-surface-alt"
+      >
+        <span className="flex items-center gap-2">
+          🆕 What's new
+          {hasUnseenChangelog && (
+            <span className="size-2 rounded-full bg-accent" aria-label="New updates" />
+          )}
+        </span>
+        <span className="text-muted">→</span>
+      </Link>
 
       <button
         onClick={() => tutorial.start()}

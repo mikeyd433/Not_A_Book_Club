@@ -324,6 +324,16 @@ Missed this once (`0014`), caught it via `get_advisors` and fixed in
   `books`/`groups` rows, which cascade; delete the `auth.users` rows, which
   cascade to `profiles`). This is how the flagging bug above was actually
   caught and confirmed fixed.
+- **Add a changelog entry for every user-visible change**, in
+  `src/lib/changelog/entries.ts` (newest entry first) — a `/changelog`
+  page reachable from Settings, with a small dot on the Settings gear
+  icon and the "What's new" row when there's an entry the viewer hasn't
+  opened yet (`src/lib/changelog/seen.ts`, same per-device
+  `useSyncExternalStore` pattern as `theme.ts`). Do this as part of
+  shipping the change, not as a separate pass — write it from the
+  group's point of view (what changed for them), not the commit message.
+  Purely internal changes (refactors, migration-grant fixes, test-only
+  changes) don't need an entry.
 
 ---
 

@@ -4,6 +4,7 @@ import AchievementWatcher from '@/components/AchievementWatcher'
 import Spotlight from '@/components/tutorial/Spotlight'
 import { TutorialProvider } from '@/lib/tutorial/TutorialProvider'
 import { getActiveTestAccount, switchToReal } from '@/lib/testAccounts'
+import { useHasUnseenChangelog } from '@/lib/changelog/seen'
 import type { MyGroup } from '@/lib/group/useMyGroup'
 
 // Bottom nav covers the two permanent daily-use destinations: My Shelf
@@ -19,6 +20,7 @@ export default function Layout({ group }: { group: MyGroup }) {
   // this never needs to update within a mounted session -- read once.
   const [testAccount] = useState(() => getActiveTestAccount())
   const [switching, setSwitching] = useState(false)
+  const hasUnseenChangelog = useHasUnseenChangelog()
 
   async function handleBackToReal() {
     setSwitching(true)
@@ -80,10 +82,13 @@ export default function Layout({ group }: { group: MyGroup }) {
             </NavLink>
             <NavLink
               to="/settings"
-              className="flex min-h-11 min-w-11 items-center justify-center rounded-full border border-border text-lg"
+              className="relative flex min-h-11 min-w-11 items-center justify-center rounded-full border border-border text-lg"
               aria-label="Settings"
             >
               ⚙️
+              {hasUnseenChangelog && (
+                <span className="absolute right-1 top-1 size-2.5 rounded-full bg-accent ring-2 ring-surface" />
+              )}
             </NavLink>
           </div>
         </header>

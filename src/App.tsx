@@ -22,6 +22,7 @@ const AddBook = lazy(() => import('@/routes/AddBook'))
 const ChaptersEditor = lazy(() => import('@/routes/ChaptersEditor'))
 const Reviews = lazy(() => import('@/routes/Reviews'))
 const Settings = lazy(() => import('@/routes/Settings'))
+const Changelog = lazy(() => import('@/routes/Changelog'))
 const CoverGallery = lazy(() => import('@/routes/CoverGallery'))
 const MemberProfile = lazy(() => import('@/routes/MemberProfile'))
 
@@ -74,6 +75,7 @@ export default function App() {
             />
           </Route>
           <Route path="/settings" element={<Settings group={group} />} />
+          <Route path="/changelog" element={<Changelog />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
