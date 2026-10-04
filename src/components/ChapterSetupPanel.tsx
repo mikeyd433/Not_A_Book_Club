@@ -17,8 +17,11 @@ export default function ChapterSetupPanel({ bookId }: { bookId: string }) {
   const snapshot = useChapterSnapshot(bookId)
   // Only offered before anything else has been added -- "reuse a layout"
   // means establishing the base structure, not appending someone else's
-  // whole table of contents onto chapters already in progress.
-  const hasNoChapters = (chapters?.length ?? 0) === 0
+  // whole table of contents onto chapters already in progress. Checked
+  // against chapters !== undefined (not just an empty array) so this
+  // doesn't fire the RPC on every mount for a book that already has
+  // chapters, while the query is still loading them in.
+  const hasNoChapters = chapters !== undefined && chapters.length === 0
   const layoutMatches = useChapterLayoutMatches(bookId, hasNoChapters)
   const copyLayout = useCopyChapterLayout(bookId)
   const [copyError, setCopyError] = useState('')
