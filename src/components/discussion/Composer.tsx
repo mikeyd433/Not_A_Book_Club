@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ChapterOption } from '@/lib/books/queries'
 import type { PendingSpoilerBlock } from '@/lib/comments/queries'
-import GifPicker from './GifPicker'
+import GifPicker from '@/components/GifPicker'
 
 export type ComposerSubmit = {
   chapterId: string

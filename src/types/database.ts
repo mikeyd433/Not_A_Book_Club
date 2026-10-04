@@ -423,6 +423,129 @@ export type Database = {
           },
         ]
       }
+      group_post_attachments: {
+        Row: {
+          created_at: string
+          gif_url: string | null
+          id: string
+          post_id: string
+          storage_path: string | null
+        }
+        Insert: {
+          created_at?: string
+          gif_url?: string | null
+          id?: string
+          post_id: string
+          storage_path?: string | null
+        }
+        Update: {
+          created_at?: string
+          gif_url?: string | null
+          id?: string
+          post_id?: string
+          storage_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_post_attachments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "group_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_post_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_post_reactions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "group_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_post_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_posts: {
+        Row: {
+          body: string
+          created_at: string
+          flagged: boolean
+          group_id: string
+          id: string
+          parent_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          flagged?: boolean
+          group_id: string
+          id?: string
+          parent_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          flagged?: boolean
+          group_id?: string
+          id?: string
+          parent_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_posts_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_posts_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "group_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_posts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       groups: {
         Row: {
           created_at: string
@@ -886,6 +1009,7 @@ export type Database = {
       }
       dispatch_notifications: { Args: never; Returns: undefined }
       flag_comment: { Args: { p_comment_id: string }; Returns: undefined }
+      flag_post: { Args: { p_post_id: string }; Returns: undefined }
       generate_invite_code: { Args: never; Returns: string }
       get_app_secret: { Args: { p_name: string }; Returns: string }
       has_full_access: {
@@ -946,6 +1070,7 @@ export type Database = {
         Args: { p_comment_id: string; p_new_chapter_id?: string }
         Returns: undefined
       }
+      resolve_post_flag: { Args: { p_post_id: string }; Returns: undefined }
       set_default_cover: {
         Args: { p_book_id: string; p_cover_id: string }
         Returns: {

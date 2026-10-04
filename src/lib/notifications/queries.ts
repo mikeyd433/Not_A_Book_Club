@@ -10,6 +10,9 @@ export type NotificationPrefs = {
   // read before joining) too, not just ones you're actively reading/
   // paused on. Muting a specific book still overrides this either way.
   notify_finished?: boolean
+  // Off by default -- its own separate toggle from the book-comment
+  // prefs above, since the Bulletin Board isn't about any one book.
+  notify_bulletin?: boolean
 }
 
 export function useMyNotificationPrefs(groupId: string) {

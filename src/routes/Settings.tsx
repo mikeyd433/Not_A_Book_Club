@@ -296,6 +296,18 @@ export default function Settings({ group }: { group: MyGroup }) {
               />
             </label>
 
+            <label className="flex min-h-11 items-center justify-between gap-2 rounded-lg bg-surface px-3 py-2 text-sm">
+              <span>New posts on the Bulletin Board</span>
+              <input
+                type="checkbox"
+                checked={Boolean(prefs?.notify_bulletin)}
+                onChange={(e) =>
+                  updatePrefs.mutate({ ...prefs, notify_bulletin: e.target.checked })
+                }
+                className="size-5"
+              />
+            </label>
+
             <div className="rounded-lg bg-surface p-3">
               <p className="text-xs font-semibold text-muted">Quiet hours</p>
               <p className="mt-0.5 text-xs text-muted">

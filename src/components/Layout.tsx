@@ -6,13 +6,15 @@ import { TutorialProvider } from '@/lib/tutorial/TutorialProvider'
 import { getActiveTestAccount, switchToReal } from '@/lib/testAccounts'
 import type { MyGroup } from '@/lib/group/useMyGroup'
 
-// No bottom nav: Home is the only permanent destination now.
-// Achievements is reachable via a strip on Home, and Add Book via the
-// header icon here -- both are occasional actions, not daily-use ones,
-// so neither earns permanent chrome the way a persistent nav tab would.
+// Bottom nav covers the two permanent daily-use destinations: My Shelf
+// (Home) and the Bulletin Board. Achievements is reachable via a strip on
+// Home, and Add Book via the header icon here -- both are occasional
+// actions, not daily-use ones, so neither earns a tab of its own.
+const ROOT_PATHS = ['/', '/bulletin']
+
 export default function Layout({ group }: { group: MyGroup }) {
   const { pathname } = useLocation()
-  const isHome = pathname === '/'
+  const isRoot = ROOT_PATHS.includes(pathname)
   // Switching accounts always reloads the page (see testAccounts.ts), so
   // this never needs to update within a mounted session -- read once.
   const [testAccount] = useState(() => getActiveTestAccount())
@@ -29,7 +31,13 @@ export default function Layout({ group }: { group: MyGroup }) {
 
   return (
     <TutorialProvider group={group}>
-      <div className="min-h-screen bg-bg pb-[calc(2rem+env(safe-area-inset-bottom))]">
+      <div
+        className={
+          isRoot
+            ? 'min-h-screen bg-bg pb-[calc(4.5rem+env(safe-area-inset-bottom))]'
+            : 'min-h-screen bg-bg pb-[calc(2rem+env(safe-area-inset-bottom))]'
+        }
+      >
         <AchievementWatcher />
         {testAccount && (
           <div className="flex items-center justify-between gap-2 bg-accent px-4 py-2 text-xs font-semibold text-accent-contrast">
@@ -45,7 +53,7 @@ export default function Layout({ group }: { group: MyGroup }) {
         )}
         <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-surface px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
           <div className="flex min-w-0 items-center gap-2">
-            {!isHome && (
+            {!isRoot && (
               <NavLink
                 to="/"
                 className="flex min-h-11 min-w-11 flex-shrink-0 items-center justify-center rounded-full border border-border text-lg"
@@ -83,6 +91,36 @@ export default function Layout({ group }: { group: MyGroup }) {
         <main className="px-4 py-4">
           <Outlet />
         </main>
+
+        {isRoot && (
+          <nav
+            className="fixed inset-x-0 bottom-0 z-10 flex border-t border-border bg-surface pb-[env(safe-area-inset-bottom)]"
+            data-tour="bottom-nav"
+          >
+            <NavLink
+              to="/"
+              className={({ isActive }) =>
+                `flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-semibold ${
+                  isActive ? 'text-accent' : 'text-muted'
+                }`
+              }
+            >
+              <span className="text-lg">📚</span>
+              My Shelf
+            </NavLink>
+            <NavLink
+              to="/bulletin"
+              className={({ isActive }) =>
+                `flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-semibold ${
+                  isActive ? 'text-accent' : 'text-muted'
+                }`
+              }
+            >
+              <span className="text-lg">📌</span>
+              Bulletin Board
+            </NavLink>
+          </nav>
+        )}
       </div>
       <Spotlight />
     </TutorialProvider>
