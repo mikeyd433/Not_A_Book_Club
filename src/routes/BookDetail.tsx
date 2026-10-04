@@ -101,6 +101,11 @@ export default function BookDetail({ group }: { group: MyGroup }) {
     })
   }
 
+  // Same shelf_entries rows useBookShelfEntries already fetches for
+  // "Everyone's progress" below -- readable by the whole group already
+  // (0004's shelf_entries SELECT policy), so no separate query needed.
+  const owners = everyone?.filter((entry) => entry.owns_physical_copy) ?? []
+
   const currentChapter = chapters?.find((c) => c.id === myEntry?.current_chapter_id)
 
   function handleChapterPicked(chapterId: string) {
@@ -276,6 +281,39 @@ export default function BookDetail({ group }: { group: MyGroup }) {
               ? 'View full thread anyway — see comments ahead of your reread position'
               : 'Spoil me — unlock full access anyway'}
           </label>
+        </div>
+      )}
+
+      {myEntry && (
+        <div className="rounded-card bg-surface p-3">
+          <label className="flex min-h-11 items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={myEntry.owns_physical_copy}
+              onChange={(e) => upsert.mutate({ owns_physical_copy: e.target.checked })}
+              className="size-5"
+            />
+            📚 I own a physical copy — able to loan it out
+          </label>
+        </div>
+      )}
+
+      {owners.length > 0 && (
+        <div>
+          <h2 className="text-sm font-semibold text-muted">Who owns a copy</h2>
+          <ul className="mt-2 space-y-1">
+            {owners.map((entry) => (
+              <li key={entry.user_id}>
+                <Link
+                  to={`/member/${entry.user_id}`}
+                  className="flex items-center justify-between rounded-lg bg-surface px-3 py-2 text-sm active:bg-surface-alt"
+                >
+                  <span>{entry.profiles?.display_name ?? 'Someone'}</span>
+                  <span className="text-muted">📚 Can loan it out</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

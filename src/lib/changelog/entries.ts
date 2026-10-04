@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'owns-physical-copy',
+    date: '2026-10-04',
+    title: '📚 Flag books you own a physical copy of',
+    body: "New checkbox on a book's Overview: mark that you own a physical copy and can loan it out. A \"Who owns a copy\" section shows everyone in the group who has.",
+  },
+  {
     id: 'cover-tap-to-expand',
     date: '2026-10-04',
     title: 'Tap a book\'s cover to see it larger',

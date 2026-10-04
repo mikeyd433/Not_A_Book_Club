@@ -837,6 +837,7 @@ export type Database = {
           id: string
           is_rereading: boolean
           muted: boolean
+          owns_physical_copy: boolean
           personal_cover_id: string | null
           revealed_chapter_ids: string[]
           sort_pref: string
@@ -855,6 +856,7 @@ export type Database = {
           id?: string
           is_rereading?: boolean
           muted?: boolean
+          owns_physical_copy?: boolean
           personal_cover_id?: string | null
           revealed_chapter_ids?: string[]
           sort_pref?: string
@@ -873,6 +875,7 @@ export type Database = {
           id?: string
           is_rereading?: boolean
           muted?: boolean
+          owns_physical_copy?: boolean
           personal_cover_id?: string | null
           revealed_chapter_ids?: string[]
           sort_pref?: string
