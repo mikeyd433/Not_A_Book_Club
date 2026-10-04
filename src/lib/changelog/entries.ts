@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'multiple-groups',
+    date: '2026-10-04',
+    title: 'Join or start more than one group',
+    body: 'Settings now has a "Your groups" switcher and a "Join or create another group" button, so you can belong to several groups and swap which one you\'re viewing. Invite links now work even if you\'re already in a group.',
+  },
+  {
     id: 'update-available-prompt',
     date: '2026-10-04',
     title: "You'll now be told when an update is ready",

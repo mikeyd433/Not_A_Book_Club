@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/lib/auth/AuthProvider'
 import { useMyGroup } from '@/lib/group/useMyGroup'
 import Login from '@/routes/Login'
@@ -29,6 +29,7 @@ const MemberProfile = lazy(() => import('@/routes/MemberProfile'))
 export default function App() {
   const { user, loading: authLoading } = useAuth()
   const { data: group, isLoading: groupLoading } = useMyGroup()
+  const [searchParams] = useSearchParams()
 
   if (authLoading) {
     return <FullScreenSpinner />
@@ -46,9 +47,21 @@ export default function App() {
     return <JoinOrCreateGroup />
   }
 
+  // An invite link (?invite=CODE) used to have no use for someone already
+  // in a group -- there was nowhere else to put them. Now that joining a
+  // second (or third...) group is possible, send them straight to the
+  // join flow instead of silently landing on Home with the code ignored.
+  const inviteCode = searchParams.get('invite')
+  if (inviteCode) {
+    return <Navigate to={`/join-group?invite=${inviteCode}`} replace />
+  }
+
   return (
     <Suspense fallback={<FullScreenSpinner />}>
       <Routes>
+        {/* Outside Layout on purpose -- full-screen, no header/tabs, same
+            presentation as the pre-group gate below reuses it for. */}
+        <Route path="/join-group" element={<JoinOrCreateGroup />} />
         <Route element={<Layout group={group} />}>
           <Route path="/" element={<Home group={group} />} />
           <Route path="/bulletin" element={<Bulletin group={group} />} />

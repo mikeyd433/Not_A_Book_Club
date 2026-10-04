@@ -1,18 +1,21 @@
 import { useState, type FormEvent } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { useQueryClient } from '@tanstack/react-query'
+import { Link, useSearchParams } from 'react-router-dom'
 import { consumePendingInvite } from '@/lib/pendingInvite'
+import { setActiveGroupId } from '@/lib/group/activeGroup'
+import { useMyGroups } from '@/lib/group/useMyGroup'
 import { supabase } from '@/lib/supabase'
 
-// Reached after login when the signed-in user isn't in a group yet. If they
-// arrived via an invite link (?invite=CODE) the code is pre-filled -- from
-// the URL if they were already logged in, or from pendingInvite.ts's
-// localStorage stash if reaching this page required a magic-link round
-// trip that dropped the query param along the way. The "create a group"
-// option only really matters for the very first person.
+// Reached after login when the signed-in user isn't in a group yet (no
+// header/back option then -- there's nothing to go back to) -- or from
+// Settings' "Join or create another group" link once they're already in
+// one (a "← Cancel" shows instead, since useMyGroups() finds existing
+// groups). If they arrived via an invite link (?invite=CODE) the code is
+// pre-filled -- from the URL if they were already logged in, or from
+// pendingInvite.ts's localStorage stash if reaching this page required a
+// magic-link round trip that dropped the query param along the way.
 export default function JoinOrCreateGroup() {
   const [searchParams] = useSearchParams()
-  const queryClient = useQueryClient()
+  const { data: existingGroups } = useMyGroups()
   const [inviteCode, setInviteCode] = useState(() =>
     (searchParams.get('invite') ?? consumePendingInvite() ?? '').toUpperCase(),
   )
@@ -25,7 +28,7 @@ export default function JoinOrCreateGroup() {
     setBusy(true)
     setError('')
 
-    const { error: rpcError } = await supabase.rpc('join_group_by_code', {
+    const { data, error: rpcError } = await supabase.rpc('join_group_by_code', {
       p_invite_code: inviteCode.trim(),
     })
 
@@ -35,7 +38,10 @@ export default function JoinOrCreateGroup() {
       return
     }
 
-    queryClient.invalidateQueries({ queryKey: ['my-group'] })
+    // Lands them in the group they just joined, whether it's their first
+    // or fifth -- same hard-reload reasoning as any other active-group
+    // switch (activeGroup.ts).
+    setActiveGroupId(data.id)
   }
 
   async function handleCreate(event: FormEvent) {
@@ -43,7 +49,7 @@ export default function JoinOrCreateGroup() {
     setBusy(true)
     setError('')
 
-    const { error: rpcError } = await supabase.rpc('create_group', {
+    const { data, error: rpcError } = await supabase.rpc('create_group', {
       p_name: groupName.trim(),
     })
 
@@ -53,12 +59,17 @@ export default function JoinOrCreateGroup() {
       return
     }
 
-    queryClient.invalidateQueries({ queryKey: ['my-group'] })
+    setActiveGroupId(data.id)
   }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-bg px-4">
       <div className="w-full max-w-sm space-y-8 rounded-card bg-surface p-8 shadow-sm">
+        {existingGroups && existingGroups.length > 0 && (
+          <Link to="/" className="text-sm font-semibold text-accent">
+            ← Cancel
+          </Link>
+        )}
         <div>
           <h1 className="text-xl font-bold">Join your group</h1>
           <form onSubmit={handleJoin} className="mt-3 space-y-3">

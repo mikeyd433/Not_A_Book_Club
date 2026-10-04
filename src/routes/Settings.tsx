@@ -7,7 +7,8 @@ import {
   useMyNotificationPrefs,
   useUpdateNotificationPrefs,
 } from '@/lib/notifications/queries'
-import { useUpdateGroupName } from '@/lib/group/useMyGroup'
+import { useMyGroups, useUpdateGroupName } from '@/lib/group/useMyGroup'
+import { setActiveGroupId } from '@/lib/group/activeGroup'
 import {
   getExistingSubscription,
   isPushSupported,
@@ -136,6 +137,7 @@ export default function Settings({ group }: { group: MyGroup }) {
   const showManualInstallHint = !installState.installed && !installState.canPrompt && isIOS()
   const theme = useTheme()
   const hasUnseenChangelog = useHasUnseenChangelog()
+  const { data: myGroups } = useMyGroups()
 
   return (
     <div className="space-y-6">
@@ -210,6 +212,41 @@ export default function Settings({ group }: { group: MyGroup }) {
           )}
         </div>
       </div>
+
+      {myGroups && myGroups.length > 1 && (
+        <div>
+          <h2 className="text-sm font-semibold text-muted">Your groups</h2>
+          <ul className="mt-2 space-y-1">
+            {myGroups.map((g) => {
+              const isActive = g.id === group.id
+              return (
+                <li key={g.id}>
+                  <button
+                    onClick={() => !isActive && setActiveGroupId(g.id)}
+                    className="flex min-h-11 w-full items-center justify-between rounded-lg bg-surface px-3 py-2 text-left text-sm active:bg-surface-alt"
+                  >
+                    <span className={`truncate ${isActive ? 'font-semibold text-accent' : ''}`}>
+                      {g.name}
+                    </span>
+                    {isActive && (
+                      <span className="flex-shrink-0 text-xs font-semibold text-accent">
+                        Current ✓
+                      </span>
+                    )}
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
+
+      <Link
+        to="/join-group"
+        className="flex min-h-11 w-full items-center justify-center rounded-card border border-dashed border-border px-3 py-2 text-sm font-semibold text-accent active:bg-surface-alt"
+      >
+        + Join or create another group
+      </Link>
 
       <Link
         to="/changelog"
