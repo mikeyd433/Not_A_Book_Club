@@ -1,12 +1,20 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { NavLink, Outlet, useLocation, useParams } from 'react-router-dom'
-import { useBook, useChapters, useMyShelfEntry, useUpsertShelfEntry } from '@/lib/books/queries'
+import { useQueryClient } from '@tanstack/react-query'
+import {
+  coverPublicUrl,
+  useBook,
+  useChapters,
+  useMyShelfEntry,
+  useUpsertShelfEntry,
+} from '@/lib/books/queries'
 import { celebrate } from '@/lib/celebrate'
 import { confirmAdvance } from '@/lib/books/confirmAdvance'
-import { contrastForHex } from '@/lib/image'
+import { computeAccentColorFromUrl, contrastForHex } from '@/lib/image'
+import { supabase } from '@/lib/supabase'
 import { CONDENSED_BAR_SHOW_AFTER, useScrolledPast } from '@/lib/useScrolledPast'
 import ChapterWheelPicker from '@/components/ChapterWheelPicker'
-import CoverThumb from '@/components/CoverThumb'
+import CoverThumb, { resolveCoverSrc } from '@/components/CoverThumb'
 import QueryError from '@/components/QueryError'
 
 // Wraps every /book/:bookId/* route: themes it with the accent color
@@ -18,11 +26,39 @@ import QueryError from '@/components/QueryError'
 export default function BookLayout() {
   const { bookId } = useParams<{ bookId: string }>()
   const { pathname } = useLocation()
+  const queryClient = useQueryClient()
   const { data: book, isError, error, refetch } = useBook(bookId!)
   const { data: chapters } = useChapters(bookId!)
   const { data: myEntry } = useMyShelfEntry(bookId!)
   const upsert = useUpsertShelfEntry(bookId!)
 
+  // Backfill for books added before accent_color was computed for
+  // Open-Library-sourced covers (useAddBook), and the rare case of a
+  // default cover set some other way without it. Best-effort and
+  // per-mount only (not retried within the same visit) -- a CORS/load
+  // failure just leaves it themeless, same as it already was.
+  const backfilledForRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!book || book.accent_color || backfilledForRef.current === book.id) return
+    const sourceUrl = book.default_cover
+      ? coverPublicUrl(book.default_cover.storage_path)
+      : book.open_library_cover_url
+    if (!sourceUrl) return
+    backfilledForRef.current = book.id
+    computeAccentColorFromUrl(sourceUrl).then((result) => {
+      if (!result) return
+      supabase
+        .from('books')
+        .update({ accent_color: result.accent })
+        .eq('id', book.id)
+        .then(({ error: updateError }) => {
+          if (updateError) return
+          queryClient.invalidateQueries({ queryKey: ['book', book.id] })
+        })
+    })
+  }, [book, queryClient])
+
+  const [showCoverLightbox, setShowCoverLightbox] = useState(false)
   const [showChapterPicker, setShowChapterPicker] = useState(false)
   // Bumped on a cancelled advance to force the wheel picker to remount and
   // re-settle on the still-current chapter -- see BookDetail's picker for
@@ -68,16 +104,22 @@ export default function BookLayout() {
 
   if (!book) return <div style={style} />
 
+  const coverSrc = resolveCoverSrc(book, myEntry?.personal_cover?.storage_path)
+
   return (
     <div style={style} className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 gap-3">
-          <NavLink to={`/book/${book.id}`} end className="w-16 flex-shrink-0">
+          <button
+            onClick={() => coverSrc && setShowCoverLightbox(true)}
+            className="w-16 flex-shrink-0"
+            aria-label="View cover larger"
+          >
             <CoverThumb
               book={book}
               personalCoverPath={myEntry?.personal_cover?.storage_path}
             />
-          </NavLink>
+          </button>
           <div className="min-w-0 flex-1">
             <h1 className="break-words text-lg font-bold">{book.title}</h1>
             <p className="break-words text-sm text-muted">{book.author}</p>
@@ -143,6 +185,20 @@ export default function BookLayout() {
       </div>
 
       <Outlet />
+
+      {showCoverLightbox && coverSrc && (
+        <button
+          onClick={() => setShowCoverLightbox(false)}
+          aria-label="Close"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6"
+        >
+          <img
+            src={coverSrc}
+            alt={book.title}
+            className="max-h-full max-w-full rounded-lg object-contain"
+          />
+        </button>
+      )}
     </div>
   )
 }

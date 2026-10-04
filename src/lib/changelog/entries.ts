@@ -11,6 +11,18 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'cover-tap-to-expand',
+    date: '2026-10-04',
+    title: 'Tap a book\'s cover to see it larger',
+    body: "On a book's page, tapping its cover now opens it full-size instead of jumping to Overview — use the Overview tab for that.",
+  },
+  {
+    id: 'accent-color-for-all-covers',
+    date: '2026-10-04',
+    title: 'Every book now themes itself from its cover',
+    body: "Previously only books with a manually uploaded cover picked up a matching accent color on their page — books still using their auto-fetched cover stayed the default purple. Now every book's cover gets sampled, including ones added before this fix.",
+  },
+  {
     id: 'not-on-anyones-shelf',
     date: '2026-10-04',
     title: 'Cleaned up Home\'s "Not on your shelf" group',

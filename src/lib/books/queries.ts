@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth/AuthProvider'
+import { computeAccentColorFromUrl } from '@/lib/image'
 import type { ShelfStatus, SortPref } from '@/types/domain'
 import type { Json } from '@/types/database'
 
@@ -75,6 +76,24 @@ export function useAddBook(groupId: string) {
         .single()
 
       if (error) throw error
+
+      // Covers from a crop (CoverUploadPanel) get their accent computed
+      // right there, from the <img> already loaded for cropping -- an
+      // Open-Library-sourced cover never goes through that step, so
+      // nothing would otherwise theme this book at all. Best-effort: a
+      // CORS-blocked or failed load just leaves accent_color null, same
+      // as before this existed, rather than failing the whole add.
+      if (book.openLibraryCoverUrl) {
+        const result = await computeAccentColorFromUrl(book.openLibraryCoverUrl)
+        if (result) {
+          const { error: accentError } = await supabase
+            .from('books')
+            .update({ accent_color: result.accent })
+            .eq('id', data.id)
+          if (!accentError) data.accent_color = result.accent
+        }
+      }
+
       return data
     },
     onSuccess: () => {

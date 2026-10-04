@@ -194,6 +194,22 @@ export async function resizeSquareForUpload(
   })
 }
 
+// Same accent sampling as the crop tool, but starting from a URL instead of
+// an already-loaded <img> -- for covers that never go through a crop step
+// (the auto-fetched Open Library cover). Resolves to null rather than
+// throwing on a load/CORS failure, since this always runs as a best-effort
+// side effect alongside something else that must still succeed without it.
+export async function computeAccentColorFromUrl(
+  url: string,
+): Promise<{ accent: string; contrast: string } | null> {
+  try {
+    const image = await loadImage(url)
+    return await computeAccentColor(image)
+  } catch {
+    return null
+  }
+}
+
 // A readable text color for a given background hex, computed from the hex
 // alone — used to theme a book's pages from its stored accent_color without
 // re-fetching the cover image.
