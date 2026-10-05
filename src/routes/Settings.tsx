@@ -365,6 +365,29 @@ export default function Settings({ group }: { group: MyGroup }) {
               />
             </label>
 
+            {group.role === 'admin' && (
+              <label className="flex min-h-11 items-center justify-between gap-2 rounded-lg bg-surface px-3 py-2 text-sm">
+                <span>
+                  🔎 Admin activity
+                  <span className="block text-xs text-muted">
+                    Every comment, bulletin post, new book, and chapter
+                    advance from the rest of the group
+                  </span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={Boolean(prefs?.notify_admin_activity)}
+                  onChange={(e) =>
+                    updatePrefs.mutate({
+                      ...prefs,
+                      notify_admin_activity: e.target.checked,
+                    })
+                  }
+                  className="size-5 flex-shrink-0"
+                />
+              </label>
+            )}
+
             <div className="rounded-lg bg-surface p-3">
               <p className="text-xs font-semibold text-muted">Quiet hours</p>
               <p className="mt-0.5 text-xs text-muted">

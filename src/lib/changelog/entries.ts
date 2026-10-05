@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'admin-activity-notifications',
+    date: '2026-10-05',
+    title: '🔎 Admin activity notifications',
+    body: "New admin-only toggle in Settings → Notifications: get a push for every comment, bulletin post, new book, and chapter advance from the rest of the group -- handy for keeping an eye on things while beta testing. Off by default, and only visible to group admins.",
+  },
+  {
     id: 'progress-bar-now-reading',
     date: '2026-10-05',
     title: 'Progress bars now say "Now reading [chapter]"',

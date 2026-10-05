@@ -13,6 +13,11 @@ export type NotificationPrefs = {
   // Off by default -- its own separate toggle from the book-comment
   // prefs above, since the Bulletin Board isn't about any one book.
   notify_bulletin?: boolean
+  // Off by default. Admin-only in the UI (Settings.tsx gates the checkbox
+  // on group.role === 'admin') -- server-side, enqueue_admin_activity_
+  // notification() only ever sends to group_members rows with role =
+  // 'admin', so this flag does nothing for a non-admin even if set.
+  notify_admin_activity?: boolean
 }
 
 export function useMyNotificationPrefs(groupId: string) {

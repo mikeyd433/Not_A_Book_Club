@@ -584,6 +584,7 @@ export type Database = {
           book_id: string | null
           created_at: string
           id: string
+          kind: string
           sent_at: string | null
           title: string
           url: string | null
@@ -594,6 +595,7 @@ export type Database = {
           book_id?: string | null
           created_at?: string
           id?: string
+          kind?: string
           sent_at?: string | null
           title: string
           url?: string | null
@@ -604,6 +606,7 @@ export type Database = {
           book_id?: string | null
           created_at?: string
           id?: string
+          kind?: string
           sent_at?: string | null
           title?: string
           url?: string | null
@@ -1028,6 +1031,17 @@ export type Database = {
         }
       }
       dispatch_notifications: { Args: never; Returns: undefined }
+      enqueue_admin_activity_notification: {
+        Args: {
+          p_actor_id: string
+          p_body: string
+          p_book_id: string
+          p_group_id: string
+          p_title: string
+          p_url: string
+        }
+        Returns: undefined
+      }
       find_chapter_layouts: {
         Args: { p_book_id: string }
         Returns: {
