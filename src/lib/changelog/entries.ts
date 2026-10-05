@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'progress-bar-now-reading',
+    date: '2026-10-05',
+    title: 'Progress bars now say "Now reading [chapter]"',
+    body: 'Replaced the "Ch. X of Y" count under a book\'s progress bar with "Now reading" and the chapter\'s actual name. Finished (or read-before-joining) books no longer show a progress bar at all, since they\'re not "reading" any particular chapter.',
+  },
+  {
     id: 'chapter-number-suggestions-use-count',
     date: '2026-10-05',
     title: 'Fixed inflated chapter number suggestions on books with a Prologue',

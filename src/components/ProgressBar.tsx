@@ -7,11 +7,13 @@ export default function ProgressBar({
   // percentage, not shown as a number itself (see currentLabel below).
   current: number
   total: number
-  // The current chapter's own label (e.g. "Chapter 2"), shown instead of
-  // "Ch. {current}" -- current is the chapter's rank in the list, which
-  // only matches its label's number by coincidence (a book with a
-  // Prologue, or one whose chapters were reordered, breaks that). Falls
-  // back to the rank when there's no chapter selected yet.
+  // The current chapter's own label (e.g. "Chapter 2"), named directly
+  // instead of a "Ch. {current} of {total}" count -- current is just the
+  // chapter's rank in the list, which only matches its label's number by
+  // coincidence (a book with a Prologue, or one whose chapters were
+  // reordered, breaks that), and a bare count doesn't say anything a
+  // reader recognizes anyway. Undefined when there's no chapter selected
+  // yet (want_to_read, or reading with no position set).
   currentLabel?: string
 }) {
   const pct = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0
@@ -25,7 +27,11 @@ export default function ProgressBar({
         />
       </div>
       <p className="mt-1 text-xs text-muted">
-        {total === 0 ? 'No chapters yet' : (currentLabel ?? `Ch. ${current} of ${total}`)}
+        {total === 0
+          ? 'No chapters yet'
+          : currentLabel
+            ? `Now reading ${currentLabel}`
+            : 'Not started yet'}
       </p>
     </div>
   )

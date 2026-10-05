@@ -243,6 +243,13 @@ function BookRow({
   const currentRank = chapters
     ? chapters.findIndex((c) => c.id === entry?.current_chapter_id) + 1
     : 0
+  // Finished/read-before-joining have full access to the whole book
+  // regardless of whatever chapter current_chapter_id happens to point at
+  // -- a progress bar captioned "Now reading X" would contradict the
+  // "Finished" status line right above it. Same reasoning as Everyone's
+  // progress on the book page.
+  const hasMeaningfulChapter =
+    entry?.status !== 'finished' && entry?.status !== 'read_before_joining'
 
   return (
     <Link
@@ -260,7 +267,7 @@ function BookRow({
         <p className="mt-1 text-xs font-medium text-accent">
           {entry ? SHELF_STATUS_LABELS[entry.status as ShelfStatus] : 'Not on your shelf'}
         </p>
-        {entry && (chapters?.length ?? 0) > 0 && (
+        {entry && hasMeaningfulChapter && (chapters?.length ?? 0) > 0 && (
           <div className="mt-1">
             <ProgressBar
               current={currentRank}

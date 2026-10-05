@@ -115,6 +115,9 @@ function MemberShelfRow({
   const currentRank = chapters
     ? chapters.findIndex((c) => c.id === entry.current_chapter_id) + 1
     : 0
+  // See the matching comment in Home.tsx.
+  const hasMeaningfulChapter =
+    entry.status !== 'finished' && entry.status !== 'read_before_joining'
 
   if (!entry.books) return null
 
@@ -129,7 +132,7 @@ function MemberShelfRow({
         <p className="mt-0.5 text-xs font-medium text-accent">
           {SHELF_STATUS_LABELS[entry.status as ShelfStatus]}
         </p>
-        {(chapters?.length ?? 0) > 0 && (
+        {hasMeaningfulChapter && (chapters?.length ?? 0) > 0 && (
           <div className="mt-1">
             <ProgressBar
               current={currentRank}
