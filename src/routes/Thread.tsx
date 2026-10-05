@@ -284,14 +284,42 @@ export default function Thread({ group }: { group: MyGroup }) {
       )}
 
       <div className="space-y-5">
-        {chapters.length > 1 && (
-          <div className="flex justify-end">
-            <button
-              onClick={toggleChapterOrder}
-              className="min-h-9 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted active:bg-surface-alt"
-            >
-              {chapterOrder === 'asc' ? '↓ Oldest first' : '↑ Newest first'}
-            </button>
+        {(!showCondensedBar || chapters.length > 1) && (
+          <div className="flex items-center justify-between gap-2">
+            {/* At the top of the page, this is the chapter picker -- a
+                bigger, easier target than the condensed bar's small pill
+                version below, which takes over once scrolled past the
+                header (same showChapterPicker state, so a picker left open
+                while scrolling just relocates rather than closing). */}
+            {!showCondensedBar && (
+              <button
+                onClick={() => setShowChapterPicker((s) => !s)}
+                className="flex min-h-11 min-w-0 flex-1 items-center justify-between gap-2 rounded-card bg-surface px-3 py-2 text-left"
+              >
+                <span className="flex-shrink-0 text-sm font-semibold">Current chapter</span>
+                <span className="min-w-0 truncate text-sm text-accent">
+                  {currentChapter?.label ?? 'Set chapter'} ▾
+                </span>
+              </button>
+            )}
+            {chapters.length > 1 && (
+              <button
+                onClick={toggleChapterOrder}
+                className="min-h-9 flex-shrink-0 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted active:bg-surface-alt"
+              >
+                {chapterOrder === 'asc' ? '↓ Oldest first' : '↑ Newest first'}
+              </button>
+            )}
+          </div>
+        )}
+        {!showCondensedBar && showChapterPicker && (
+          <div className="rounded-card bg-surface p-2">
+            <ChapterWheelPicker
+              key={pickerResetKey}
+              items={chapters.map((c) => ({ id: c.id, label: c.label }))}
+              value={myEntry.current_chapter_id}
+              onChange={handleChapterPicked}
+            />
           </div>
         )}
         {orderedChapters.map((chapter) =>

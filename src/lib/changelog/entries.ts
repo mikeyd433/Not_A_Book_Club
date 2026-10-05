@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'discussion-picker-bigger-at-top',
+    date: '2026-10-05',
+    title: "Discussion's chapter picker is bigger at the top of the page",
+    body: "Now a full-size \"Current chapter\" button next to Oldest/Newest first when you're at the top of the page -- the small pill version only shows once you scroll, in the condensed bar with the cover and title.",
+  },
+  {
     id: 'progress-label-and-animation',
     date: '2026-10-05',
     title: 'Progress bars now say "Progress:" and fill in on load',
