@@ -239,6 +239,7 @@ function BookRow({
   // position -- position is an insertion-order integer that can start above
   // 1 or skip values after edits, which would otherwise make the "of total"
   // progress bar below show a number larger than the chapter count.
+  const currentChapter = chapters?.find((c) => c.id === entry?.current_chapter_id)
   const currentRank = chapters
     ? chapters.findIndex((c) => c.id === entry?.current_chapter_id) + 1
     : 0
@@ -264,6 +265,7 @@ function BookRow({
             <ProgressBar
               current={currentRank}
               total={chapters?.length ?? 0}
+              currentLabel={currentChapter?.label}
             />
           </div>
         )}

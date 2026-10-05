@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'progress-bar-shows-chapter-label',
+    date: '2026-10-05',
+    title: "Fixed progress bars showing a different chapter than the book page",
+    body: "A member's progress bar (on Home and their profile) could show a chapter number that didn't match what the book's own page showed for the same person, for the same reason as the last fix: it was counting position in the list instead of naming the actual chapter. It now shows the chapter's real name there too.",
+  },
+  {
     id: 'progress-hide-chapter-for-full-access',
     date: '2026-10-04',
     title: 'Simplified "Everyone\'s progress" for finished readers',
