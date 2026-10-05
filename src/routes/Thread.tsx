@@ -251,13 +251,13 @@ export default function Thread({ group }: { group: MyGroup }) {
           style={{ top: CONDENSED_BAR_TOP }}
         >
           <div className="border-b border-border px-4 py-2">
-            <div className="flex items-start gap-2">
+            <div className="flex items-center gap-3">
               <CoverThumb
                 book={book ?? { title: '', open_library_cover_url: null, default_cover: null }}
                 personalCoverPath={myEntry.personal_cover?.storage_path}
-                className="w-8 flex-shrink-0"
+                className="w-14 flex-shrink-0 rounded"
               />
-              <p className="min-w-0 flex-1 break-words text-sm font-semibold">{book?.title}</p>
+              <p className="min-w-0 flex-1 break-words text-base font-bold">{book?.title}</p>
             </div>
             <div className="mt-2 flex justify-end">
               <button

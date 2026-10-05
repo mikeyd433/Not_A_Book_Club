@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'condensed-bar-bigger-cover',
+    date: '2026-10-05',
+    title: "Bigger cover and title in Discussion's scrolled banner",
+    body: "The cover and title in the condensed bar (shown once you scroll down in Discussion) were noticeably undersized for the space. Both are bigger now.",
+  },
+  {
     id: 'discussion-picker-bigger-at-top',
     date: '2026-10-05',
     title: "Discussion's chapter picker is bigger at the top of the page",
