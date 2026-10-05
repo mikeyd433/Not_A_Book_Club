@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'progress-label-and-animation',
+    date: '2026-10-05',
+    title: 'Progress bars now say "Progress:" and fill in on load',
+    body: '"Now reading" implied you were mid-chapter, when really it\'s the chapter you picked after finishing it -- relabeled to "Progress: [chapter]". The bar itself now animates filling in each time it appears, instead of just snapping straight to its value.',
+  },
+  {
     id: 'chapter-picker-under-bell',
     date: '2026-10-05',
     title: 'Tab row now lines up the same on every book page',
