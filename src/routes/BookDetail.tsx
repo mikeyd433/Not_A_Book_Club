@@ -133,7 +133,7 @@ export default function BookDetail({ group }: { group: MyGroup }) {
       )
       return
     }
-    const defaultLabel = `Chapter ${addNextChapter.nextPosition}`
+    const defaultLabel = `Chapter ${addNextChapter.nextChapterNumber}`
     const input = window.prompt(
       'Name this chapter (leave blank to just number it):',
       defaultLabel,
@@ -228,7 +228,7 @@ export default function BookDetail({ group }: { group: MyGroup }) {
           >
             {addNextChapter.isPending
               ? 'Adding…'
-              : `+ Add chapter ${addNextChapter.nextPosition} as you go`}
+              : `+ Add chapter ${addNextChapter.nextChapterNumber} as you go`}
           </button>
           {addChapterError && (
             <p className="mt-2 text-xs text-red-600">{addChapterError}</p>

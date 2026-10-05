@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'chapter-number-suggestions-use-count',
+    date: '2026-10-05',
+    title: 'Fixed inflated chapter number suggestions on books with a Prologue',
+    body: 'On a book with a Prologue (or any other front matter counted as a chapter), "+ Add chapter N as you go" and its suggested name could jump ahead of the real chapter count -- e.g. suggesting "Chapter 30" on a book with 25 chapters. It now counts chapters instead, so the suggestion matches what you\'d actually expect.',
+  },
+  {
     id: 'progress-bar-shows-chapter-label',
     date: '2026-10-05',
     title: "Fixed progress bars showing a different chapter than the book page",

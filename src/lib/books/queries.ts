@@ -227,6 +227,12 @@ export function useAddChapterAndAdvance(bookId: string) {
   const upsertShelf = useUpsertShelfEntry(bookId)
 
   const nextPosition = (chapters?.[chapters.length - 1]?.position ?? 0) + 1
+  // For the default label/button text only -- position is an internal
+  // ordering key that doesn't reset at 1 for a book with front matter (a
+  // Prologue before "Chapter 1," say), so it can run ahead of how many
+  // chapters a reader would actually count. Chapter count doesn't have
+  // that problem.
+  const nextChapterNumber = (chapters?.length ?? 0) + 1
 
   async function addAndAdvance(label: string) {
     await snapshot()
@@ -238,7 +244,7 @@ export function useAddChapterAndAdvance(bookId: string) {
   }
 
   return {
-    nextPosition,
+    nextChapterNumber,
     addAndAdvance,
     isPending: addChapters.isPending || upsertShelf.isPending,
   }

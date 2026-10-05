@@ -44,6 +44,11 @@ export default function ChapterSetupPanel({ bookId }: { bookId: string }) {
   const [bulkText, setBulkText] = useState('')
 
   const nextPosition = (chapters?.[chapters.length - 1]?.position ?? 0) + 1
+  // Chapter count, not position, for the generated "Chapter N" labels --
+  // position is an internal ordering key that doesn't reset at 1 for a book
+  // with front matter already added (a Prologue before "Chapter 1," say),
+  // so it can run ahead of how many chapters a reader would actually count.
+  const nextChapterNumber = (chapters?.length ?? 0) + 1
   const parsedQuickFillCount = Math.floor(Number(quickFillCount))
   const quickFillCountValid =
     quickFillCount.trim() !== '' && Number.isFinite(parsedQuickFillCount) && parsedQuickFillCount >= 1
@@ -51,11 +56,12 @@ export default function ChapterSetupPanel({ bookId }: { bookId: string }) {
   async function handleQuickFill() {
     if (!quickFillCountValid) return
     await snapshot()
-    const start = nextPosition
+    const startPosition = nextPosition
+    const startNumber = nextChapterNumber
     await addChapters.mutateAsync(
       Array.from({ length: parsedQuickFillCount }, (_, i) => ({
-        position: start + i,
-        label: `Chapter ${start + i}`,
+        position: startPosition + i,
+        label: `Chapter ${startNumber + i}`,
       })),
     )
   }

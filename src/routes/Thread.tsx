@@ -89,7 +89,7 @@ export default function Thread({ group }: { group: MyGroup }) {
   }
 
   async function handleAddFirstChapter() {
-    const defaultLabel = `Chapter ${addNextChapter.nextPosition}`
+    const defaultLabel = `Chapter ${addNextChapter.nextChapterNumber}`
     const input = window.prompt(
       'Name this chapter (leave blank to just number it):',
       defaultLabel,
