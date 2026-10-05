@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'chapter-picker-under-bell',
+    date: '2026-10-05',
+    title: 'Tab row now lines up the same on every book page',
+    body: "Discussion's chapter picker used to sit in its own row above the tabs, pushing Overview/Discussion/Chapters/Reviews lower than on every other tab. It now sits under the bell icon instead, so the tabs are at the same height no matter which tab you're on.",
+  },
+  {
     id: 'admin-activity-notifications',
     date: '2026-10-05',
     title: '🔎 Admin activity notifications',
