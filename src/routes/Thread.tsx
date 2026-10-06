@@ -257,12 +257,10 @@ export default function Thread({ group }: { group: MyGroup }) {
                 personalCoverPath={myEntry.personal_cover?.storage_path}
                 className="w-14 flex-shrink-0 rounded"
               />
-              <p className="min-w-0 flex-1 break-words text-base font-bold">{book?.title}</p>
-            </div>
-            <div className="mt-2 flex justify-end">
+              <p className="min-w-0 flex-1 truncate text-base font-bold">{book?.title}</p>
               <button
                 onClick={() => setShowChapterPicker((s) => !s)}
-                className="flex max-w-[12rem] items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-accent"
+                className="flex max-w-[9rem] flex-shrink-0 items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-accent"
               >
                 <span className="min-w-0 truncate">{currentChapter?.label ?? 'Set chapter'}</span>
                 <span className="flex-shrink-0">▾</span>

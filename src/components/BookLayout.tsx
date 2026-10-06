@@ -11,6 +11,7 @@ import {
 import { computeAccentColorFromUrl, contrastForHex } from '@/lib/image'
 import { supabase } from '@/lib/supabase'
 import CoverThumb, { resolveCoverSrc } from '@/components/CoverThumb'
+import ProgressBar from '@/components/ProgressBar'
 import QueryError from '@/components/QueryError'
 
 // Wraps every /book/:bookId/* route: themes it with the accent color
@@ -55,6 +56,17 @@ export default function BookLayout() {
 
   const [showCoverLightbox, setShowCoverLightbox] = useState(false)
 
+  // Shown under the title/author on every tab, not just Overview -- same
+  // "finished/read-before-joining has nothing to show a position for"
+  // exclusion as Home's and MemberProfile's book rows.
+  const currentChapterForProgress = chapters?.find((c) => c.id === myEntry?.current_chapter_id)
+  const currentRank = chapters
+    ? chapters.findIndex((c) => c.id === myEntry?.current_chapter_id) + 1
+    : 0
+  const hasMeaningfulChapter =
+    myEntry?.status !== 'finished' && myEntry?.status !== 'read_before_joining'
+  const showProgress = Boolean(myEntry) && hasMeaningfulChapter && (chapters?.length ?? 0) > 0
+
   const style: CSSProperties | undefined = book?.accent_color
     ? ({
         '--color-accent': book.accent_color,
@@ -85,6 +97,15 @@ export default function BookLayout() {
           <div className="min-w-0 flex-1">
             <h1 className="break-words text-lg font-bold">{book.title}</h1>
             <p className="break-words text-sm text-muted">{book.author}</p>
+            {showProgress && (
+              <div className="mt-2">
+                <ProgressBar
+                  current={currentRank}
+                  total={chapters?.length ?? 0}
+                  currentLabel={currentChapterForProgress?.label}
+                />
+              </div>
+            )}
           </div>
         </div>
         {myEntry && (

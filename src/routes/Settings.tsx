@@ -23,6 +23,7 @@ import {
   useUploadAvatar,
 } from '@/lib/profile/queries'
 import { setTheme, useTheme, type ThemePreference } from '@/lib/theme'
+import { setProgressBarAnimation, useProgressBarAnimation } from '@/lib/progressAnimation'
 import { useHasUnseenChangelog } from '@/lib/changelog/seen'
 import { useTutorial } from '@/lib/tutorial/TutorialProvider'
 import Avatar from '@/components/Avatar'
@@ -136,6 +137,7 @@ export default function Settings({ group }: { group: MyGroup }) {
   const installState = useInstallPrompt()
   const showManualInstallHint = !installState.installed && !installState.canPrompt && isIOS()
   const theme = useTheme()
+  const progressBarAnimation = useProgressBarAnimation()
   const hasUnseenChangelog = useHasUnseenChangelog()
   const { data: myGroups } = useMyGroups()
 
@@ -160,6 +162,15 @@ export default function Settings({ group }: { group: MyGroup }) {
             </button>
           ))}
         </div>
+        <label className="mt-2 flex min-h-11 items-center justify-between gap-2 rounded-lg bg-surface px-3 py-2 text-sm">
+          <span>Animate progress bars</span>
+          <input
+            type="checkbox"
+            checked={progressBarAnimation}
+            onChange={(e) => setProgressBarAnimation(e.target.checked)}
+            className="size-5"
+          />
+        </label>
       </div>
 
       {(installState.canPrompt || showManualInstallHint) && (

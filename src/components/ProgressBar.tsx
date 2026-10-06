@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useProgressBarAnimation } from '@/lib/progressAnimation'
 
 export default function ProgressBar({
   current,
@@ -19,6 +20,7 @@ export default function ProgressBar({
   currentLabel?: string
 }) {
   const targetPct = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0
+  const striped = useProgressBarAnimation()
 
   // Starts at 0 and animates up to targetPct rather than snapping straight
   // there -- a CSS transition on `width` alone doesn't fire on first mount
@@ -42,7 +44,9 @@ export default function ProgressBar({
     <div className="w-full">
       <div className="h-2 w-full overflow-hidden rounded-full bg-surface-alt">
         <div
-          className="h-full rounded-full bg-accent transition-[width] duration-500 ease-out"
+          className={`h-full rounded-full bg-accent transition-[width] duration-500 ease-out ${
+            striped ? 'progress-bar-striped' : ''
+          }`}
           style={{ width: `${displayPct}%` }}
         />
       </div>

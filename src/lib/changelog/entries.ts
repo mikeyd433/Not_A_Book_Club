@@ -11,6 +11,18 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'book-progress-bar-and-animation',
+    date: '2026-10-06',
+    title: 'Your progress on a book, right in its header',
+    body: "A book's page now shows your own progress bar under the title, on every tab. Progress bars everywhere also animate now -- a moving diagonal-stripe fill, with an \"Animate progress bars\" toggle in Settings → Appearance if you'd rather they stayed still.",
+  },
+  {
+    id: 'condensed-bar-single-row',
+    date: '2026-10-06',
+    title: "Tightened up Discussion's scrolled banner",
+    body: "The cover, title, and chapter picker in Discussion's condensed bar now share one row instead of leaving an empty gap down the middle.",
+  },
+  {
     id: 'condensed-bar-bigger-cover',
     date: '2026-10-05',
     title: "Bigger cover and title in Discussion's scrolled banner",
