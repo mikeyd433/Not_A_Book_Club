@@ -1,29 +1,28 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  EXPORT_HEIGHT,
-  EXPORT_WIDTH,
+  AVATAR_EXPORT_SIZE,
   baseCoverScale,
   clampOffset,
-  computeAccentColor,
   loadImage,
   renderCrop,
   type CropTransform,
 } from '@/lib/image'
 
-// Preview frame is a fixed fraction of the export canvas, so screen-space
-// drag deltas convert to export-space with one division.
-const FRAME_W = 220
-const FRAME_H = (FRAME_W * EXPORT_HEIGHT) / EXPORT_WIDTH
-const PREVIEW_SCALE = FRAME_W / EXPORT_WIDTH
+// Same drag/zoom/rotate crop pipeline as CoverCropper, just with a square
+// frame instead of 2:3 -- the two share the underlying math (image.ts's
+// baseCoverScale/clampOffset/renderCrop all take an explicit target
+// width/height now, rather than a single hardcoded cover-shaped frame).
+const FRAME = 220
+const PREVIEW_SCALE = FRAME / AVATAR_EXPORT_SIZE
 
-export default function CoverCropper({
+export default function AvatarCropper({
   imageSrc,
   onCancel,
   onConfirm,
 }: {
   imageSrc: string
   onCancel: () => void
-  onConfirm: (blob: Blob, accent: { accent: string; contrast: string }) => void
+  onConfirm: (blob: Blob) => void
 }) {
   const [image, setImage] = useState<HTMLImageElement | null>(null)
   const [error, setError] = useState('')
@@ -63,7 +62,7 @@ export default function CoverCropper({
     setTransform((t) => {
       const rotationDeg = ((t.rotationDeg + 90) % 360) as CropTransform['rotationDeg']
       const next = { ...t, rotationDeg, offsetX: 0, offsetY: 0 }
-      return { ...next, ...clampOffset(image, next, EXPORT_WIDTH, EXPORT_HEIGHT) }
+      return { ...next, ...clampOffset(image, next, AVATAR_EXPORT_SIZE, AVATAR_EXPORT_SIZE) }
     })
   }
 
@@ -87,7 +86,7 @@ export default function CoverCropper({
         offsetX: dragRef.current!.offsetX + dx,
         offsetY: dragRef.current!.offsetY + dy,
       }
-      return { ...next, ...clampOffset(image, next, EXPORT_WIDTH, EXPORT_HEIGHT) }
+      return { ...next, ...clampOffset(image, next, AVATAR_EXPORT_SIZE, AVATAR_EXPORT_SIZE) }
     })
   }
 
@@ -99,7 +98,7 @@ export default function CoverCropper({
     if (!image) return
     setTransform((t) => {
       const next = { ...t, zoom }
-      return { ...next, ...clampOffset(image, next, EXPORT_WIDTH, EXPORT_HEIGHT) }
+      return { ...next, ...clampOffset(image, next, AVATAR_EXPORT_SIZE, AVATAR_EXPORT_SIZE) }
     })
   }
 
@@ -107,10 +106,8 @@ export default function CoverCropper({
     if (!image) return
     setBusy(true)
     try {
-      const blob = await renderCrop(image, transform, EXPORT_WIDTH, EXPORT_HEIGHT)
-      const croppedImg = await loadImage(URL.createObjectURL(blob))
-      const accent = await computeAccentColor(croppedImg)
-      onConfirm(blob, accent)
+      const blob = await renderCrop(image, transform, AVATAR_EXPORT_SIZE, AVATAR_EXPORT_SIZE)
+      onConfirm(blob)
     } catch {
       setError('Something went wrong exporting that crop. Try again.')
       setBusy(false)
@@ -118,13 +115,14 @@ export default function CoverCropper({
   }
 
   const scale = image
-    ? baseCoverScale(image, transform.rotationDeg, EXPORT_WIDTH, EXPORT_HEIGHT) * transform.zoom
+    ? baseCoverScale(image, transform.rotationDeg, AVATAR_EXPORT_SIZE, AVATAR_EXPORT_SIZE) *
+      transform.zoom
     : 1
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/70 p-4">
       <div className="w-full max-w-sm rounded-card bg-surface p-4">
-        <h2 className="text-center text-sm font-semibold">Crop cover</h2>
+        <h2 className="text-center text-sm font-semibold">Crop photo</h2>
 
         {error ? (
           <p className="mt-4 text-center text-sm text-red-600">{error}</p>
@@ -132,7 +130,7 @@ export default function CoverCropper({
           <>
             <div
               className="relative mx-auto mt-4 touch-none select-none overflow-hidden rounded-lg bg-surface-alt"
-              style={{ width: FRAME_W, height: FRAME_H }}
+              style={{ width: FRAME, height: FRAME }}
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerUp}
@@ -151,6 +149,19 @@ export default function CoverCropper({
                       transform.offsetX * PREVIEW_SCALE
                     }px, ${transform.offsetY * PREVIEW_SCALE}px) rotate(${transform.rotationDeg}deg)`,
                   }}
+                />
+              )}
+              {/* Dims everything outside a circle -- the exported file is
+                  still the full square (same object-cover + rounded-full
+                  CSS every other avatar already renders with), this is
+                  just a preview of how it'll actually look once rendered
+                  round. The box-shadow spread is the circular-cutout
+                  trick: a transparent circle with a huge shadow that
+                  covers the rest of the square. */}
+              {image && (
+                <div
+                  className="pointer-events-none absolute inset-0 rounded-full"
+                  style={{ boxShadow: '0 0 0 9999px rgba(0,0,0,0.55)' }}
                 />
               )}
             </div>
@@ -189,7 +200,7 @@ export default function CoverCropper({
             disabled={!image || busy || Boolean(error)}
             className="min-h-11 flex-1 rounded-lg bg-accent text-sm font-semibold text-accent-contrast disabled:opacity-60"
           >
-            {busy ? 'Saving…' : 'Use this cover'}
+            {busy ? 'Saving…' : 'Use this photo'}
           </button>
         </div>
       </div>

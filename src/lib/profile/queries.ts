@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth/AuthProvider'
-import { resizeSquareForUpload } from '@/lib/image'
 
 export function avatarPublicUrl(storagePath: string) {
   return supabase.storage.from('avatars').getPublicUrl(storagePath).data.publicUrl
@@ -105,9 +104,11 @@ export function useUploadAvatar() {
   const { user } = useAuth()
 
   return useMutation({
-    mutationFn: async (file: File) => {
+    // Takes the already-cropped export from AvatarCropper, not a raw
+    // File -- unlike the old auto-center-crop, cropping now happens
+    // interactively before this is ever called.
+    mutationFn: async (croppedBlob: Blob) => {
       if (!user) throw new Error('Not signed in')
-      const resized = await resizeSquareForUpload(file)
       // Fixed filename per user (not a random one, unlike cover/comment
       // uploads) -- upsert overwrites it in place instead of accumulating
       // one orphaned file in storage per photo someone's ever tried.
@@ -115,7 +116,7 @@ export function useUploadAvatar() {
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(path, resized, { contentType: 'image/jpeg', upsert: true })
+        .upload(path, croppedBlob, { contentType: 'image/jpeg', upsert: true })
       if (uploadError) throw uploadError
 
       const { error: updateError } = await supabase

@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'avatar-cropper',
+    date: '2026-10-06',
+    title: 'Crop your own profile picture',
+    body: "Changing your photo in Settings now opens a crop tool -- drag to reposition, slide to zoom, and rotate -- with a circular guide showing exactly how it'll look, instead of automatically cropping to a centered square.",
+  },
+  {
     id: 'condensed-bar-title-no-longer-cut-off',
     date: '2026-10-06',
     title: "Fixed long book titles getting cut off in Discussion's scrolled banner",

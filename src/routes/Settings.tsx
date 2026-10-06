@@ -24,9 +24,11 @@ import {
 } from '@/lib/profile/queries'
 import { setTheme, useTheme, type ThemePreference } from '@/lib/theme'
 import { setProgressBarAnimation, useProgressBarAnimation } from '@/lib/progressAnimation'
+import { fileToDataUrl } from '@/lib/image'
 import { useHasUnseenChangelog } from '@/lib/changelog/seen'
 import { useTutorial } from '@/lib/tutorial/TutorialProvider'
 import Avatar from '@/components/Avatar'
+import AvatarCropper from '@/components/AvatarCropper'
 import TestAccountsPanel from '@/components/TestAccountsPanel'
 import type { MyGroup } from '@/lib/group/useMyGroup'
 
@@ -552,6 +554,7 @@ function ProfileField() {
   const [synced, setSynced] = useState(false)
   const [saved, setSaved] = useState(false)
   const [avatarError, setAvatarError] = useState('')
+  const [cropSrc, setCropSrc] = useState<string | null>(null)
 
   useEffect(() => {
     if (profile && !synced) {
@@ -574,7 +577,17 @@ function ProfileField() {
     if (!file) return
     setAvatarError('')
     try {
-      await uploadAvatar.mutateAsync(file)
+      setCropSrc(await fileToDataUrl(file))
+    } catch {
+      setAvatarError("Couldn't read that file.")
+    }
+  }
+
+  async function handleCropConfirm(blob: Blob) {
+    setAvatarError('')
+    try {
+      await uploadAvatar.mutateAsync(blob)
+      setCropSrc(null)
     } catch (err) {
       setAvatarError(err instanceof Error ? err.message : 'Failed to upload photo.')
     }
@@ -626,6 +639,13 @@ function ProfileField() {
         />
       </div>
       {avatarError && <p className="mt-1 text-xs text-red-600">{avatarError}</p>}
+      {cropSrc && (
+        <AvatarCropper
+          imageSrc={cropSrc}
+          onCancel={() => setCropSrc(null)}
+          onConfirm={handleCropConfirm}
+        />
+      )}
 
       <p className="mt-3 text-xs text-muted">
         Shown on your comments and in the member list, instead of your email.

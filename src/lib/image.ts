@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 
 export const EXPORT_WIDTH = 600
 export const EXPORT_HEIGHT = 900 // 2:3
+export const AVATAR_EXPORT_SIZE = 400 // 1:1
 
 export type CropTransform = {
   // Pan, in export-canvas pixels, applied in screen space (after rotation).
@@ -37,14 +38,18 @@ export function fileToDataUrl(file: File): Promise<string> {
 
 // The scale (in export-canvas units per source pixel) at which the image,
 // accounting for rotation, fully covers the export frame with no gaps.
+// targetWidth/targetHeight are the export frame's dimensions -- EXPORT_WIDTH/
+// EXPORT_HEIGHT (2:3) for a cover, AVATAR_EXPORT_SIZE square for an avatar.
 export function baseCoverScale(
   image: HTMLImageElement,
   rotationDeg: CropTransform['rotationDeg'],
+  targetWidth: number,
+  targetHeight: number,
 ) {
   const rotated = rotationDeg === 90 || rotationDeg === 270
   const w = rotated ? image.height : image.width
   const h = rotated ? image.width : image.height
-  return Math.max(EXPORT_WIDTH / w, EXPORT_HEIGHT / h)
+  return Math.max(targetWidth / w, targetHeight / h)
 }
 
 // Keeps the image covering the frame — no empty gaps at the edges — for the
@@ -52,13 +57,15 @@ export function baseCoverScale(
 export function clampOffset(
   image: HTMLImageElement,
   transform: CropTransform,
+  targetWidth: number,
+  targetHeight: number,
 ) {
-  const scale = baseCoverScale(image, transform.rotationDeg) * transform.zoom
+  const scale = baseCoverScale(image, transform.rotationDeg, targetWidth, targetHeight) * transform.zoom
   const rotated = transform.rotationDeg === 90 || transform.rotationDeg === 270
   const effW = (rotated ? image.height : image.width) * scale
   const effH = (rotated ? image.width : image.height) * scale
-  const maxX = Math.max(0, (effW - EXPORT_WIDTH) / 2)
-  const maxY = Math.max(0, (effH - EXPORT_HEIGHT) / 2)
+  const maxX = Math.max(0, (effW - targetWidth) / 2)
+  const maxY = Math.max(0, (effH - targetHeight) / 2)
   return {
     offsetX: Math.min(maxX, Math.max(-maxX, transform.offsetX)),
     offsetY: Math.min(maxY, Math.max(-maxY, transform.offsetY)),
@@ -68,20 +75,22 @@ export function clampOffset(
 export function renderCrop(
   image: HTMLImageElement,
   transform: CropTransform,
+  targetWidth: number,
+  targetHeight: number,
 ): Promise<Blob> {
   const canvas = document.createElement('canvas')
-  canvas.width = EXPORT_WIDTH
-  canvas.height = EXPORT_HEIGHT
+  canvas.width = targetWidth
+  canvas.height = targetHeight
   const ctx = canvas.getContext('2d')!
   ctx.fillStyle = '#ffffff'
-  ctx.fillRect(0, 0, EXPORT_WIDTH, EXPORT_HEIGHT)
+  ctx.fillRect(0, 0, targetWidth, targetHeight)
 
-  const scale = baseCoverScale(image, transform.rotationDeg) * transform.zoom
+  const scale = baseCoverScale(image, transform.rotationDeg, targetWidth, targetHeight) * transform.zoom
 
   ctx.save()
   ctx.translate(
-    EXPORT_WIDTH / 2 + transform.offsetX,
-    EXPORT_HEIGHT / 2 + transform.offsetY,
+    targetWidth / 2 + transform.offsetX,
+    targetHeight / 2 + transform.offsetY,
   )
   ctx.rotate((transform.rotationDeg * Math.PI) / 180)
   ctx.drawImage(
@@ -154,37 +163,6 @@ export async function resizeForUpload(
   canvas.height = height
   const ctx = canvas.getContext('2d')!
   ctx.drawImage(image, 0, 0, width, height)
-
-  return new Promise((resolve, reject) => {
-    canvas.toBlob(
-      (blob) => (blob ? resolve(blob) : reject(new Error('Export failed.'))),
-      'image/jpeg',
-      quality,
-    )
-  })
-}
-
-// Center-crops to a square and downscales -- for an avatar, unlike a
-// comment photo (resizeForUpload, kept as whatever shape it was) or a book
-// cover (the full drag/zoom/rotate pipeline above, overkill for a small
-// profile picture). Whichever dimension is longer gets trimmed evenly off
-// both sides rather than offering a repositionable crop frame.
-export async function resizeSquareForUpload(
-  file: File,
-  size = 400,
-  quality = 0.85,
-): Promise<Blob> {
-  const dataUrl = await fileToDataUrl(file)
-  const image = await loadImage(dataUrl)
-  const side = Math.min(image.width, image.height)
-  const sx = (image.width - side) / 2
-  const sy = (image.height - side) / 2
-
-  const canvas = document.createElement('canvas')
-  canvas.width = size
-  canvas.height = size
-  const ctx = canvas.getContext('2d')!
-  ctx.drawImage(image, sx, sy, side, side, 0, 0, size, size)
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(
