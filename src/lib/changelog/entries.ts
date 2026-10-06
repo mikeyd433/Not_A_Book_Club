@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'avatar-crop-cache-fix',
+    date: '2026-10-06',
+    title: 'Fixed a new profile photo not actually showing up after cropping',
+    body: "A re-cropped profile picture uploaded correctly but kept showing the old version -- your avatar reuses the same image address every time, which a cache held onto. It refreshes properly now.",
+  },
+  {
     id: 'cropper-zoom-stretch-fix',
     date: '2026-10-06',
     title: 'Fixed zoom distorting photos in the crop tool',

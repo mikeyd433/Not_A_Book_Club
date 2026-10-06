@@ -111,12 +111,26 @@ export function useUploadAvatar() {
       if (!user) throw new Error('Not signed in')
       // Fixed filename per user (not a random one, unlike cover/comment
       // uploads) -- upsert overwrites it in place instead of accumulating
-      // one orphaned file in storage per photo someone's ever tried.
+      // one orphaned file in storage per photo someone's ever tried. That
+      // reused path is also exactly why cacheControl: '0' matters here and
+      // nowhere else in the app: every other upload gets a fresh random
+      // path (a new URL, nothing to cache around), but every avatar
+      // version for a given user shares one URL. The default cacheControl
+      // (~1hr) meant a freshly re-cropped photo could keep showing the
+      // previous crop to everyone -- including the uploader -- until that
+      // cache expired, which looked exactly like "the crop didn't stick."
+      // '0' marks the response stale immediately, forcing a revalidation
+      // (conditional GET) on the next load instead of reusing the old
+      // cached bytes.
       const path = `${user.id}/avatar.jpg`
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(path, croppedBlob, { contentType: 'image/jpeg', upsert: true })
+        .upload(path, croppedBlob, {
+          contentType: 'image/jpeg',
+          upsert: true,
+          cacheControl: '0',
+        })
       if (uploadError) throw uploadError
 
       const { error: updateError } = await supabase

@@ -555,6 +555,9 @@ function ProfileField() {
   const [saved, setSaved] = useState(false)
   const [avatarError, setAvatarError] = useState('')
   const [cropSrc, setCropSrc] = useState<string | null>(null)
+  // Bumped after every successful upload -- see the matching comment on
+  // Avatar's cacheBust prop for why this is needed at all.
+  const [avatarBust, setAvatarBust] = useState(0)
 
   useEffect(() => {
     if (profile && !synced) {
@@ -588,6 +591,7 @@ function ProfileField() {
     try {
       await uploadAvatar.mutateAsync(blob)
       setCropSrc(null)
+      setAvatarBust((n) => n + 1)
     } catch (err) {
       setAvatarError(err instanceof Error ? err.message : 'Failed to upload photo.')
     }
@@ -608,7 +612,12 @@ function ProfileField() {
       <h2 className="text-sm font-semibold text-muted">Profile</h2>
 
       <div className="mt-2 flex items-center gap-3">
-        <Avatar path={profile?.avatar_url} name={name || 'Someone'} size={56} />
+        <Avatar
+          path={profile?.avatar_url}
+          name={name || 'Someone'}
+          size={56}
+          cacheBust={avatarBust || undefined}
+        />
         <div className="flex flex-col items-start gap-1">
           <button
             onClick={() => photoInputRef.current?.click()}
