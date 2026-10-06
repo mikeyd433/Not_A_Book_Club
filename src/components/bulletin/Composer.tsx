@@ -17,6 +17,10 @@ export default function Composer({
   const [body, setBody] = useState('')
   const [photo, setPhoto] = useState<File | null>(null)
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null)
+  // See the matching comment in discussion/Composer.tsx -- an undecodable
+  // format (HEIC off an iPhone camera roll is the common case) otherwise
+  // just leaves the remove button floating with nothing visible behind it.
+  const [photoPreviewError, setPhotoPreviewError] = useState(false)
   const [gifUrl, setGifUrl] = useState<string | null>(null)
   const [pickingGif, setPickingGif] = useState(false)
   const [showAttachMenu, setShowAttachMenu] = useState(false)
@@ -65,6 +69,7 @@ export default function Composer({
     if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl)
     setPhoto(file)
     setPhotoPreviewUrl(file ? URL.createObjectURL(file) : null)
+    setPhotoPreviewError(false)
     if (file) setGifUrl(null) // one attachment per post
   }
 
@@ -87,7 +92,19 @@ export default function Composer({
 
       {photoPreviewUrl && (
         <div className="relative mt-2 inline-block">
-          <img src={photoPreviewUrl} alt="" className="max-h-40 rounded-lg" />
+          {photoPreviewError ? (
+            <p className="max-w-[14rem] rounded-lg bg-surface-alt p-3 pr-8 text-xs text-red-600">
+              Couldn't preview that photo — it may be in a format this device
+              can't display (like HEIC). Try a different one.
+            </p>
+          ) : (
+            <img
+              src={photoPreviewUrl}
+              alt=""
+              className="max-h-40 rounded-lg"
+              onError={() => setPhotoPreviewError(true)}
+            />
+          )}
           <button
             onClick={() => handlePhotoChange(null)}
             className="absolute right-1 top-1 flex size-7 items-center justify-center rounded-full bg-black/60 text-xs text-white"

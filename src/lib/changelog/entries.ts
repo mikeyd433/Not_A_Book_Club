@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'photo-attach-preview-error',
+    date: '2026-10-06',
+    title: "Clearer message when a photo attachment can't be previewed",
+    body: "A photo attached to a comment or post in a format your device couldn't display (HEIC photos are the usual culprit) used to just leave an empty box with a stray ✕ and no explanation. It now tells you the preview failed and to try a different photo.",
+  },
+  {
     id: 'achievements-paused',
     date: '2026-10-06',
     title: 'Achievements paused for now',
