@@ -257,14 +257,21 @@ export default function Thread({ group }: { group: MyGroup }) {
                 personalCoverPath={myEntry.personal_cover?.storage_path}
                 className="w-14 flex-shrink-0 rounded"
               />
-              <p className="min-w-0 flex-1 truncate text-base font-bold">{book?.title}</p>
-              <button
-                onClick={() => setShowChapterPicker((s) => !s)}
-                className="flex max-w-[9rem] flex-shrink-0 items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-accent"
-              >
-                <span className="min-w-0 truncate">{currentChapter?.label ?? 'Set chapter'}</span>
-                <span className="flex-shrink-0">▾</span>
-              </button>
+              {/* Picker offset below the title rather than squeezed onto
+                  the same line -- sharing a row forced the title to
+                  truncate to make room for it. Stacked here instead, the
+                  picker only takes the width its own label needs (no
+                  separate full-width row left empty beside it either). */}
+              <div className="min-w-0 flex-1">
+                <p className="break-words text-base font-bold">{book?.title}</p>
+                <button
+                  onClick={() => setShowChapterPicker((s) => !s)}
+                  className="mt-1 flex max-w-full items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-accent"
+                >
+                  <span className="min-w-0 truncate">{currentChapter?.label ?? 'Set chapter'}</span>
+                  <span className="flex-shrink-0">▾</span>
+                </button>
+              </div>
             </div>
           </div>
 

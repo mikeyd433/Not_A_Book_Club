@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'condensed-bar-title-no-longer-cut-off',
+    date: '2026-10-06',
+    title: "Fixed long book titles getting cut off in Discussion's scrolled banner",
+    body: 'The title and chapter picker shared one line, so a long title got truncated to make room for the picker. The picker now sits on its own line below the title instead, so the full title always shows.',
+  },
+  {
     id: 'book-progress-bar-and-animation',
     date: '2026-10-06',
     title: 'Your progress on a book, right in its header',
