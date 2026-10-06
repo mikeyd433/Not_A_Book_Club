@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'cropper-zoom-stretch-fix',
+    date: '2026-10-06',
+    title: 'Fixed zoom distorting photos in the crop tool',
+    body: "Zooming in on a profile picture (or a book cover) past a certain point stretched it vertically instead of scaling it evenly, cutting off the sides. Now scales uniformly like it should.",
+  },
+  {
     id: 'avatar-cropper',
     date: '2026-10-06',
     title: 'Crop your own profile picture',

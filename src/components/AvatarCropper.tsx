@@ -141,7 +141,13 @@ export default function AvatarCropper({
                   src={imageSrc}
                   alt=""
                   draggable={false}
-                  className="absolute left-1/2 top-1/2"
+                  // max-w-none overrides Tailwind preflight's `img { max-width:
+                  // 100% }` -- without it, our explicit inline width gets
+                  // clamped to the frame's width once zoomed past it, while
+                  // the inline height doesn't (height: auto only loses to an
+                  // explicit height, not a max-height), stretching the image
+                  // vertically instead of scaling it evenly.
+                  className="absolute left-1/2 top-1/2 max-w-none"
                   style={{
                     width: image.width * scale * PREVIEW_SCALE,
                     height: image.height * scale * PREVIEW_SCALE,
