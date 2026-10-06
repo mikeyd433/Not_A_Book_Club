@@ -1,9 +1,7 @@
-import { useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useChapters, useMemberShelf } from '@/lib/books/queries'
 import { useMemberActivity } from '@/lib/comments/queries'
 import { useMemberProfile } from '@/lib/profile/queries'
-import { useAchievementsCatalog, useAchievementsFeed } from '@/lib/achievements/queries'
 import Avatar from '@/components/Avatar'
 import CoverThumb from '@/components/CoverThumb'
 import ProgressBar from '@/components/ProgressBar'
@@ -15,15 +13,6 @@ export default function MemberProfile() {
   const { data: profile, isError, error, refetch } = useMemberProfile(userId!)
   const { data: shelf } = useMemberShelf(userId!)
   const { data: activity } = useMemberActivity(userId!)
-  const { data: catalog } = useAchievementsCatalog()
-  const { data: feed } = useAchievementsFeed()
-
-  const earned = useMemo(() => {
-    const earnedKeys = new Set(
-      (feed ?? []).filter((f) => f.user_id === userId).map((f) => f.achievement_key),
-    )
-    return (catalog ?? []).filter((a) => earnedKeys.has(a.key))
-  }, [catalog, feed, userId])
 
   if (isError) return <QueryError error={error} onRetry={() => refetch()} />
   if (!profile) return <p className="text-sm text-muted">Loading…</p>
@@ -38,27 +27,6 @@ export default function MemberProfile() {
           cacheBust={profile.avatar_updated_at}
         />
         <h1 className="text-lg font-bold">{profile.display_name}</h1>
-      </div>
-
-      <div>
-        <h2 className="text-sm font-semibold text-muted">
-          🏆 Achievements ({earned.length}/{catalog?.length ?? 0})
-        </h2>
-        {earned.length === 0 ? (
-          <p className="mt-2 text-xs text-muted">None yet.</p>
-        ) : (
-          <div className="mt-2 flex flex-wrap gap-2">
-            {earned.map((a) => (
-              <span
-                key={a.key}
-                title={a.description}
-                className="rounded-full bg-surface-alt px-3 py-1.5 text-xs font-medium"
-              >
-                🏆 {a.name}
-              </span>
-            ))}
-          </div>
-        )}
       </div>
 
       <div>

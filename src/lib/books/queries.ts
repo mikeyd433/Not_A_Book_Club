@@ -467,7 +467,6 @@ export const RESET_CATEGORIES = [
   'progress',
   'ratings',
   'covers',
-  'achievements',
 ] as const
 
 export type ResetCategory = (typeof RESET_CATEGORIES)[number]
@@ -520,7 +519,10 @@ export function useResetBookData(bookId: string) {
         p_progress: categories.has('progress'),
         p_ratings: categories.has('ratings'),
         p_covers: categories.has('covers'),
-        p_achievements: categories.has('achievements'),
+        // Achievements has no UI surface right now (hidden, not removed --
+        // the backend/data stay intact in case it comes back), so there's
+        // no 'achievements' category to offer resetting here either.
+        p_achievements: false,
       })
       if (error) throw error
 

@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'achievements-paused',
+    date: '2026-10-06',
+    title: 'Achievements paused for now',
+    body: "Taking achievements out of the app for the moment -- the strip on Home, the Achievements page, and the badges on member profiles are gone. Nothing earned is lost; it just isn't shown right now, in case it comes back in a more deliberate form later.",
+  },
+  {
     id: 'avatar-cache-fix-everywhere',
     date: '2026-10-06',
     title: 'Fixed profile photos not updating outside Settings',

@@ -33,7 +33,6 @@ const RESET_CATEGORY_LABELS: Record<ResetCategory, string> = {
   progress: "Everyone's reading progress",
   ratings: 'Ratings & reviews',
   covers: 'Community covers',
-  achievements: 'Achievements earned for this book',
 }
 
 export default function BookDetail({ group }: { group: MyGroup }) {

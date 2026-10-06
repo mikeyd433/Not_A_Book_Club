@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import AchievementWatcher from '@/components/AchievementWatcher'
 import ScrollToTop from '@/components/ScrollToTop'
 import Spotlight from '@/components/tutorial/Spotlight'
 import { TutorialProvider } from '@/lib/tutorial/TutorialProvider'
@@ -9,9 +8,9 @@ import { useHasUnseenChangelog } from '@/lib/changelog/seen'
 import type { MyGroup } from '@/lib/group/useMyGroup'
 
 // Bottom nav covers the two permanent daily-use destinations: My Shelf
-// (Home) and the Bulletin Board. Achievements is reachable via a strip on
-// Home, and Add Book via the header icon here -- both are occasional
-// actions, not daily-use ones, so neither earns a tab of its own.
+// (Home) and the Bulletin Board. Add Book is reachable via the header icon
+// here instead -- an occasional action, not a daily-use one, so it doesn't
+// earn a tab of its own.
 const ROOT_PATHS = ['/', '/bulletin']
 
 export default function Layout({ group }: { group: MyGroup }) {
@@ -42,7 +41,6 @@ export default function Layout({ group }: { group: MyGroup }) {
             : 'min-h-screen bg-bg pb-[calc(2rem+env(safe-area-inset-bottom))]'
         }
       >
-        <AchievementWatcher />
         {testAccount && (
           <div className="flex items-center justify-between gap-2 bg-accent px-4 py-2 text-xs font-semibold text-accent-contrast">
             <span>🧪 Viewing as {testAccount.label}</span>

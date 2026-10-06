@@ -15,9 +15,8 @@ import Thread from '@/routes/Thread'
 // landing point from Home) on essentially every visit -- those stay in the
 // main bundle. Everything below is reached less often (once a session, or
 // rarely at all), so it's worth a separate chunk each rather than making
-// people reading Discussion on mobile download the admin/reset tooling,
-// the achievements feed, and the review form upfront.
-const Achievements = lazy(() => import('@/routes/Achievements'))
+// people reading Discussion on mobile download the admin/reset tooling and
+// the review form upfront.
 const AddBook = lazy(() => import('@/routes/AddBook'))
 const ChaptersEditor = lazy(() => import('@/routes/ChaptersEditor'))
 const Reviews = lazy(() => import('@/routes/Reviews'))
@@ -65,7 +64,6 @@ export default function App() {
         <Route element={<Layout group={group} />}>
           <Route path="/" element={<Home group={group} />} />
           <Route path="/bulletin" element={<Bulletin group={group} />} />
-          <Route path="/achievements" element={<Achievements />} />
           <Route path="/add-book" element={<AddBook group={group} />} />
           <Route path="/member/:userId" element={<MemberProfile />} />
           <Route element={<BookLayout />}>

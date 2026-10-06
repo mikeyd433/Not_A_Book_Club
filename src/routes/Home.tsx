@@ -8,7 +8,6 @@ import {
   useMyShelfEntry,
   useMyShelfStatuses,
 } from '@/lib/books/queries'
-import { useAchievementsCatalog, useAchievementsFeed } from '@/lib/achievements/queries'
 import { useAuth } from '@/lib/auth/AuthProvider'
 import { supabase } from '@/lib/supabase'
 import { formatRelativeTime } from '@/lib/time'
@@ -146,7 +145,6 @@ export default function Home({ group }: { group: MyGroup }) {
           ))}
         </select>
       </div>
-      <AchievementsStrip />
 
       {discoverBooks.length > 0 && (
         <div className="space-y-2">
@@ -191,34 +189,6 @@ export default function Home({ group }: { group: MyGroup }) {
           })
         : flatBooks.map((book) => <BookRow key={book.id} book={book} />)}
     </div>
-  )
-}
-
-// Achievements no longer gets a permanent bottom-nav tab -- it's a
-// celebratory side feature, not something worth checking every visit --
-// but a one-line summary here keeps it one tap away for anyone curious.
-function AchievementsStrip() {
-  const { user } = useAuth()
-  const { data: catalog } = useAchievementsCatalog()
-  const { data: feed } = useAchievementsFeed()
-
-  const earnedCount = useMemo(
-    () => new Set((feed ?? []).filter((f) => f.user_id === user?.id).map((f) => f.achievement_key)).size,
-    [feed, user?.id],
-  )
-
-  if (!catalog) return null
-
-  return (
-    <Link
-      to="/achievements"
-      className="flex min-h-11 items-center justify-between rounded-card bg-surface px-3 py-2 text-sm active:bg-surface-alt"
-    >
-      <span className="font-medium">🏆 Achievements</span>
-      <span className="text-muted">
-        {earnedCount} / {catalog.length} earned →
-      </span>
-    </Link>
   )
 }
 
