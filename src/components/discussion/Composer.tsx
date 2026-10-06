@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ChapterOption } from '@/lib/books/queries'
 import type { PendingSpoilerBlock } from '@/lib/comments/queries'
+import { convertHeicIfNeeded } from '@/lib/image'
 import GifPicker from '@/components/GifPicker'
 
 export type ComposerSubmit = {
@@ -36,11 +37,16 @@ export default function Composer({
   const [spoilerText, setSpoilerText] = useState('')
   const [photo, setPhoto] = useState<File | null>(null)
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null)
-  // Some phones hand over a format the browser can't actually decode (HEIC
-  // photos straight off an iPhone camera roll are the common case) --
-  // without this, a failed <img> just renders at ~0 size, leaving the
-  // remove button floating with nothing visibly behind it and no clue why.
+  // True only for a leftover failure the HEIC conversion in
+  // handlePhotoChange doesn't already catch -- without this, a failed
+  // <img> renders at ~0 size, leaving the remove button floating with
+  // nothing visibly behind it and no clue why.
   const [photoPreviewError, setPhotoPreviewError] = useState(false)
+  // HEIC photos (the default camera format on iPhone) need converting to
+  // JPEG before they're previewable or uploadable at all -- see
+  // convertHeicIfNeeded. That can take a moment, so the attach controls
+  // and Post button stay disabled until it resolves.
+  const [convertingPhoto, setConvertingPhoto] = useState(false)
   const [gifUrl, setGifUrl] = useState<string | null>(null)
   const [pickingGif, setPickingGif] = useState(false)
   const [showAttachMenu, setShowAttachMenu] = useState(false)
@@ -120,12 +126,27 @@ export default function Composer({
     }
   }
 
-  function handlePhotoChange(file: File | null) {
+  async function handlePhotoChange(file: File | null) {
     if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl)
-    setPhoto(file)
-    setPhotoPreviewUrl(file ? URL.createObjectURL(file) : null)
+    setPhoto(null)
+    setPhotoPreviewUrl(null)
     setPhotoPreviewError(false)
-    if (file) setGifUrl(null) // one attachment per comment
+    if (!file) return
+
+    setGifUrl(null) // one attachment per comment
+    setConvertingPhoto(true)
+    try {
+      const converted = await convertHeicIfNeeded(file)
+      setPhoto(converted)
+      setPhotoPreviewUrl(URL.createObjectURL(converted))
+    } catch {
+      // Couldn't convert (or it wasn't HEIC and just isn't a real image) --
+      // leave photo/photoPreviewUrl unset so there's nothing broken to
+      // post, and let the error card below explain why.
+      setPhotoPreviewError(true)
+    } finally {
+      setConvertingPhoto(false)
+    }
   }
 
   function handlePickGif(url: string) {
@@ -202,21 +223,39 @@ export default function Composer({
         </div>
       )}
 
+      {convertingPhoto && (
+        <p className="mt-2 text-xs text-muted">Converting photo…</p>
+      )}
+
+      {photoPreviewError && (
+        <div className="relative mt-2 inline-block">
+          <p className="max-w-[14rem] rounded-lg bg-surface-alt p-3 pr-8 text-xs text-red-600">
+            Couldn't use that photo — it may be in a format this device can't
+            convert. Try a different one.
+          </p>
+          <button
+            onClick={() => handlePhotoChange(null)}
+            className="absolute right-1 top-1 flex size-7 items-center justify-center rounded-full bg-black/60 text-xs text-white"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {photoPreviewUrl && (
         <div className="relative mt-2 inline-block">
-          {photoPreviewError ? (
-            <p className="max-w-[14rem] rounded-lg bg-surface-alt p-3 pr-8 text-xs text-red-600">
-              Couldn't preview that photo — it may be in a format this device
-              can't display (like HEIC). Try a different one.
-            </p>
-          ) : (
-            <img
-              src={photoPreviewUrl}
-              alt=""
-              className="max-h-40 rounded-lg"
-              onError={() => setPhotoPreviewError(true)}
-            />
-          )}
+          <img
+            src={photoPreviewUrl}
+            alt=""
+            className="max-h-40 rounded-lg"
+            onError={() => {
+              // Shouldn't happen post-conversion, but kept as a safety net.
+              URL.revokeObjectURL(photoPreviewUrl)
+              setPhotoPreviewUrl(null)
+              setPhoto(null)
+              setPhotoPreviewError(true)
+            }}
+          />
           <button
             onClick={() => handlePhotoChange(null)}
             className="absolute right-1 top-1 flex size-7 items-center justify-center rounded-full bg-black/60 text-xs text-white"
@@ -326,7 +365,7 @@ export default function Composer({
           )}
           <button
             onClick={handleSubmit}
-            disabled={submitting}
+            disabled={submitting || convertingPhoto}
             className="mt-1 min-h-10 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-contrast disabled:opacity-60"
           >
             {submitting ? 'Posting…' : 'Post'}

@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useUploadCover } from '@/lib/covers/queries'
 import CoverCropper from '@/components/CoverCropper'
-import { fileToDataUrl } from '@/lib/image'
+import { convertHeicIfNeeded, fileToDataUrl } from '@/lib/image'
 
 // The "add a cover" half of CoverGallery, pulled out so AddBook's
 // just-created-a-book step can offer the same upload+crop tool without
@@ -16,15 +16,24 @@ export default function CoverUploadPanel({ bookId }: { bookId: string }) {
   const [urlInput, setUrlInput] = useState('')
   const [error, setError] = useState('')
   const [uploadedCount, setUploadedCount] = useState(0)
+  // HEIC photos (the default on iPhone) need converting to JPEG before
+  // they're readable at all -- see convertHeicIfNeeded.
+  const [convertingPhoto, setConvertingPhoto] = useState(false)
   const photoInputRef = useRef<HTMLInputElement>(null)
 
   async function handleFileChosen(file: File | undefined) {
     if (!file) return
     setError('')
+    setConvertingPhoto(true)
     try {
-      setCropSrc(await fileToDataUrl(file))
+      const converted = await convertHeicIfNeeded(file)
+      setCropSrc(await fileToDataUrl(converted))
     } catch {
-      setError("Couldn't read that file.")
+      setError(
+        "Couldn't read that photo — it may be in a format this device can't convert. Try a different one.",
+      )
+    } finally {
+      setConvertingPhoto(false)
     }
   }
 
@@ -67,9 +76,10 @@ export default function CoverUploadPanel({ bookId }: { bookId: string }) {
       <div className="mt-3 flex flex-wrap gap-2">
         <button
           onClick={() => photoInputRef.current?.click()}
-          className="min-h-11 rounded-lg border border-border px-3 py-2 text-sm font-semibold"
+          disabled={convertingPhoto}
+          className="min-h-11 rounded-lg border border-border px-3 py-2 text-sm font-semibold disabled:opacity-60"
         >
-          📷 Add photo
+          {convertingPhoto ? 'Converting…' : '📷 Add photo'}
         </button>
       </div>
       <input

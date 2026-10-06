@@ -24,7 +24,7 @@ import {
 } from '@/lib/profile/queries'
 import { setTheme, useTheme, type ThemePreference } from '@/lib/theme'
 import { setProgressBarAnimation, useProgressBarAnimation } from '@/lib/progressAnimation'
-import { fileToDataUrl } from '@/lib/image'
+import { convertHeicIfNeeded, fileToDataUrl } from '@/lib/image'
 import { useHasUnseenChangelog } from '@/lib/changelog/seen'
 import { useTutorial } from '@/lib/tutorial/TutorialProvider'
 import Avatar from '@/components/Avatar'
@@ -560,6 +560,9 @@ function ProfileField() {
   const [saved, setSaved] = useState(false)
   const [avatarError, setAvatarError] = useState('')
   const [cropSrc, setCropSrc] = useState<string | null>(null)
+  // HEIC photos (the default on iPhone) need converting to JPEG before
+  // they're readable at all -- see convertHeicIfNeeded.
+  const [convertingPhoto, setConvertingPhoto] = useState(false)
 
   useEffect(() => {
     if (profile && !synced) {
@@ -581,10 +584,16 @@ function ProfileField() {
   async function handlePhotoChosen(file: File | undefined) {
     if (!file) return
     setAvatarError('')
+    setConvertingPhoto(true)
     try {
-      setCropSrc(await fileToDataUrl(file))
+      const converted = await convertHeicIfNeeded(file)
+      setCropSrc(await fileToDataUrl(converted))
     } catch {
-      setAvatarError("Couldn't read that file.")
+      setAvatarError(
+        "Couldn't read that photo — it may be in a format this device can't convert. Try a different one.",
+      )
+    } finally {
+      setConvertingPhoto(false)
     }
   }
 
@@ -622,10 +631,14 @@ function ProfileField() {
         <div className="flex flex-col items-start gap-1">
           <button
             onClick={() => photoInputRef.current?.click()}
-            disabled={uploadAvatar.isPending}
+            disabled={uploadAvatar.isPending || convertingPhoto}
             className="min-h-9 rounded-full border border-border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
           >
-            {uploadAvatar.isPending ? 'Uploading…' : '📷 Change photo'}
+            {convertingPhoto
+              ? 'Converting…'
+              : uploadAvatar.isPending
+                ? 'Uploading…'
+                : '📷 Change photo'}
           </button>
           {profile?.avatar_url && (
             <button

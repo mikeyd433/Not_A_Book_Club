@@ -36,6 +36,40 @@ export function fileToDataUrl(file: File): Promise<string> {
   })
 }
 
+const HEIC_TYPES = new Set([
+  'image/heic',
+  'image/heif',
+  'image/heic-sequence',
+  'image/heif-sequence',
+])
+
+function looksLikeHeic(file: File): boolean {
+  if (HEIC_TYPES.has(file.type.toLowerCase())) return true
+  // Several Android photo pickers hand the file over with an empty or
+  // generic type (application/octet-stream) instead of a proper HEIC MIME
+  // type -- fall back to the extension so those still get caught.
+  return /\.hei[cf]$/i.test(file.name)
+}
+
+// Converts a HEIC/HEIF photo (the default camera format on iPhone, and
+// increasingly common even on files shared from one) to a JPEG client-side
+// before it reaches anything else -- no browser can decode HEIC in an
+// <img> or canvas except Safari on Apple's own platforms, so left alone it
+// silently breaks every preview and upload pipeline in the app (comment/
+// post attachments, the avatar and cover croppers). Anything that isn't
+// HEIC passes through untouched. The decoder (heic2any, ~1.3MB with its
+// bundled WASM) is only fetched the moment a HEIC file is actually picked,
+// never on a normal page load.
+export async function convertHeicIfNeeded(file: File): Promise<File> {
+  if (!looksLikeHeic(file)) return file
+
+  const { default: heic2any } = await import('heic2any')
+  const result = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 })
+  const blob = Array.isArray(result) ? result[0] : result
+  const newName = file.name.replace(/\.hei[cf]$/i, '.jpg') || 'photo.jpg'
+  return new File([blob], newName, { type: 'image/jpeg' })
+}
+
 // The scale (in export-canvas units per source pixel) at which the image,
 // accounting for rotation, fully covers the export frame with no gaps.
 // targetWidth/targetHeight are the export frame's dimensions -- EXPORT_WIDTH/

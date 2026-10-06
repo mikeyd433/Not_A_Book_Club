@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { convertHeicIfNeeded } from '@/lib/image'
 import GifPicker from '@/components/GifPicker'
 
 export type ComposerSubmit = {
@@ -17,10 +18,9 @@ export default function Composer({
   const [body, setBody] = useState('')
   const [photo, setPhoto] = useState<File | null>(null)
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null)
-  // See the matching comment in discussion/Composer.tsx -- an undecodable
-  // format (HEIC off an iPhone camera roll is the common case) otherwise
-  // just leaves the remove button floating with nothing visible behind it.
+  // See the matching comments in discussion/Composer.tsx.
   const [photoPreviewError, setPhotoPreviewError] = useState(false)
+  const [convertingPhoto, setConvertingPhoto] = useState(false)
   const [gifUrl, setGifUrl] = useState<string | null>(null)
   const [pickingGif, setPickingGif] = useState(false)
   const [showAttachMenu, setShowAttachMenu] = useState(false)
@@ -65,12 +65,24 @@ export default function Composer({
     }
   }
 
-  function handlePhotoChange(file: File | null) {
+  async function handlePhotoChange(file: File | null) {
     if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl)
-    setPhoto(file)
-    setPhotoPreviewUrl(file ? URL.createObjectURL(file) : null)
+    setPhoto(null)
+    setPhotoPreviewUrl(null)
     setPhotoPreviewError(false)
-    if (file) setGifUrl(null) // one attachment per post
+    if (!file) return
+
+    setGifUrl(null) // one attachment per post
+    setConvertingPhoto(true)
+    try {
+      const converted = await convertHeicIfNeeded(file)
+      setPhoto(converted)
+      setPhotoPreviewUrl(URL.createObjectURL(converted))
+    } catch {
+      setPhotoPreviewError(true)
+    } finally {
+      setConvertingPhoto(false)
+    }
   }
 
   function handlePickGif(url: string) {
@@ -90,21 +102,38 @@ export default function Composer({
         rows={2}
       />
 
+      {convertingPhoto && (
+        <p className="mt-2 text-xs text-muted">Converting photo…</p>
+      )}
+
+      {photoPreviewError && (
+        <div className="relative mt-2 inline-block">
+          <p className="max-w-[14rem] rounded-lg bg-surface-alt p-3 pr-8 text-xs text-red-600">
+            Couldn't use that photo — it may be in a format this device can't
+            convert. Try a different one.
+          </p>
+          <button
+            onClick={() => handlePhotoChange(null)}
+            className="absolute right-1 top-1 flex size-7 items-center justify-center rounded-full bg-black/60 text-xs text-white"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {photoPreviewUrl && (
         <div className="relative mt-2 inline-block">
-          {photoPreviewError ? (
-            <p className="max-w-[14rem] rounded-lg bg-surface-alt p-3 pr-8 text-xs text-red-600">
-              Couldn't preview that photo — it may be in a format this device
-              can't display (like HEIC). Try a different one.
-            </p>
-          ) : (
-            <img
-              src={photoPreviewUrl}
-              alt=""
-              className="max-h-40 rounded-lg"
-              onError={() => setPhotoPreviewError(true)}
-            />
-          )}
+          <img
+            src={photoPreviewUrl}
+            alt=""
+            className="max-h-40 rounded-lg"
+            onError={() => {
+              URL.revokeObjectURL(photoPreviewUrl)
+              setPhotoPreviewUrl(null)
+              setPhoto(null)
+              setPhotoPreviewError(true)
+            }}
+          />
           <button
             onClick={() => handlePhotoChange(null)}
             className="absolute right-1 top-1 flex size-7 items-center justify-center rounded-full bg-black/60 text-xs text-white"
@@ -175,7 +204,7 @@ export default function Composer({
           {submitError && <p className="mt-1 text-xs text-red-600">{submitError}</p>}
           <button
             onClick={handleSubmit}
-            disabled={submitting}
+            disabled={submitting || convertingPhoto}
             className="mt-1 min-h-10 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-contrast disabled:opacity-60"
           >
             {submitting ? 'Posting…' : 'Post'}

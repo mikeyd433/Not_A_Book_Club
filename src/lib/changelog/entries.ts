@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'heic-photo-support',
+    date: '2026-10-06',
+    title: 'HEIC photos now actually work',
+    body: "iPhone photos (HEIC format) couldn't be previewed or attached anywhere in the app before -- they now get converted automatically when you pick one, for comment/post attachments, your profile picture, and book covers alike. Takes a moment to convert; you'll see \"Converting…\" while it works.",
+  },
+  {
     id: 'photo-attach-preview-error',
     date: '2026-10-06',
     title: "Clearer message when a photo attachment can't be previewed",

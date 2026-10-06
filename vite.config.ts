@@ -26,6 +26,14 @@ export default defineConfig({
       includeAssets: ['favicon-32.png', 'apple-touch-icon.png'],
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        // heic2any (~1.3MB with its bundled WASM decoder) is dynamically
+        // imported only when someone actually picks a HEIC photo -- left
+        // in the precache manifest, every visitor would download it
+        // upfront on first install regardless of whether they ever touch
+        // a HEIC file, defeating the entire point of lazy-loading it. A
+        // runtimeCaching entry below still caches it after its first real
+        // use, so repeat HEIC conversions don't re-download it either.
+        globIgnores: ['**/heic2any-*.js'],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         // Pulled into the generated sw.js verbatim (same scope, same file
@@ -38,6 +46,20 @@ export default defineConfig({
         // Supabase Storage (cover uploads).
         navigateFallbackDenylist: [/sw\.js$/, /\/auth\//, /\/rest\//, /\/storage\//],
         runtimeCaching: [
+          {
+            // Excluded from the precache manifest above (globIgnores) so it
+            // isn't downloaded upfront -- cached here instead, after its
+            // first real fetch, so re-picking a HEIC photo later doesn't
+            // re-download the whole decoder every time.
+            urlPattern: ({ url, sameOrigin }) =>
+              sameOrigin && /\/heic2any-.*\.js$/.test(url.pathname),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'nabc-heic-decoder',
+              expiration: { maxEntries: 1, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
           {
             urlPattern: ({ request, sameOrigin }) =>
               sameOrigin && request.destination === 'image',
