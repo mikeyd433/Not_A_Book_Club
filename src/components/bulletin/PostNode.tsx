@@ -55,6 +55,7 @@ export default function PostNode({
             path={post.profiles?.avatar_url}
             name={post.profiles?.display_name ?? 'Someone'}
             size={28}
+            cacheBust={post.profiles?.avatar_updated_at}
           />
         </Link>
         <div className="min-w-0 flex-1">

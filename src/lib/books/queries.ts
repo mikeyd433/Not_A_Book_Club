@@ -340,7 +340,7 @@ export function useGroupShelfActivity(bookIds: string[]) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('shelf_entries')
-        .select('book_id, user_id, status, profiles(display_name, avatar_url)')
+        .select('book_id, user_id, status, profiles(display_name, avatar_url, avatar_updated_at)')
         .in('book_id', bookIds)
 
       if (error) throw error

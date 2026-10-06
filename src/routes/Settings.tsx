@@ -50,7 +50,7 @@ export default function Settings({ group }: { group: MyGroup }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('group_members')
-        .select('user_id, role, profiles(display_name, avatar_url, is_test_account)')
+        .select('user_id, role, profiles(display_name, avatar_url, avatar_updated_at, is_test_account)')
         .eq('group_id', group.id)
 
       if (error) throw error
@@ -299,7 +299,12 @@ export default function Settings({ group }: { group: MyGroup }) {
                   to={`/member/${m.user_id}`}
                   className="flex min-w-0 items-center gap-2"
                 >
-                  <Avatar path={m.profiles?.avatar_url} name={displayName} size={28} />
+                  <Avatar
+                    path={m.profiles?.avatar_url}
+                    name={displayName}
+                    size={28}
+                    cacheBust={m.profiles?.avatar_updated_at}
+                  />
                   <span className="truncate">
                     {displayName}
                     {m.profiles?.is_test_account && (
@@ -555,9 +560,6 @@ function ProfileField() {
   const [saved, setSaved] = useState(false)
   const [avatarError, setAvatarError] = useState('')
   const [cropSrc, setCropSrc] = useState<string | null>(null)
-  // Bumped after every successful upload -- see the matching comment on
-  // Avatar's cacheBust prop for why this is needed at all.
-  const [avatarBust, setAvatarBust] = useState(0)
 
   useEffect(() => {
     if (profile && !synced) {
@@ -591,7 +593,6 @@ function ProfileField() {
     try {
       await uploadAvatar.mutateAsync(blob)
       setCropSrc(null)
-      setAvatarBust((n) => n + 1)
     } catch (err) {
       setAvatarError(err instanceof Error ? err.message : 'Failed to upload photo.')
     }
@@ -616,7 +617,7 @@ function ProfileField() {
           path={profile?.avatar_url}
           name={name || 'Someone'}
           size={56}
-          cacheBust={avatarBust || undefined}
+          cacheBust={profile?.avatar_updated_at}
         />
         <div className="flex flex-col items-start gap-1">
           <button

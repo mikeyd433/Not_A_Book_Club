@@ -15,13 +15,17 @@ export default function Avatar({
   // re-upload, unlike covers/comment photos which each get a fresh random
   // path) -- so the URL never changes on its own, and neither the browser
   // nor React has any reason to re-fetch it after a new crop is uploaded.
-  // Settings' own ProfileField bumps this right after a successful upload
-  // so its own preview actually updates; every other call site leaves it
-  // unset and renders exactly as before.
-  cacheBust?: number
+  // profiles.avatar_updated_at (set on every upload) gives every render of
+  // someone's avatar, anywhere in the app, a URL that actually changes
+  // when their photo does -- pass it whenever the data it came from is in
+  // scope; a caller that doesn't have it (or doesn't care) can just omit
+  // it and render exactly as before.
+  cacheBust?: string | null
 }) {
   if (path) {
-    const src = cacheBust ? `${avatarPublicUrl(path)}?v=${cacheBust}` : avatarPublicUrl(path)
+    const src = cacheBust
+      ? `${avatarPublicUrl(path)}?v=${encodeURIComponent(cacheBust)}`
+      : avatarPublicUrl(path)
     return (
       <img
         src={src}

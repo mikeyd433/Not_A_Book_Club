@@ -1,7 +1,11 @@
 import type { Tables } from '@/types/database'
 
 export type Post = Tables<'group_posts'> & {
-  profiles: { display_name: string; avatar_url: string | null } | null
+  profiles: {
+    display_name: string
+    avatar_url: string | null
+    avatar_updated_at: string | null
+  } | null
   group_post_reactions: { user_id: string; emoji: string }[]
   group_post_attachments: { id: string; storage_path: string | null; gif_url: string | null }[]
 }

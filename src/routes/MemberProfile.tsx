@@ -31,7 +31,12 @@ export default function MemberProfile() {
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
-        <Avatar path={profile.avatar_url} name={profile.display_name} size={56} />
+        <Avatar
+          path={profile.avatar_url}
+          name={profile.display_name}
+          size={56}
+          cacheBust={profile.avatar_updated_at}
+        />
         <h1 className="text-lg font-bold">{profile.display_name}</h1>
       </div>
 

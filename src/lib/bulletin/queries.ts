@@ -13,7 +13,7 @@ export function usePosts(groupId: string) {
       const { data, error } = await supabase
         .from('group_posts')
         .select(
-          '*, profiles!group_posts_user_id_fkey(display_name, avatar_url), group_post_reactions(user_id, emoji), group_post_attachments(id, storage_path, gif_url)',
+          '*, profiles!group_posts_user_id_fkey(display_name, avatar_url, avatar_updated_at), group_post_reactions(user_id, emoji), group_post_attachments(id, storage_path, gif_url)',
         )
         .eq('group_id', groupId)
         .order('created_at', { ascending: true })

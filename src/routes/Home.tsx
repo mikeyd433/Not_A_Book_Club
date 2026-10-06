@@ -33,6 +33,7 @@ type OtherReader = {
   status: ShelfStatus
   displayName: string
   avatarUrl: string | null
+  avatarUpdatedAt: string | null
 }
 
 const SORT_LABELS = {
@@ -88,6 +89,7 @@ export default function Home({ group }: { group: MyGroup }) {
         status: e.status as ShelfStatus,
         displayName: e.profiles?.display_name ?? 'Someone',
         avatarUrl: e.profiles?.avatar_url ?? null,
+        avatarUpdatedAt: e.profiles?.avatar_updated_at ?? null,
       }
       const list = map.get(e.book_id)
       if (list) list.push(reader)
@@ -317,6 +319,7 @@ function DiscoverBookRow({
                 name={o.displayName}
                 size={18}
                 className="ring-2 ring-surface"
+                cacheBust={o.avatarUpdatedAt}
               />
             ))}
           </div>

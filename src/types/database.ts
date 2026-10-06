@@ -686,6 +686,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_updated_at: string | null
           avatar_url: string | null
           created_at: string
           display_name: string
@@ -694,6 +695,7 @@ export type Database = {
           is_test_account: boolean
         }
         Insert: {
+          avatar_updated_at?: string | null
           avatar_url?: string | null
           created_at?: string
           display_name: string
@@ -702,6 +704,7 @@ export type Database = {
           is_test_account?: boolean
         }
         Update: {
+          avatar_updated_at?: string | null
           avatar_url?: string | null
           created_at?: string
           display_name?: string

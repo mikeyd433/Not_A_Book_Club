@@ -15,7 +15,7 @@ export function useMyProfile() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('display_name, avatar_url, has_seen_tutorial')
+        .select('display_name, avatar_url, avatar_updated_at, has_seen_tutorial')
         .eq('id', user!.id)
         .single()
 
@@ -35,7 +35,7 @@ export function useMemberProfile(userId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('display_name, avatar_url')
+        .select('display_name, avatar_url, avatar_updated_at')
         .eq('id', userId)
         .single()
 
@@ -112,16 +112,13 @@ export function useUploadAvatar() {
       // Fixed filename per user (not a random one, unlike cover/comment
       // uploads) -- upsert overwrites it in place instead of accumulating
       // one orphaned file in storage per photo someone's ever tried. That
-      // reused path is also exactly why cacheControl: '0' matters here and
-      // nowhere else in the app: every other upload gets a fresh random
-      // path (a new URL, nothing to cache around), but every avatar
-      // version for a given user shares one URL. The default cacheControl
-      // (~1hr) meant a freshly re-cropped photo could keep showing the
-      // previous crop to everyone -- including the uploader -- until that
-      // cache expired, which looked exactly like "the crop didn't stick."
-      // '0' marks the response stale immediately, forcing a revalidation
-      // (conditional GET) on the next load instead of reusing the old
-      // cached bytes.
+      // reused path means avatar_url alone never changes across re-crops,
+      // which is why every place that renders an avatar also needs
+      // avatar_updated_at (set below) appended as a cache-busting query
+      // param -- cacheControl: '0' on its own only fixes server/CDN-level
+      // caching going forward, it doesn't do anything about a browser (or
+      // this same page) that already has the old bytes for this exact URL,
+      // which is what actually produced "the crop didn't stick."
       const path = `${user.id}/avatar.jpg`
 
       const { error: uploadError } = await supabase.storage
@@ -135,7 +132,7 @@ export function useUploadAvatar() {
 
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ avatar_url: path })
+        .update({ avatar_url: path, avatar_updated_at: new Date().toISOString() })
         .eq('id', user.id)
       if (updateError) throw updateError
 
@@ -155,7 +152,7 @@ export function useRemoveAvatar() {
 
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ avatar_url: null })
+        .update({ avatar_url: null, avatar_updated_at: null })
         .eq('id', user.id)
       if (updateError) throw updateError
 

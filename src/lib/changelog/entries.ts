@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'avatar-cache-fix-everywhere',
+    date: '2026-10-06',
+    title: 'Fixed profile photos not updating outside Settings',
+    body: "The last fix only refreshed your own preview in Settings, and only until you navigated away. A new photo now shows up correctly everywhere it appears -- comments, posts, member profiles -- and stays that way.",
+  },
+  {
     id: 'avatar-crop-cache-fix',
     date: '2026-10-06',
     title: 'Fixed a new profile photo not actually showing up after cropping',

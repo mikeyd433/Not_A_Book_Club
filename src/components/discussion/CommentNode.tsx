@@ -76,6 +76,7 @@ export default function CommentNode({
             path={comment.profiles?.avatar_url}
             name={comment.profiles?.display_name ?? 'Someone'}
             size={28}
+            cacheBust={comment.profiles?.avatar_updated_at}
           />
         </Link>
         <div className="min-w-0 flex-1">

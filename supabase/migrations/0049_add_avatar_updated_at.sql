@@ -1,0 +1,14 @@
+-- A durable cache-busting signal for avatars, replacing the earlier
+-- Settings-only local-state workaround (which only fixed the Settings
+-- page's own preview, only until you navigated away and the state reset,
+-- and did nothing for comments/posts/member lists elsewhere, which all
+-- render the same fixed avatar URL independently). avatar_url reuses one
+-- path per user (overwritten on every re-upload, unlike covers/comment
+-- photos which each get a fresh random path), so the URL alone never
+-- changes across re-crops -- nothing tells the browser (or, more
+-- persistently, any cache that got a copy before this session's
+-- cacheControl fix) that there's anything new to fetch. Every place that
+-- renders someone's avatar now appends this timestamp as a query param,
+-- so the *displayed URL itself* changes whenever the photo actually does,
+-- everywhere, permanently -- not just for one screen for one session.
+alter table public.profiles add column avatar_updated_at timestamptz;
