@@ -33,6 +33,7 @@ type OtherReader = {
   displayName: string
   avatarUrl: string | null
   avatarUpdatedAt: string | null
+  currentChapterId: string | null
 }
 
 const SORT_LABELS = {
@@ -89,6 +90,7 @@ export default function Home({ group }: { group: MyGroup }) {
         displayName: e.profiles?.display_name ?? 'Someone',
         avatarUrl: e.profiles?.avatar_url ?? null,
         avatarUpdatedAt: e.profiles?.avatar_updated_at ?? null,
+        currentChapterId: e.current_chapter_id ?? null,
       }
       const list = map.get(e.book_id)
       if (list) list.push(reader)
@@ -266,10 +268,16 @@ function DiscoverBookRow({
   book: GroupBook
   others: OtherReader[]
 }) {
+  const { data: chapters } = useChapters(book.id)
   const summary =
     others.length === 1
       ? `${others[0].displayName} · ${SHELF_STATUS_LABELS[others[0].status]}`
       : `${others.length} people have this`
+
+  // Only readers actively "reading" have a meaningful current chapter to
+  // show a progress bar for -- same reasoning as hasMeaningfulChapter in
+  // BookRow above.
+  const readingOthers = others.filter((o) => o.status === 'reading' && o.currentChapterId)
 
   return (
     <Link
@@ -295,6 +303,20 @@ function DiscoverBookRow({
           </div>
           <span className="truncate text-xs text-muted">{summary}</span>
         </div>
+        {chapters &&
+          chapters.length > 0 &&
+          readingOthers.map((o) => {
+            const rank = chapters.findIndex((c) => c.id === o.currentChapterId) + 1
+            const label = chapters.find((c) => c.id === o.currentChapterId)?.label
+            return (
+              <div key={o.userId} className="mt-1.5">
+                {readingOthers.length > 1 && (
+                  <p className="truncate text-xs text-muted">{o.displayName}</p>
+                )}
+                <ProgressBar current={rank} total={chapters.length} currentLabel={label} />
+              </div>
+            )
+          })}
       </div>
     </Link>
   )

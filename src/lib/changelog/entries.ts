@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'discover-progress-bars',
+    date: '2026-10-07',
+    title: "Progress bars on others' shelves",
+    body: "When someone else in your group is currently reading a book you haven't shelved yet, the Home page now shows their progress bar and current chapter under \"On others' shelves,\" the same way it shows yours under your own shelf.",
+  },
+  {
     id: 'heic-photo-support',
     date: '2026-10-06',
     title: 'HEIC photos now actually work',
