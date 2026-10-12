@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Navigate, Route, Routes, useSearchParams } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/lib/auth/AuthProvider'
 import { useMyGroup } from '@/lib/group/useMyGroup'
 import Login from '@/routes/Login'
@@ -29,6 +29,7 @@ export default function App() {
   const { user, loading: authLoading } = useAuth()
   const { data: group, isLoading: groupLoading } = useMyGroup()
   const [searchParams] = useSearchParams()
+  const location = useLocation()
 
   if (authLoading) {
     return <FullScreenSpinner />
@@ -50,8 +51,13 @@ export default function App() {
   // in a group -- there was nowhere else to put them. Now that joining a
   // second (or third...) group is possible, send them straight to the
   // join flow instead of silently landing on Home with the code ignored.
+  // Guarded on pathname so this only fires once: the redirect target below
+  // keeps ?invite=CODE in the URL (JoinOrCreateGroup needs it to prefill
+  // the form), and without this check this same block would see that same
+  // param on the very next render -- already on /join-group -- and redirect
+  // to itself forever, never letting <Routes> below render anything.
   const inviteCode = searchParams.get('invite')
-  if (inviteCode) {
+  if (inviteCode && location.pathname !== '/join-group') {
     return <Navigate to={`/join-group?invite=${inviteCode}`} replace />
   }
 

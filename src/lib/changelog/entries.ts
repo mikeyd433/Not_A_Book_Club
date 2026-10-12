@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'fix-invite-link-blank-page',
+    date: '2026-10-12',
+    title: 'Fixed a blank page when tapping an invite link to a group you’re already in',
+    body: "Tapping an invite link to a group you already belong to used to redirect in an endless loop and land on a blank screen instead of ever showing the join screen. It now opens normally -- same place Settings' \"Join or create another group\" goes, with the code already filled in.",
+  },
+  {
     id: 'started-not-finished-chapter-1',
     date: '2026-10-12',
     title: '"I started Chapter 1" instead of "I finished"',
