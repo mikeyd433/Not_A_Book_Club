@@ -13,6 +13,18 @@ const SORT_LABELS = {
 } as const
 type SortMode = keyof typeof SORT_LABELS
 
+const ACTIVITY_RANGE_LABELS = {
+  '7': 'Last 7 days',
+  '30': 'Last 30 days',
+  '90': 'Last 90 days',
+  all: 'All time',
+} as const
+type ActivityRange = keyof typeof ACTIVITY_RANGE_LABELS
+
+function activityRangeDays(range: ActivityRange): number | null {
+  return range === 'all' ? null : Number(range)
+}
+
 // Same display order as Home's STATUS_GROUPS, minus its 'none' group --
 // every row here already has a real status (it's a shelf_entries row),
 // unlike Home's book list, which also covers books nobody's shelved yet.
@@ -31,8 +43,9 @@ const STATUS_ORDER: ShelfStatus[] = [
 // of twice.
 export default function ProfileActivity({ userId }: { userId: string }) {
   const { data: shelf } = useMemberShelf(userId)
-  const { data: activity } = useMemberActivity(userId)
   const [sortMode, setSortMode] = useState<SortMode>('status')
+  const [activityRange, setActivityRange] = useState<ActivityRange>('30')
+  const { data: activity } = useMemberActivity(userId, activityRangeDays(activityRange))
 
   const sortedShelf = useMemo(() => {
     if (!shelf) return []
@@ -122,9 +135,26 @@ export default function ProfileActivity({ userId }: { userId: string }) {
       </div>
 
       <div>
-        <h2 className="text-sm font-semibold text-muted">Recent activity</h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-muted">Recent activity</h2>
+          <select
+            value={activityRange}
+            onChange={(e) => setActivityRange(e.target.value as ActivityRange)}
+            className="min-h-9 rounded-lg border border-border bg-surface px-2 py-1 text-xs"
+          >
+            {Object.entries(ACTIVITY_RANGE_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
         {activityByBook.length === 0 ? (
-          <p className="mt-2 text-xs text-muted">No comments you can see yet.</p>
+          <p className="mt-2 text-xs text-muted">
+            {activityRange === 'all'
+              ? 'No comments you can see yet.'
+              : `No comments you can see in the ${ACTIVITY_RANGE_LABELS[activityRange].toLowerCase()}.`}
+          </p>
         ) : (
           <div className="mt-2 space-y-2">
             {activityByBook.map((group) => {

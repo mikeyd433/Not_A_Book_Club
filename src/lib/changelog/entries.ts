@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'profile-activity-date-range',
+    date: '2026-10-12',
+    title: 'Recent activity now filters by date, not just a count',
+    body: "Profile pages used to always show your last 20 comments, however old. There's now a range picker (7/30/90 days, or all time, defaulting to 30 days) so it actually reflects a time window instead of a fixed count.",
+  },
+  {
     id: 'profile-page-collapse-and-sort',
     date: '2026-10-12',
     title: 'Collapsible activity and a shelf sort on profile pages',

@@ -29,25 +29,31 @@ export function useComments(bookId: string) {
   })
 }
 
-// For a member profile page -- their most recent comments, across every
-// book in the group. No special-casing needed for "only what I'm allowed
-// to see": the same SELECT policy useComments relies on (unlocked and
-// unflagged, or the caller's own, or anything an admin can moderate)
-// applies here too, keyed off the *viewer's* auth.uid() regardless of
-// whose profile is being looked at -- so this can never leak a comment
-// that's hidden from the viewer, even one by the member whose page this is.
-export function useMemberActivity(userId: string) {
+// For a member profile page -- their comments across every book in the
+// group, within the last rangeDays (or everything, if null). No
+// special-casing needed for "only what I'm allowed to see": the same
+// SELECT policy useComments relies on (unlocked and unflagged, or the
+// caller's own, or anything an admin can moderate) applies here too,
+// keyed off the *viewer's* auth.uid() regardless of whose profile is
+// being looked at -- so this can never leak a comment that's hidden from
+// the viewer, even one by the member whose page this is.
+export function useMemberActivity(userId: string, rangeDays: number | null) {
   return useQuery({
-    queryKey: ['member-activity', userId],
+    queryKey: ['member-activity', userId, rangeDays],
     enabled: Boolean(userId),
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('comments')
         .select('id, body, book_id, chapter_id, created_at, books(title), chapters(label)')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
-        .limit(20)
 
+      if (rangeDays !== null) {
+        const cutoff = new Date(Date.now() - rangeDays * 24 * 60 * 60 * 1000).toISOString()
+        query = query.gte('created_at', cutoff)
+      }
+
+      const { data, error } = await query
       if (error) throw error
       return data
     },
