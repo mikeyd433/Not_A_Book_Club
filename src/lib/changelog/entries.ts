@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'heatmap-counts-comments',
+    date: '2026-10-12',
+    title: 'Chapter heatmap now counts comments, not just reactions',
+    body: "The chapter activity heatmap on a book's Reviews tab used to only count emoji reactions, so a chapter with plenty of discussion but no reactions showed as flat. It now counts each comment too, so the bars actually reflect where the conversation happened.",
+  },
+  {
     id: 'discover-progress-bars',
     date: '2026-10-07',
     title: "Progress bars on others' shelves",

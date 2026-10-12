@@ -135,7 +135,10 @@ export default function Reviews({ group: _group }: { group: MyGroup }) {
     const counts = new Map<string, number>()
     for (const c of comments ?? []) {
       if (!c.chapter_id) continue
-      counts.set(c.chapter_id, (counts.get(c.chapter_id) ?? 0) + c.reactions.length)
+      // Each comment counts as activity on its own, on top of whatever
+      // reactions it's drawn -- previously only reactions counted, so a
+      // chapter with plenty of discussion but no reactions showed 0.
+      counts.set(c.chapter_id, (counts.get(c.chapter_id) ?? 0) + 1 + c.reactions.length)
     }
     const rows = chapters.map((c) => ({
       id: c.id,
@@ -298,7 +301,7 @@ export default function Reviews({ group: _group }: { group: MyGroup }) {
 
       {fullAccess && heatmap.length > 0 && (
         <div className="rounded-card bg-surface p-3">
-          <h2 className="text-sm font-semibold">Chapter reaction heatmap</h2>
+          <h2 className="text-sm font-semibold">Chapter activity heatmap</h2>
           <ul className="mt-2 space-y-1.5">
             {heatmap.map((row) => (
               <li key={row.id} className="text-xs">
