@@ -63,6 +63,28 @@ const STATUS_GROUP_LABELS: Record<ShelfStatus | 'none', string> = {
   none: "Not on anyone's shelf",
 }
 
+// Shared by both "On others' shelves" and "Your shelf" below so the sort
+// picker actually applies to everything on the page, not just the list
+// under it. 'status' has no meaning for the discover row (those books
+// aren't on the viewer's shelf at all) and 'recent' needs no extra sort --
+// useGroupBooks already orders by created_at descending -- so only
+// 'title' does anything here.
+function sortBooks<T extends { title: string }>(list: T[], mode: SortMode): T[] {
+  if (mode !== 'title') return list
+  return [...list].sort((a, b) => a.title.localeCompare(b.title))
+}
+
+// A book someone else has shelved but the viewer hasn't -- already
+// surfaced by the "On others' shelves" strip, so it's excluded from
+// "Your shelf" below (in every sort mode) to avoid showing it twice.
+function isOthersShelfOnly(
+  bookId: string,
+  statusByBook: Map<string, ShelfStatus>,
+  othersByBook: Map<string, OtherReader[]>,
+): boolean {
+  return !statusByBook.has(bookId) && (othersByBook.get(bookId)?.length ?? 0) > 0
+}
+
 export default function Home({ group }: { group: MyGroup }) {
   const { user } = useAuth()
   const { data: books, isLoading, isError, error, refetch } = useGroupBooks(group.id)
@@ -100,10 +122,13 @@ export default function Home({ group }: { group: MyGroup }) {
   }, [shelfActivity, user?.id])
   const discoverBooks = useMemo(
     () =>
-      (books as GroupBook[] | undefined)?.filter(
-        (b) => !statusByBook.has(b.id) && (othersByBook.get(b.id)?.length ?? 0) > 0,
-      ) ?? [],
-    [books, statusByBook, othersByBook],
+      sortBooks(
+        (books as GroupBook[] | undefined)?.filter((b) =>
+          isOthersShelfOnly(b.id, statusByBook, othersByBook),
+        ) ?? [],
+        sortMode,
+      ),
+    [books, statusByBook, othersByBook, sortMode],
   )
 
   if (isLoading) return <p className="text-sm text-muted">Loading…</p>
@@ -124,12 +149,10 @@ export default function Home({ group }: { group: MyGroup }) {
     )
   }
 
-  const flatBooks = [...books]
-  if (sortMode === 'title') {
-    flatBooks.sort((a, b) => a.title.localeCompare(b.title))
-  }
-  // 'recent' needs no extra sort -- useGroupBooks already orders by
-  // created_at descending.
+  const flatBooks = sortBooks(
+    (books as GroupBook[]).filter((b) => !isOthersShelfOnly(b.id, statusByBook, othersByBook)),
+    sortMode,
+  )
 
   return (
     <div className="space-y-3">

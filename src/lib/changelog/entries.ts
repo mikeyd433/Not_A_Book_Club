@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'home-sort-fixes',
+    date: '2026-10-12',
+    title: "Sorting Home now actually sorts everything",
+    body: "Switching the Home sort picker to \"Title (A-Z)\" or \"Recently added\" used to leave the \"On others' shelves\" row in its own order, untouched by whatever you picked -- it now sorts along with the rest. Also fixed those same two modes occasionally listing a book twice (once under \"On others' shelves,\" once again under \"Your shelf\" as \"Not on your shelf\").",
+  },
+  {
     id: 'heatmap-counts-comments',
     date: '2026-10-12',
     title: 'Chapter heatmap now counts comments, not just reactions',
