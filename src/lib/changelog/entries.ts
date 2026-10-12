@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'profile-page-collapse-and-sort',
+    date: '2026-10-12',
+    title: 'Collapsible activity and a shelf sort on profile pages',
+    body: "Recent activity on a profile page now groups by book, collapsed by default -- tap a book to expand its comments instead of scrolling a long flat list. The Shelf section there also got the same sort picker as Home (by status, title, or recently added).",
+  },
+  {
     id: 'groups-and-profile-pages',
     date: '2026-10-12',
     title: 'New Groups and Profile pages',

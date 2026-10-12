@@ -1,9 +1,29 @@
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useChapters, useMemberShelf } from '@/lib/books/queries'
 import { useMemberActivity } from '@/lib/comments/queries'
 import CoverThumb from '@/components/CoverThumb'
 import ProgressBar from '@/components/ProgressBar'
 import { SHELF_STATUS_LABELS, type ShelfStatus } from '@/types/domain'
+
+const SORT_LABELS = {
+  status: 'By status',
+  title: 'Title (A-Z)',
+  recent: 'Recently added',
+} as const
+type SortMode = keyof typeof SORT_LABELS
+
+// Same display order as Home's STATUS_GROUPS, minus its 'none' group --
+// every row here already has a real status (it's a shelf_entries row),
+// unlike Home's book list, which also covers books nobody's shelved yet.
+const STATUS_ORDER: ShelfStatus[] = [
+  'reading',
+  'paused',
+  'want_to_read',
+  'finished',
+  'dnf',
+  'read_before_joining',
+]
 
 // Shared by MemberProfile (viewing someone else) and Profile (viewing your
 // own) -- both pages are just this shelf-and-activity view with a
@@ -12,39 +32,134 @@ import { SHELF_STATUS_LABELS, type ShelfStatus } from '@/types/domain'
 export default function ProfileActivity({ userId }: { userId: string }) {
   const { data: shelf } = useMemberShelf(userId)
   const { data: activity } = useMemberActivity(userId)
+  const [sortMode, setSortMode] = useState<SortMode>('status')
+
+  const sortedShelf = useMemo(() => {
+    if (!shelf) return []
+    if (sortMode === 'title') {
+      return [...shelf].sort((a, b) =>
+        (a.books?.title ?? '').localeCompare(b.books?.title ?? ''),
+      )
+    }
+    if (sortMode === 'recent') {
+      return [...shelf].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      )
+    }
+    return shelf
+  }, [shelf, sortMode])
+
+  // Most-recently-active book first -- activity itself is already ordered
+  // newest-first (useMemberActivity), so the first comment seen for each
+  // book_id is also that book's most recent one.
+  const activityByBook = useMemo(() => {
+    if (!activity) return []
+    const order: string[] = []
+    const groups = new Map<string, { bookTitle: string; comments: typeof activity }>()
+    for (const c of activity) {
+      const existing = groups.get(c.book_id)
+      if (existing) {
+        existing.comments.push(c)
+      } else {
+        groups.set(c.book_id, { bookTitle: c.books?.title ?? 'Untitled', comments: [c] })
+        order.push(c.book_id)
+      }
+    }
+    return order.map((bookId) => ({ bookId, ...groups.get(bookId)! }))
+  }, [activity])
+
+  const [expandedBooks, setExpandedBooks] = useState<Set<string>>(new Set())
+  function toggleBook(bookId: string) {
+    setExpandedBooks((prev) => {
+      const next = new Set(prev)
+      if (next.has(bookId)) next.delete(bookId)
+      else next.add(bookId)
+      return next
+    })
+  }
 
   return (
     <>
       <div>
-        <h2 className="text-sm font-semibold text-muted">Shelf</h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-muted">Shelf</h2>
+          {shelf && shelf.length > 1 && (
+            <select
+              value={sortMode}
+              onChange={(e) => setSortMode(e.target.value as SortMode)}
+              className="min-h-9 rounded-lg border border-border bg-surface px-2 py-1 text-xs"
+            >
+              {Object.entries(SORT_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
         {shelf?.length === 0 ? (
           <p className="mt-2 text-xs text-muted">No books on the shelf yet.</p>
+        ) : sortMode === 'status' ? (
+          STATUS_ORDER.map((status) => {
+            const groupEntries = sortedShelf.filter((e) => e.status === status)
+            if (groupEntries.length === 0) return null
+            return (
+              <div key={status} className="mt-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">
+                  {SHELF_STATUS_LABELS[status]}
+                </h3>
+                <div className="mt-2 space-y-2">
+                  {groupEntries.map((entry) => <ShelfRow key={entry.book_id} entry={entry} />)}
+                </div>
+              </div>
+            )
+          })
         ) : (
           <div className="mt-2 space-y-2">
-            {shelf?.map((entry) => <ShelfRow key={entry.book_id} entry={entry} />)}
+            {sortedShelf.map((entry) => <ShelfRow key={entry.book_id} entry={entry} />)}
           </div>
         )}
       </div>
 
       <div>
         <h2 className="text-sm font-semibold text-muted">Recent activity</h2>
-        {activity?.length === 0 ? (
+        {activityByBook.length === 0 ? (
           <p className="mt-2 text-xs text-muted">No comments you can see yet.</p>
         ) : (
           <div className="mt-2 space-y-2">
-            {activity?.map((c) => (
-              <Link
-                key={c.id}
-                to={`/book/${c.book_id}/thread`}
-                className="block rounded-card bg-surface p-3 text-sm active:bg-surface-alt"
-              >
-                <p className="text-xs text-muted">
-                  {c.books?.title}
-                  {c.chapters?.label && ` · ${c.chapters.label}`}
-                </p>
-                <p className="mt-1 line-clamp-2 break-words">{c.body}</p>
-              </Link>
-            ))}
+            {activityByBook.map((group) => {
+              const isExpanded = expandedBooks.has(group.bookId)
+              return (
+                <div key={group.bookId} className="rounded-card bg-surface">
+                  <button
+                    onClick={() => toggleBook(group.bookId)}
+                    className="flex min-h-11 w-full items-center justify-between gap-2 px-3 py-2 text-left"
+                  >
+                    <span className="truncate text-sm font-semibold">{group.bookTitle}</span>
+                    <span className="flex flex-shrink-0 items-center gap-1.5 text-xs text-muted">
+                      {group.comments.length} comment{group.comments.length === 1 ? '' : 's'}
+                      <span>{isExpanded ? '▲' : '▼'}</span>
+                    </span>
+                  </button>
+                  {isExpanded && (
+                    <div className="space-y-1.5 border-t border-border p-2">
+                      {group.comments.map((c) => (
+                        <Link
+                          key={c.id}
+                          to={`/book/${c.book_id}/thread`}
+                          className="block rounded-lg bg-surface-alt p-2 text-sm active:opacity-80"
+                        >
+                          {c.chapters?.label && (
+                            <p className="text-xs text-muted">{c.chapters.label}</p>
+                          )}
+                          <p className="mt-0.5 line-clamp-2 break-words">{c.body}</p>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
