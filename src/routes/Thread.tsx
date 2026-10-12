@@ -205,14 +205,14 @@ export default function Thread({ group }: { group: MyGroup }) {
     return (
       <div className="rounded-card bg-surface p-4 text-center">
         <p className="text-sm text-muted">
-          Read {chapters[0].label} to start the discussion.
+          Start {chapters[0].label} to join the discussion.
         </p>
         <button
           onClick={() => upsertShelf.mutate({ current_chapter_id: chapters[0].id })}
           disabled={upsertShelf.isPending}
           className="mt-3 min-h-11 rounded-lg bg-accent px-4 py-3 text-sm font-semibold text-accent-contrast disabled:opacity-60"
         >
-          ✅ I finished {chapters[0].label}
+          ✅ I started {chapters[0].label}
         </button>
       </div>
     )

@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'started-not-finished-chapter-1',
+    date: '2026-10-12',
+    title: '"I started Chapter 1" instead of "I finished"',
+    body: "The button that opens up a book's discussion used to say \"I finished Chapter 1,\" which asked for more than it needed to -- you only have to start a chapter to join in. Other members' comments in that chapter still stay hidden behind a Reveal tap until you're ready for them, same as always.",
+  },
+  {
     id: 'home-sort-fixes',
     date: '2026-10-12',
     title: "Sorting Home now actually sorts everything",
