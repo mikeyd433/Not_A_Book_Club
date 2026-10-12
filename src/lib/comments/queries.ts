@@ -44,7 +44,13 @@ export function useMemberActivity(userId: string, rangeDays: number | null) {
     queryFn: async () => {
       let query = supabase
         .from('comments')
-        .select('id, body, book_id, chapter_id, created_at, books(title), chapters(label)')
+        .select(
+          // parent: who they were replying to, if anyone -- comments!comments_parent_id_fkey
+          // names the FK explicitly since it's a self-join (comments -> comments) and
+          // PostgREST can't otherwise tell "the row parent_id points to" from "rows whose
+          // parent_id points to this one."
+          'id, body, book_id, chapter_id, created_at, parent_id, books(title), chapters(label), parent:comments!comments_parent_id_fkey(user_id, profiles(display_name))',
+        )
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
 

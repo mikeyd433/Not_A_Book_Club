@@ -173,18 +173,34 @@ export default function ProfileActivity({ userId }: { userId: string }) {
                   </button>
                   {isExpanded && (
                     <div className="space-y-1.5 border-t border-border p-2">
-                      {group.comments.map((c) => (
-                        <Link
-                          key={c.id}
-                          to={`/book/${c.book_id}/thread`}
-                          className="block rounded-lg bg-surface-alt p-2 text-sm active:opacity-80"
-                        >
-                          {c.chapters?.label && (
-                            <p className="text-xs text-muted">{c.chapters.label}</p>
-                          )}
-                          <p className="mt-0.5 line-clamp-2 break-words">{c.body}</p>
-                        </Link>
-                      ))}
+                      {group.comments.map((c) => {
+                        // PostgREST can't tell, from the FK alone, that this
+                        // self-join always returns at most one row (each
+                        // comment has only one parent) -- the generated type
+                        // treats it as an array regardless.
+                        const parent = Array.isArray(c.parent) ? c.parent[0] : c.parent
+                        return (
+                          <Link
+                            key={c.id}
+                            to={`/book/${c.book_id}/thread`}
+                            className="block rounded-lg bg-surface-alt p-2 text-sm active:opacity-80"
+                          >
+                            {(c.chapters?.label || c.parent_id) && (
+                              <p className="text-xs text-muted">
+                                {c.chapters?.label}
+                                {c.chapters?.label && c.parent_id && ' · '}
+                                {c.parent_id &&
+                                  `↩ Reply${
+                                    parent?.profiles?.display_name
+                                      ? ` to ${parent.profiles.display_name}`
+                                      : ''
+                                  }`}
+                              </p>
+                            )}
+                            <p className="mt-0.5 line-clamp-2 break-words">{c.body}</p>
+                          </Link>
+                        )
+                      })}
                     </div>
                   )}
                 </div>

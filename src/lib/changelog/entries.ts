@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'profile-activity-reply-labels',
+    date: '2026-10-12',
+    title: 'Replies are labeled on profile pages',
+    body: "Recent activity on a profile page now marks a comment as \"↩ Reply\" (naming who they replied to, when visible) instead of looking like every comment started its own thread.",
+  },
+  {
     id: 'profile-activity-date-range',
     date: '2026-10-12',
     title: 'Recent activity now filters by date, not just a count',
