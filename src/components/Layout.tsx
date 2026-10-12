@@ -5,6 +5,8 @@ import Spotlight from '@/components/tutorial/Spotlight'
 import { TutorialProvider } from '@/lib/tutorial/TutorialProvider'
 import { getActiveTestAccount, switchToReal } from '@/lib/testAccounts'
 import { useHasUnseenChangelog } from '@/lib/changelog/seen'
+import { useMyProfile } from '@/lib/profile/queries'
+import Avatar from '@/components/Avatar'
 import type { MyGroup } from '@/lib/group/useMyGroup'
 
 // Bottom nav covers the two permanent daily-use destinations: My Shelf
@@ -21,6 +23,7 @@ export default function Layout({ group }: { group: MyGroup }) {
   const [testAccount] = useState(() => getActiveTestAccount())
   const [switching, setSwitching] = useState(false)
   const hasUnseenChangelog = useHasUnseenChangelog()
+  const { data: myProfile } = useMyProfile()
 
   async function handleBackToReal() {
     setSwitching(true)
@@ -65,9 +68,12 @@ export default function Layout({ group }: { group: MyGroup }) {
               </NavLink>
             )}
             <div className="min-w-0">
-              <p className="truncate text-xs uppercase tracking-wide text-muted">
-                {group.name}
-              </p>
+              {/* Doubles as the entry point to the group switcher -- the
+                  group's own name is the most natural thing to tap to see
+                  (or change) which group you're in. */}
+              <NavLink to="/groups" className="block truncate text-xs uppercase tracking-wide text-muted">
+                {group.name} ▾
+              </NavLink>
               <p className="truncate font-display text-xl font-bold italic tracking-tight text-accent">
                 Not A Book Club
               </p>
@@ -81,6 +87,19 @@ export default function Layout({ group }: { group: MyGroup }) {
               aria-label="Add book"
             >
               +
+            </NavLink>
+            <NavLink
+              to="/profile"
+              className="flex min-h-11 min-w-11 items-center justify-center"
+              aria-label="Your profile"
+            >
+              <Avatar
+                path={myProfile?.avatar_url}
+                name={myProfile?.display_name ?? ''}
+                size={32}
+                className="border border-border"
+                cacheBust={myProfile?.avatar_updated_at}
+              />
             </NavLink>
             <NavLink
               to="/settings"

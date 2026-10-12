@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'groups-and-profile-pages',
+    date: '2026-10-12',
+    title: 'New Groups and Profile pages',
+    body: "Two new pages: tap your group's name in the header to switch between every group you're in (it used to be buried in Settings), and tap your avatar to see your own shelf and recent activity -- the same view you get on anyone else's profile, just for you. Editing your name and photo still happens in Settings.",
+  },
+  {
     id: 'fix-invite-link-blank-page',
     date: '2026-10-12',
     title: 'Fixed a blank page when tapping an invite link to a group you’re already in',

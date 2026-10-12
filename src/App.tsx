@@ -24,6 +24,8 @@ const Settings = lazy(() => import('@/routes/Settings'))
 const Changelog = lazy(() => import('@/routes/Changelog'))
 const CoverGallery = lazy(() => import('@/routes/CoverGallery'))
 const MemberProfile = lazy(() => import('@/routes/MemberProfile'))
+const Profile = lazy(() => import('@/routes/Profile'))
+const Groups = lazy(() => import('@/routes/Groups'))
 
 export default function App() {
   const { user, loading: authLoading } = useAuth()
@@ -72,6 +74,8 @@ export default function App() {
           <Route path="/bulletin" element={<Bulletin group={group} />} />
           <Route path="/add-book" element={<AddBook group={group} />} />
           <Route path="/member/:userId" element={<MemberProfile />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/groups" element={<Groups />} />
           <Route element={<BookLayout />}>
             <Route path="/book/:bookId" element={<BookDetail group={group} />} />
             <Route
