@@ -10,6 +10,7 @@ export type Comment = Tables<'comments'> & {
   reactions: { user_id: string; emoji: string }[]
   spoiler_blocks: { id: string; ordinal: number; content: string }[]
   comment_attachments: { id: string; storage_path: string | null; gif_url: string | null }[]
+  transferred_from_group: { name: string } | null
 }
 
 export type TreeNode = { comment: Comment; children: TreeNode[] }

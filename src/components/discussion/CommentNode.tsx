@@ -11,7 +11,7 @@ import { useAuth } from '@/lib/auth/AuthProvider'
 import { formatRelativeTime } from '@/lib/time'
 import AttachmentImage from '@/components/AttachmentImage'
 import Avatar from '@/components/Avatar'
-import type { TreeNode } from '@/lib/discussion/forest'
+import { countNodes, type TreeNode } from '@/lib/discussion/forest'
 import { renderBody } from './SpoilerChip'
 import Composer, { type ComposerSubmit } from './Composer'
 
@@ -25,6 +25,7 @@ export default function CommentNode({
   bookId,
   onReply,
   depth = 0,
+  showAllDescendants = false,
 }: {
   node: TreeNode
   sectionChapterId: string
@@ -33,6 +34,10 @@ export default function CommentNode({
   bookId: string
   onReply: (input: ComposerSubmit, parentId: string) => Promise<void>
   depth?: number
+  // Once a "replies from another group" indicator has been tapped open,
+  // every descendant under it was part of the same transfer -- cascade
+  // straight through without making the viewer tap again at each level.
+  showAllDescendants?: boolean
 }) {
   const { user } = useAuth()
   const [replying, setReplying] = useState(false)
@@ -42,7 +47,18 @@ export default function CommentNode({
   // predictions feature), so replies stay hidden along with it too, to
   // avoid a reply giving away the gist before it's revealed.
   const [revealed, setRevealed] = useState(!node.comment.is_prediction)
+  const [foreignRevealed, setForeignRevealed] = useState(showAllDescendants)
   const { comment, children } = node
+
+  // A reply carried over by shelf transfer -- defaults to collapsed behind
+  // a tap, same reasoning as predictions above, so the thread isn't
+  // suddenly full of replies from people the viewer's never heard of with
+  // no warning. A transferred *root* comment (rendered by ChapterSection,
+  // never reaches here as a "child") is never hidden this way -- only
+  // replies brought along with it are.
+  const nativeChildren = children.filter((c) => !c.comment.transferred_from_group)
+  const foreignChildren = children.filter((c) => c.comment.transferred_from_group)
+  const foreignSourceName = foreignChildren[0]?.comment.transferred_from_group?.name
   const flagComment = useFlagComment(bookId)
   const resolveFlag = useResolveFlag(bookId)
   const deleteComment = useDeleteComment(bookId)
@@ -229,9 +245,9 @@ export default function CommentNode({
           )}
         </div>
       </div>
-      {children.length > 0 && revealed && (
+      {revealed && nativeChildren.length > 0 && (
         <ul>
-          {children.map((child) => (
+          {nativeChildren.map((child) => (
             <CommentNode
               key={child.comment.id}
               node={child}
@@ -243,6 +259,37 @@ export default function CommentNode({
               depth={depth + 1}
             />
           ))}
+        </ul>
+      )}
+      {revealed && foreignChildren.length > 0 && (
+        <ul>
+          {!foreignRevealed ? (
+            <li className="ml-3 border-l border-border pl-2">
+              <button
+                onClick={() => setForeignRevealed(true)}
+                className="w-full border-b border-border py-2 text-left text-xs text-muted underline decoration-dotted"
+              >
+                🔁 {countNodes(foreignChildren)}{' '}
+                {countNodes(foreignChildren) === 1 ? 'reply' : 'replies'}
+                {foreignSourceName ? ` from ${foreignSourceName}` : ' from another group'} — tap
+                to view
+              </button>
+            </li>
+          ) : (
+            foreignChildren.map((child) => (
+              <CommentNode
+                key={child.comment.id}
+                node={child}
+                sectionChapterId={sectionChapterId}
+                taggableChapters={taggableChapters}
+                isAdmin={isAdmin}
+                bookId={bookId}
+                onReply={onReply}
+                depth={depth + 1}
+                showAllDescendants
+              />
+            ))
+          )}
         </ul>
       )}
     </li>

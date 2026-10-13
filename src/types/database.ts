@@ -283,6 +283,7 @@ export type Database = {
           made_during_reread: boolean
           no_spoilers: boolean
           parent_id: string | null
+          transferred_from_group_id: string | null
           updated_at: string
           user_id: string
         }
@@ -297,6 +298,7 @@ export type Database = {
           made_during_reread?: boolean
           no_spoilers?: boolean
           parent_id?: string | null
+          transferred_from_group_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -311,6 +313,7 @@ export type Database = {
           made_during_reread?: boolean
           no_spoilers?: boolean
           parent_id?: string | null
+          transferred_from_group_id?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -334,6 +337,13 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_transferred_from_group_id_fkey"
+            columns: ["transferred_from_group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
             referencedColumns: ["id"]
           },
           {

@@ -3,6 +3,15 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth/AuthProvider'
 import { resizeForUpload } from '@/lib/image'
 
+// PostgREST's generated types sometimes treat a to-one embed as an array
+// (a quirk of how the FK's one-to-one-ness gets inferred) even though the
+// actual response is always a single row or null for a plain, unambiguous
+// foreign key like comments.transferred_from_group_id -> groups.id.
+function one<T>(value: T | T[] | null | undefined): T | null {
+  if (Array.isArray(value)) return value[0] ?? null
+  return value ?? null
+}
+
 export function useComments(bookId: string) {
   return useQuery({
     queryKey: ['comments', bookId],
@@ -18,13 +27,13 @@ export function useComments(bookId: string) {
           // path once reactions is embedded in the same query -- the plain
           // 'profiles(display_name)' is ambiguous between the two and fails
           // the whole request with PGRST201.
-          '*, profiles!comments_user_id_fkey(display_name, avatar_url, avatar_updated_at), chapters(label, position), reactions(user_id, emoji), spoiler_blocks(id, ordinal, content), comment_attachments(id, storage_path, gif_url)',
+          '*, profiles!comments_user_id_fkey(display_name, avatar_url, avatar_updated_at), chapters(label, position), reactions(user_id, emoji), spoiler_blocks(id, ordinal, content), comment_attachments(id, storage_path, gif_url), transferred_from_group:groups(name)',
         )
         .eq('book_id', bookId)
         .order('created_at', { ascending: true })
 
       if (error) throw error
-      return data
+      return data.map((c) => ({ ...c, transferred_from_group: one(c.transferred_from_group) }))
     },
   })
 }

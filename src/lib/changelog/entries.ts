@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'shelf-transfer-foreign-replies-collapsed',
+    date: '2026-10-13',
+    title: 'Replies carried over from another group start collapsed',
+    body: "A reply that came along with a transferred book -- from someone in the old group who isn't in this one -- now stays tucked behind a \"replies from [group]\" tap instead of showing up inline right away. Your own transferred comments still show normally; it's just the other-group replies underneath them that wait for a tap.",
+  },
+  {
     id: 'shelf-transfer-comments-full-tree',
     date: '2026-10-13',
     title: "Transferred discussion isn't capped to your own reading position anymore",
