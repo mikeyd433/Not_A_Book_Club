@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'cross-group-reading-progress-transfer',
+    date: '2026-10-13',
+    title: "Carry a book you're currently reading into a new group too",
+    body: "The checklist shown after joining a group now also offers books you're still partway through elsewhere (reading or paused), not just ones you've finished -- picking one carries over your actual chapter position, not just the status, so you don't lose your place.",
+  },
+  {
     id: 'cross-group-profile-labels-and-replies',
     date: '2026-10-13',
     title: "Profile pages now label books and threads from your other groups",

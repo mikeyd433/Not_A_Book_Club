@@ -3,12 +3,14 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { consumePendingInvite } from '@/lib/pendingInvite'
 import { setActiveGroupId } from '@/lib/group/activeGroup'
 import {
-  applyCrossGroupReadMatches,
-  findCrossGroupReadMatches,
+  applyCrossGroupMatches,
+  findCrossGroupMatches,
   useMyGroups,
-  type CrossGroupReadMatch,
+  type CrossGroupMatch,
 } from '@/lib/group/useMyGroup'
 import { supabase } from '@/lib/supabase'
+
+const IN_PROGRESS_STATUSES = new Set(['reading', 'paused'])
 
 // Reached after login when the signed-in user isn't in a group yet (no
 // header/back option then -- there's nothing to go back to) -- or from
@@ -29,14 +31,14 @@ export default function JoinOrCreateGroup() {
   const [error, setError] = useState('')
 
   // Set the moment a join succeeds if that group turns out to share any
-  // books (by open_library_id) the person has already marked finished/
-  // read-before-joining/DNF in another group -- swaps the whole screen
-  // for the checkbox picker below instead of landing them straight in the
-  // new group, same screen either way whether they came here via invite
-  // link or Settings' "Join or create another group."
+  // books (by open_library_id) the person has already shelved -- finished,
+  // DNF'd, or still partway through -- in another group. Swaps the whole
+  // screen for the checkbox picker below instead of landing them straight
+  // in the new group, same screen either way whether they came here via
+  // invite link or Settings' "Join or create another group."
   const [pendingJoin, setPendingJoin] = useState<{
     groupId: string
-    matches: CrossGroupReadMatch[]
+    matches: CrossGroupMatch[]
     selected: Set<string>
   } | null>(null)
   const [applying, setApplying] = useState(false)
@@ -58,9 +60,9 @@ export default function JoinOrCreateGroup() {
 
     // Not worth blocking the join over -- if this lookup itself fails,
     // just land them in the group as before rather than getting stuck.
-    let matches: CrossGroupReadMatch[] = []
+    let matches: CrossGroupMatch[] = []
     try {
-      matches = await findCrossGroupReadMatches(data.id)
+      matches = await findCrossGroupMatches(data.id)
     } catch {
       // fall through with matches == []
     }
@@ -116,7 +118,7 @@ export default function JoinOrCreateGroup() {
     setApplying(true)
     if (pendingJoin.selected.size > 0) {
       try {
-        await applyCrossGroupReadMatches(pendingJoin.groupId, [...pendingJoin.selected])
+        await applyCrossGroupMatches(pendingJoin.groupId, [...pendingJoin.selected])
       } catch {
         // Not worth stalling here either -- worst case they just have to
         // re-mark these books read manually from the new group's shelf.
@@ -127,14 +129,16 @@ export default function JoinOrCreateGroup() {
 
   if (pendingJoin) {
     const allSelected = pendingJoin.selected.size === pendingJoin.matches.length
+    const inProgress = pendingJoin.matches.filter((m) => IN_PROGRESS_STATUSES.has(m.old_status))
+    const alreadyRead = pendingJoin.matches.filter((m) => !IN_PROGRESS_STATUSES.has(m.old_status))
     return (
       <div className="flex min-h-screen items-center justify-center bg-bg px-4">
         <div className="w-full max-w-sm space-y-6 rounded-card bg-surface p-8 shadow-sm">
           <div>
-            <h1 className="text-xl font-bold">Books you've already read</h1>
+            <h1 className="text-xl font-bold">Bring your shelf along?</h1>
             <p className="mt-1 text-sm text-muted">
               These are already on your shelf in another group. Check any you'd
-              like marked as already read here too.
+              like added here too.
             </p>
           </div>
 
@@ -161,28 +165,42 @@ export default function JoinOrCreateGroup() {
             </button>
           </div>
 
-          <ul className="space-y-2">
-            {pendingJoin.matches.map((m) => (
-              <li key={m.new_book_id}>
-                <label className="flex items-start gap-3 rounded-lg bg-surface-alt p-3">
-                  <input
-                    type="checkbox"
-                    checked={pendingJoin.selected.has(m.new_book_id)}
-                    onChange={() => toggleMatch(m.new_book_id)}
-                    className="mt-0.5 size-5 flex-shrink-0"
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold">{m.title}</span>
-                    {m.author && <span className="block text-xs text-muted">{m.author}</span>}
-                    <span className="block text-xs text-muted">
-                      {m.old_status === 'dnf' ? 'Did not finish' : 'Read'} in{' '}
-                      {m.old_group_name}
-                    </span>
-                  </span>
-                </label>
-              </li>
-            ))}
-          </ul>
+          <div className="max-h-80 space-y-4 overflow-y-auto">
+            {inProgress.length > 0 && (
+              <div>
+                <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">
+                  Currently reading
+                </h2>
+                <ul className="mt-2 space-y-2">
+                  {inProgress.map((m) => (
+                    <MatchRow
+                      key={m.new_book_id}
+                      match={m}
+                      checked={pendingJoin.selected.has(m.new_book_id)}
+                      onToggle={() => toggleMatch(m.new_book_id)}
+                    />
+                  ))}
+                </ul>
+              </div>
+            )}
+            {alreadyRead.length > 0 && (
+              <div>
+                <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">
+                  Already read
+                </h2>
+                <ul className="mt-2 space-y-2">
+                  {alreadyRead.map((m) => (
+                    <MatchRow
+                      key={m.new_book_id}
+                      match={m}
+                      checked={pendingJoin.selected.has(m.new_book_id)}
+                      onToggle={() => toggleMatch(m.new_book_id)}
+                    />
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
 
           <div className="flex gap-2">
             <button
@@ -264,5 +282,45 @@ export default function JoinOrCreateGroup() {
         {error && <p className="text-sm text-red-600">{error}</p>}
       </div>
     </div>
+  )
+}
+
+function MatchRow({
+  match,
+  checked,
+  onToggle,
+}: {
+  match: CrossGroupMatch
+  checked: boolean
+  onToggle: () => void
+}) {
+  const statusLabel =
+    match.old_status === 'dnf'
+      ? 'Did not finish'
+      : match.old_status === 'reading'
+        ? 'Reading'
+        : match.old_status === 'paused'
+          ? 'Paused'
+          : 'Read'
+
+  return (
+    <li>
+      <label className="flex items-start gap-3 rounded-lg bg-surface-alt p-3">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={onToggle}
+          className="mt-0.5 size-5 flex-shrink-0"
+        />
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold">{match.title}</span>
+          {match.author && <span className="block text-xs text-muted">{match.author}</span>}
+          <span className="block text-xs text-muted">
+            {statusLabel}
+            {match.old_chapter_label && ` · ${match.old_chapter_label}`} in {match.old_group_name}
+          </span>
+        </span>
+      </label>
+    </li>
   )
 }
