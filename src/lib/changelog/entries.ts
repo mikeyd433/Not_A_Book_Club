@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'shelf-transfer-comments-full-tree',
+    date: '2026-10-13',
+    title: "Transferred discussion isn't capped to your own reading position anymore",
+    body: "When a transferred book brought its comments along, replies past wherever you personally were in the old group used to get left behind. They don't anymore -- the whole reply tree comes along (flagged ones aside), the same way comments always work: hidden until each reader in the new group catches up to that chapter themselves.",
+  },
+  {
     id: 'shelf-transfer-comments',
     date: '2026-10-13',
     title: 'Transferring a book now brings your discussion with it',
