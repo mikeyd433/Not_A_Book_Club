@@ -11,6 +11,18 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'cross-group-profile-labels-and-replies',
+    date: '2026-10-13',
+    title: "Profile pages now label books and threads from your other groups",
+    body: "If you're in more than one group, your profile's Shelf and Recent Activity already included books from all of them -- now a book from a group other than the one you're currently viewing is labeled with its group name (and isn't a dead-end link into the wrong group's page). Threads you started also get a \"View replies\" toggle to see what others said back.",
+  },
+  {
+    id: 'cross-group-read-transfer',
+    date: '2026-10-13',
+    title: "Carry 'already read' books into a new group",
+    body: "Joining a group that shares books with one you're already in (matched by edition) now offers a checklist right after you join -- pick which of those you've already read/DNF'd elsewhere to mark the same way here, instead of starting from scratch.",
+  },
+  {
     id: 'profile-activity-reply-labels',
     date: '2026-10-12',
     title: 'Replies are labeled on profile pages',

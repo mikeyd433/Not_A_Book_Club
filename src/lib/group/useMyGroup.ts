@@ -85,3 +85,38 @@ export function useUpdateGroupName(groupId: string) {
     },
   })
 }
+
+export type CrossGroupReadMatch = {
+  new_book_id: string
+  title: string
+  author: string | null
+  old_status: string
+  old_group_name: string
+}
+
+// Called once, right after joining a group (JoinOrCreateGroup.tsx) -- not
+// a useQuery hook, since it only ever needs to run that one time rather
+// than stay live/cached. Books already marked finished/read-before-
+// joining/DNF elsewhere, matched by open_library_id (see the
+// 0050_cross_group_read_matches migration for why that's the only
+// reliable identifier).
+export async function findCrossGroupReadMatches(
+  groupId: string,
+): Promise<CrossGroupReadMatch[]> {
+  const { data, error } = await supabase.rpc('find_cross_group_read_matches', {
+    p_group_id: groupId,
+  })
+  if (error) throw error
+  return data
+}
+
+// Applies whichever of those matches the person checked -- the RPC
+// re-derives the legitimate match set itself rather than trusting these
+// book ids blindly, so this can't be used to backdate an arbitrary book.
+export async function applyCrossGroupReadMatches(groupId: string, bookIds: string[]) {
+  const { error } = await supabase.rpc('apply_cross_group_read_matches', {
+    p_group_id: groupId,
+    p_book_ids: bookIds,
+  })
+  if (error) throw error
+}

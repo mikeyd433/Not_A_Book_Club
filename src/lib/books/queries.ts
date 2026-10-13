@@ -379,7 +379,7 @@ export function useMemberShelf(userId: string) {
       const { data, error } = await supabase
         .from('shelf_entries')
         .select(
-          'book_id, status, current_chapter_id, created_at, books(id, title, author, open_library_cover_url, default_cover:covers!books_default_cover_id_fkey(storage_path))',
+          'book_id, status, current_chapter_id, created_at, books(id, title, author, open_library_cover_url, group_id, groups(name), default_cover:covers!books_default_cover_id_fkey(storage_path))',
         )
         .eq('user_id', userId)
 

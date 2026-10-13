@@ -29,14 +29,18 @@ export function useComments(bookId: string) {
   })
 }
 
-// For a member profile page -- their comments across every book in the
-// group, within the last rangeDays (or everything, if null). No
+// For a member profile page -- their comments across every book in every
+// group the *viewer* belongs to (not just whichever group is currently
+// active), within the last rangeDays (or everything, if null). No
 // special-casing needed for "only what I'm allowed to see": the same
 // SELECT policy useComments relies on (unlocked and unflagged, or the
 // caller's own, or anything an admin can moderate) applies here too,
 // keyed off the *viewer's* auth.uid() regardless of whose profile is
 // being looked at -- so this can never leak a comment that's hidden from
-// the viewer, even one by the member whose page this is.
+// the viewer, even one by the member whose page this is. books(group_id,
+// groups(name)) lets the UI label a book that belongs to a group other
+// than the viewer's active one, since nothing else about that card would
+// otherwise say so.
 export function useMemberActivity(userId: string, rangeDays: number | null) {
   return useQuery({
     queryKey: ['member-activity', userId, rangeDays],
@@ -49,7 +53,7 @@ export function useMemberActivity(userId: string, rangeDays: number | null) {
           // names the FK explicitly since it's a self-join (comments -> comments) and
           // PostgREST can't otherwise tell "the row parent_id points to" from "rows whose
           // parent_id points to this one."
-          'id, body, book_id, chapter_id, created_at, parent_id, books(title), chapters(label), parent:comments!comments_parent_id_fkey(user_id, profiles(display_name))',
+          'id, body, book_id, chapter_id, created_at, parent_id, books(title, group_id, groups(name)), chapters(label), parent:comments!comments_parent_id_fkey(user_id, profiles(display_name))',
         )
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
@@ -60,6 +64,29 @@ export function useMemberActivity(userId: string, rangeDays: number | null) {
       }
 
       const { data, error } = await query
+      if (error) throw error
+      return data
+    },
+  })
+}
+
+// Direct replies to one comment the profile page's owner started -- shown
+// lazily (enabled only once that thread's "view replies" is tapped) so
+// Recent Activity doesn't fetch every thread's replies upfront just to
+// show a handful of expanded ones. Same SELECT policy as useMemberActivity
+// above keeps this to what the viewer is actually allowed to see -- a
+// locked or flagged-and-hidden reply just won't appear.
+export function useCommentReplies(commentId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['comment-replies', commentId],
+    enabled: enabled && Boolean(commentId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('comments')
+        .select('id, body, created_at, profiles!comments_user_id_fkey(display_name)')
+        .eq('parent_id', commentId)
+        .order('created_at', { ascending: true })
+
       if (error) throw error
       return data
     },

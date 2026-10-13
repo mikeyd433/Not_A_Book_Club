@@ -996,6 +996,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      apply_cross_group_read_matches: {
+        Args: { p_book_ids: string[]; p_group_id: string }
+        Returns: undefined
+      }
       award_achievement: {
         Args: { p_book_id?: string; p_key: string; p_user_id: string }
         Returns: undefined
@@ -1050,6 +1054,16 @@ export type Database = {
         Returns: {
           chapter_count: number
           source_book_id: string
+        }[]
+      }
+      find_cross_group_read_matches: {
+        Args: { p_group_id: string }
+        Returns: {
+          author: string
+          new_book_id: string
+          old_group_name: string
+          old_status: string
+          title: string
         }[]
       }
       flag_comment: { Args: { p_comment_id: string }; Returns: undefined }
