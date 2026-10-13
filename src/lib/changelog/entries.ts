@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'shelf-transfer-comments',
+    date: '2026-10-13',
+    title: 'Transferring a book now brings your discussion with it',
+    body: "When the join-time picker adds a book that's new to the group, it now also carries over the comments you personally posted on it elsewhere, plus every reply to them (from anyone, not just you) that you're currently allowed to see -- same spoiler-lock rules as always, so nothing ahead of your own position comes along. Only applies to books it's adding fresh; one that already existed in the new group keeps its own separate discussion untouched.",
+  },
+  {
     id: 'shelf-transfer-everything',
     date: '2026-10-13',
     title: "The join picker now covers your whole shelf",
