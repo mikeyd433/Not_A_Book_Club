@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'shelf-transfer-everything',
+    date: '2026-10-13',
+    title: "The join picker now covers your whole shelf",
+    body: "The checklist shown after joining a group used to only offer books that already existed in both groups. It now shows your entire shelf from every other group you're in -- every status, checked by default -- and adds a book there for you (with its chapters, if it's one you're reading) if it isn't already in the new group. Uncheck anything you'd rather leave behind.",
+  },
+  {
     id: 'cross-group-reading-progress-transfer',
     date: '2026-10-13',
     title: "Carry a book you're currently reading into a new group too",

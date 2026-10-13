@@ -86,40 +86,46 @@ export function useUpdateGroupName(groupId: string) {
   })
 }
 
-export type CrossGroupMatch = {
-  new_book_id: string
+export type ShelfTransferCandidate = {
+  old_book_id: string
+  // null means this book doesn't exist in the destination group yet --
+  // applyShelfTransfer creates it there (title/author/open_library_id/
+  // cover + its full chapter list) rather than just setting a status on
+  // an existing row.
+  new_book_id: string | null
   title: string
   author: string | null
   old_status: string
   old_group_name: string
-  old_book_id: string
   old_current_chapter_id: string | null
   old_chapter_label: string | null
 }
 
 // Called once, right after joining a group (JoinOrCreateGroup.tsx) -- not
 // a useQuery hook, since it only ever needs to run that one time rather
-// than stay live/cached. Books already marked finished/read-before-
-// joining/DNF/reading/paused elsewhere, matched by open_library_id (see
-// the 0050/0051_cross_group_* migrations for why that's the only
-// reliable identifier).
-export async function findCrossGroupMatches(groupId: string): Promise<CrossGroupMatch[]> {
-  const { data, error } = await supabase.rpc('find_cross_group_matches', {
+// than stay live/cached. Every shelf entry the caller has in any other
+// group they belong to that isn't already shelved in this one -- not
+// just ones that happen to already exist here (see the
+// 0052_shelf_transfer migration).
+export async function findShelfTransferCandidates(
+  groupId: string,
+): Promise<ShelfTransferCandidate[]> {
+  const { data, error } = await supabase.rpc('find_shelf_transfer_candidates', {
     p_group_id: groupId,
   })
   if (error) throw error
   return data
 }
 
-// Applies whichever of those matches the person checked -- the RPC
-// re-derives the legitimate match set itself rather than trusting these
-// book ids blindly, so this can't be used to backdate an arbitrary book.
-// A 'reading'/'paused' match also carries its chapter position across
-// (see 0051) -- nothing to pass from here, the RPC works that out itself.
-export async function applyCrossGroupMatches(groupId: string, bookIds: string[]) {
-  const { error } = await supabase.rpc('apply_cross_group_matches', {
+// Applies whichever of those candidates the person checked -- the RPC
+// re-derives the legitimate candidate set itself rather than trusting
+// these book ids blindly, so this can't be used to create or backdate an
+// arbitrary book. Selecting by old_book_id (not new_book_id, which a
+// not-yet-existing candidate doesn't have) -- see ShelfTransferCandidate.
+export async function applyShelfTransfer(groupId: string, oldBookIds: string[]) {
+  const { error } = await supabase.rpc('apply_shelf_transfer', {
     p_group_id: groupId,
-    p_book_ids: bookIds,
+    p_old_book_ids: oldBookIds,
   })
   if (error) throw error
 }

@@ -3,14 +3,15 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { consumePendingInvite } from '@/lib/pendingInvite'
 import { setActiveGroupId } from '@/lib/group/activeGroup'
 import {
-  applyCrossGroupMatches,
-  findCrossGroupMatches,
+  applyShelfTransfer,
+  findShelfTransferCandidates,
   useMyGroups,
-  type CrossGroupMatch,
+  type ShelfTransferCandidate,
 } from '@/lib/group/useMyGroup'
 import { supabase } from '@/lib/supabase'
 
 const IN_PROGRESS_STATUSES = new Set(['reading', 'paused'])
+const ALREADY_READ_STATUSES = new Set(['finished', 'read_before_joining', 'dnf'])
 
 // Reached after login when the signed-in user isn't in a group yet (no
 // header/back option then -- there's nothing to go back to) -- or from
@@ -30,15 +31,16 @@ export default function JoinOrCreateGroup() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
-  // Set the moment a join succeeds if that group turns out to share any
-  // books (by open_library_id) the person has already shelved -- finished,
-  // DNF'd, or still partway through -- in another group. Swaps the whole
-  // screen for the checkbox picker below instead of landing them straight
-  // in the new group, same screen either way whether they came here via
-  // invite link or Settings' "Join or create another group."
+  // Set the moment a join succeeds if the person has anything at all on
+  // their shelf in another group -- every status, whether or not that
+  // book already exists in the group they just joined (see
+  // ShelfTransferCandidate). Swaps the whole screen for the checkbox
+  // picker below instead of landing them straight in the new group, same
+  // screen either way whether they came here via invite link or
+  // Settings' "Join or create another group."
   const [pendingJoin, setPendingJoin] = useState<{
     groupId: string
-    matches: CrossGroupMatch[]
+    candidates: ShelfTransferCandidate[]
     selected: Set<string>
   } | null>(null)
   const [applying, setApplying] = useState(false)
@@ -60,20 +62,20 @@ export default function JoinOrCreateGroup() {
 
     // Not worth blocking the join over -- if this lookup itself fails,
     // just land them in the group as before rather than getting stuck.
-    let matches: CrossGroupMatch[] = []
+    let candidates: ShelfTransferCandidate[] = []
     try {
-      matches = await findCrossGroupMatches(data.id)
+      candidates = await findShelfTransferCandidates(data.id)
     } catch {
-      // fall through with matches == []
+      // fall through with candidates == []
     }
 
     setBusy(false)
 
-    if (matches.length > 0) {
+    if (candidates.length > 0) {
       setPendingJoin({
         groupId: data.id,
-        matches,
-        selected: new Set(matches.map((m) => m.new_book_id)),
+        candidates,
+        selected: new Set(candidates.map((c) => c.old_book_id)),
       })
       return
     }
@@ -118,33 +120,34 @@ export default function JoinOrCreateGroup() {
     setApplying(true)
     if (pendingJoin.selected.size > 0) {
       try {
-        await applyCrossGroupMatches(pendingJoin.groupId, [...pendingJoin.selected])
+        await applyShelfTransfer(pendingJoin.groupId, [...pendingJoin.selected])
       } catch {
         // Not worth stalling here either -- worst case they just have to
-        // re-mark these books read manually from the new group's shelf.
+        // re-add these books manually from the new group's shelf.
       }
     }
     setActiveGroupId(pendingJoin.groupId)
   }
 
   if (pendingJoin) {
-    const allSelected = pendingJoin.selected.size === pendingJoin.matches.length
-    const inProgress = pendingJoin.matches.filter((m) => IN_PROGRESS_STATUSES.has(m.old_status))
-    const alreadyRead = pendingJoin.matches.filter((m) => !IN_PROGRESS_STATUSES.has(m.old_status))
+    const allSelected = pendingJoin.selected.size === pendingJoin.candidates.length
+    const inProgress = pendingJoin.candidates.filter((c) => IN_PROGRESS_STATUSES.has(c.old_status))
+    const wantToRead = pendingJoin.candidates.filter((c) => c.old_status === 'want_to_read')
+    const alreadyRead = pendingJoin.candidates.filter((c) => ALREADY_READ_STATUSES.has(c.old_status))
     return (
       <div className="flex min-h-screen items-center justify-center bg-bg px-4">
         <div className="w-full max-w-sm space-y-6 rounded-card bg-surface p-8 shadow-sm">
           <div>
             <h1 className="text-xl font-bold">Bring your shelf along?</h1>
             <p className="mt-1 text-sm text-muted">
-              These are already on your shelf in another group. Check any you'd
-              like added here too.
+              Your whole shelf from your other groups, checked by default --
+              uncheck anything you don't want added here too.
             </p>
           </div>
 
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted">
-              {pendingJoin.selected.size} of {pendingJoin.matches.length} selected
+              {pendingJoin.selected.size} of {pendingJoin.candidates.length} selected
             </span>
             <button
               onClick={() =>
@@ -154,7 +157,7 @@ export default function JoinOrCreateGroup() {
                         ...prev,
                         selected: allSelected
                           ? new Set()
-                          : new Set(prev.matches.map((m) => m.new_book_id)),
+                          : new Set(prev.candidates.map((c) => c.old_book_id)),
                       }
                     : prev,
                 )
@@ -172,12 +175,29 @@ export default function JoinOrCreateGroup() {
                   Currently reading
                 </h2>
                 <ul className="mt-2 space-y-2">
-                  {inProgress.map((m) => (
-                    <MatchRow
-                      key={m.new_book_id}
-                      match={m}
-                      checked={pendingJoin.selected.has(m.new_book_id)}
-                      onToggle={() => toggleMatch(m.new_book_id)}
+                  {inProgress.map((c) => (
+                    <CandidateRow
+                      key={c.old_book_id}
+                      candidate={c}
+                      checked={pendingJoin.selected.has(c.old_book_id)}
+                      onToggle={() => toggleMatch(c.old_book_id)}
+                    />
+                  ))}
+                </ul>
+              </div>
+            )}
+            {wantToRead.length > 0 && (
+              <div>
+                <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">
+                  Want to read
+                </h2>
+                <ul className="mt-2 space-y-2">
+                  {wantToRead.map((c) => (
+                    <CandidateRow
+                      key={c.old_book_id}
+                      candidate={c}
+                      checked={pendingJoin.selected.has(c.old_book_id)}
+                      onToggle={() => toggleMatch(c.old_book_id)}
                     />
                   ))}
                 </ul>
@@ -189,12 +209,12 @@ export default function JoinOrCreateGroup() {
                   Already read
                 </h2>
                 <ul className="mt-2 space-y-2">
-                  {alreadyRead.map((m) => (
-                    <MatchRow
-                      key={m.new_book_id}
-                      match={m}
-                      checked={pendingJoin.selected.has(m.new_book_id)}
-                      onToggle={() => toggleMatch(m.new_book_id)}
+                  {alreadyRead.map((c) => (
+                    <CandidateRow
+                      key={c.old_book_id}
+                      candidate={c}
+                      checked={pendingJoin.selected.has(c.old_book_id)}
+                      onToggle={() => toggleMatch(c.old_book_id)}
                     />
                   ))}
                 </ul>
@@ -285,23 +305,25 @@ export default function JoinOrCreateGroup() {
   )
 }
 
-function MatchRow({
-  match,
+const STATUS_LABELS: Record<string, string> = {
+  dnf: 'Did not finish',
+  reading: 'Reading',
+  paused: 'Paused',
+  want_to_read: 'Want to read',
+  finished: 'Read',
+  read_before_joining: 'Read',
+}
+
+function CandidateRow({
+  candidate,
   checked,
   onToggle,
 }: {
-  match: CrossGroupMatch
+  candidate: ShelfTransferCandidate
   checked: boolean
   onToggle: () => void
 }) {
-  const statusLabel =
-    match.old_status === 'dnf'
-      ? 'Did not finish'
-      : match.old_status === 'reading'
-        ? 'Reading'
-        : match.old_status === 'paused'
-          ? 'Paused'
-          : 'Read'
+  const statusLabel = STATUS_LABELS[candidate.old_status] ?? 'On your shelf'
 
   return (
     <li>
@@ -313,11 +335,14 @@ function MatchRow({
           className="mt-0.5 size-5 flex-shrink-0"
         />
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold">{match.title}</span>
-          {match.author && <span className="block text-xs text-muted">{match.author}</span>}
+          <span className="block text-sm font-semibold">{candidate.title}</span>
+          {candidate.author && (
+            <span className="block text-xs text-muted">{candidate.author}</span>
+          )}
           <span className="block text-xs text-muted">
             {statusLabel}
-            {match.old_chapter_label && ` · ${match.old_chapter_label}`} in {match.old_group_name}
+            {candidate.old_chapter_label && ` · ${candidate.old_chapter_label}`} in{' '}
+            {candidate.old_group_name}
           </span>
         </span>
       </label>

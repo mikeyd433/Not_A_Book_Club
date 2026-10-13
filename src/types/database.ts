@@ -1004,6 +1004,10 @@ export type Database = {
         Args: { p_book_ids: string[]; p_group_id: string }
         Returns: undefined
       }
+      apply_shelf_transfer: {
+        Args: { p_group_id: string; p_old_book_ids: string[] }
+        Returns: undefined
+      }
       award_achievement: {
         Args: { p_book_id?: string; p_key: string; p_user_id: string }
         Returns: undefined
@@ -1078,6 +1082,19 @@ export type Database = {
         Returns: {
           author: string
           new_book_id: string
+          old_group_name: string
+          old_status: string
+          title: string
+        }[]
+      }
+      find_shelf_transfer_candidates: {
+        Args: { p_group_id: string }
+        Returns: {
+          author: string
+          new_book_id: string | null
+          old_book_id: string
+          old_chapter_label: string | null
+          old_current_chapter_id: string | null
           old_group_name: string
           old_status: string
           title: string
