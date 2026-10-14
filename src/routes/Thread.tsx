@@ -56,6 +56,13 @@ export default function Thread({ group }: { group: MyGroup }) {
   // re-settle on the still-current chapter -- see BookDetail's picker for
   // why this is needed.
   const [pickerResetKey, setPickerResetKey] = useState(0)
+  // Two separate DOM spots can hold the picker (the condensed bar's pill
+  // once scrolled past the header, or the full-size button at the top),
+  // but never both at once -- a click outside whichever one is actually
+  // mounted closes it.
+  const condensedPickerRef = useRef<HTMLDivElement>(null)
+  const topPickerButtonRef = useRef<HTMLButtonElement>(null)
+  const topPickerDropdownRef = useRef<HTMLDivElement>(null)
   const showCondensedBar = useScrolledPast(CONDENSED_BAR_SHOW_AFTER)
   // Per-device, not synced to the account -- this is just "which end do I
   // want to scroll from today," not a collaborative setting like the
@@ -79,6 +86,19 @@ export default function Thread({ group }: { group: MyGroup }) {
     upsertShelf.mutate({ comments_seen_at: new Date().toISOString() })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bookId, myEntry?.id, myEntry?.current_chapter_id, fullAccess])
+
+  useEffect(() => {
+    if (!showChapterPicker) return
+    function handleClickOutside(e: MouseEvent) {
+      const target = e.target as Node
+      if (condensedPickerRef.current?.contains(target)) return
+      if (topPickerButtonRef.current?.contains(target)) return
+      if (topPickerDropdownRef.current?.contains(target)) return
+      setShowChapterPicker(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showChapterPicker])
 
   function toggleChapterOrder() {
     setChapterOrder((prev) => {
@@ -236,6 +256,7 @@ export default function Thread({ group }: { group: MyGroup }) {
       celebrate()
     }
     upsertShelf.mutate({ current_chapter_id: chapterId })
+    setShowChapterPicker(false)
   }
 
   return (
@@ -247,6 +268,7 @@ export default function Thread({ group }: { group: MyGroup }) {
           this installed PWA actually runs in. */}
       {showCondensedBar && (
         <div
+          ref={condensedPickerRef}
           className="fixed inset-x-0 z-20 bg-surface"
           style={{ top: CONDENSED_BAR_TOP }}
         >
@@ -298,6 +320,7 @@ export default function Thread({ group }: { group: MyGroup }) {
                 while scrolling just relocates rather than closing). */}
             {!showCondensedBar && (
               <button
+                ref={topPickerButtonRef}
                 onClick={() => setShowChapterPicker((s) => !s)}
                 className="flex min-h-11 min-w-0 flex-1 items-center justify-between gap-2 rounded-card bg-surface px-3 py-2 text-left"
               >
@@ -318,7 +341,7 @@ export default function Thread({ group }: { group: MyGroup }) {
           </div>
         )}
         {!showCondensedBar && showChapterPicker && (
-          <div className="rounded-card bg-surface p-2">
+          <div ref={topPickerDropdownRef} className="rounded-card bg-surface p-2">
             <ChapterWheelPicker
               key={pickerResetKey}
               items={chapters.map((c) => ({ id: c.id, label: c.label }))}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   RESET_CATEGORIES,
@@ -52,9 +52,20 @@ export default function BookDetail({ group }: { group: MyGroup }) {
   // scrolled before onChange ever runs, so left alone it would keep showing
   // the chapter they backed out of instead of reverting.
   const [pickerResetKey, setPickerResetKey] = useState(0)
+  const pickerRef = useRef<HTMLDivElement>(null)
   const [showDangerZone, setShowDangerZone] = useState(false)
   const [resetSelection, setResetSelection] = useState<Set<ResetCategory>>(new Set())
   const [addChapterError, setAddChapterError] = useState('')
+
+  useEffect(() => {
+    if (!showPicker) return
+    function handleClickOutside(e: MouseEvent) {
+      if (pickerRef.current?.contains(e.target as Node)) return
+      setShowPicker(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showPicker])
 
   function handleDelete() {
     if (!book) return
@@ -119,6 +130,7 @@ export default function BookDetail({ group }: { group: MyGroup }) {
       celebrate()
     }
     upsert.mutate({ current_chapter_id: chapterId })
+    setShowPicker(false)
   }
 
   async function handleAddNextChapter() {
@@ -194,28 +206,30 @@ export default function BookDetail({ group }: { group: MyGroup }) {
 
       {myEntry && (
         <div>
-          {(chapters?.length ?? 0) > 0 && (
-            <button
-              onClick={() => setShowPicker((s) => !s)}
-              data-tour="current-chapter"
-              className="flex w-full items-center justify-between rounded-card bg-surface p-3 text-left"
-            >
-              <span className="text-sm font-semibold">Current chapter</span>
-              <span className="text-sm text-accent">
-                {currentChapter?.label ?? 'Set position →'}
-              </span>
-            </button>
-          )}
-          {showPicker && (chapters?.length ?? 0) > 0 && (
-            <div className="mt-2 rounded-card bg-surface p-2">
-              <ChapterWheelPicker
-                key={pickerResetKey}
-                items={(chapters ?? []).map((c) => ({ id: c.id, label: c.label }))}
-                value={myEntry.current_chapter_id}
-                onChange={handleChapterPicked}
-              />
-            </div>
-          )}
+          <div ref={pickerRef}>
+            {(chapters?.length ?? 0) > 0 && (
+              <button
+                onClick={() => setShowPicker((s) => !s)}
+                data-tour="current-chapter"
+                className="flex w-full items-center justify-between rounded-card bg-surface p-3 text-left"
+              >
+                <span className="text-sm font-semibold">Current chapter</span>
+                <span className="text-sm text-accent">
+                  {currentChapter?.label ?? 'Set position →'}
+                </span>
+              </button>
+            )}
+            {showPicker && (chapters?.length ?? 0) > 0 && (
+              <div className="mt-2 rounded-card bg-surface p-2">
+                <ChapterWheelPicker
+                  key={pickerResetKey}
+                  items={(chapters ?? []).map((c) => ({ id: c.id, label: c.label }))}
+                  value={myEntry.current_chapter_id}
+                  onChange={handleChapterPicked}
+                />
+              </div>
+            )}
+          </div>
 
           <button
             onClick={handleAddNextChapter}

@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'chapter-picker-auto-close',
+    date: '2026-10-14',
+    title: 'Chapter picker closes itself',
+    body: "The chapter picker (on Discussion and in a book's Overview) now closes as soon as you pick a chapter, and also closes if you tap anywhere outside it -- it used to just sit open until you tapped the pill again.",
+  },
+  {
     id: 'shelf-transfer-foreign-replies-collapsed',
     date: '2026-10-13',
     title: 'Replies carried over from another group start collapsed',
