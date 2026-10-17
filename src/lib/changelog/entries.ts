@@ -11,6 +11,12 @@ export type ChangelogEntry = {
 // localStorage (see seen.ts), so a fresh entry is what makes it light up.
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: 'home-missed-comments-exclude-own',
+    date: '2026-10-17',
+    title: "Home stopped counting your own comments as ones you've missed",
+    body: "The \"💬 N unlocked comments\" line on a book's home card counted every new comment since your last visit -- including ones you yourself just posted. It now only counts other people's, so posting a comment and heading back to Home no longer flags your own book as having something you missed.",
+  },
+  {
     id: 'chapter-picker-auto-close',
     date: '2026-10-14',
     title: 'Chapter picker closes itself',

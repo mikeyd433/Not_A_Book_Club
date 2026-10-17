@@ -228,9 +228,14 @@ function BookRow({
     default_cover: { storage_path: string } | null
   }
 }) {
+  const { user } = useAuth()
   const { data: chapters } = useChapters(book.id)
   const { data: entry } = useMyShelfEntry(book.id)
-  const { data: activity } = useUnlockedCommentActivity(book.id, entry?.comments_seen_at)
+  const { data: activity } = useUnlockedCommentActivity(
+    book.id,
+    entry?.comments_seen_at,
+    user?.id,
+  )
 
   // Rank (1-based) within the sorted chapter list, not the chapter's raw
   // position -- position is an insertion-order integer that can start above
@@ -351,14 +356,27 @@ function DiscoverBookRow({
 // up an all-time total forever. Never having visited (comments_seen_at
 // null) falls back to every comment on the book, same as before this
 // tracked seen-state existed.
-function useUnlockedCommentActivity(bookId: string, seenAt: string | null | undefined) {
+//
+// Excludes the viewer's own comments -- comments_seen_at only updates once
+// per visit to Discussion (on landing there), not after every comment they
+// post while already there, so a comment posted mid-visit always has a
+// created_at after that timestamp. Without this filter, posting a comment
+// and coming back to Home showed it as a "missed" comment on their own
+// book -- nobody else was waiting to be caught up on it.
+function useUnlockedCommentActivity(
+  bookId: string,
+  seenAt: string | null | undefined,
+  viewerId: string | undefined,
+) {
   return useQuery({
-    queryKey: ['unlocked-comment-activity', bookId, seenAt],
+    queryKey: ['unlocked-comment-activity', bookId, seenAt, viewerId],
+    enabled: Boolean(viewerId),
     queryFn: async () => {
       const { data, error, count } = await supabase
         .from('comments')
         .select('created_at', { count: 'exact' })
         .eq('book_id', bookId)
+        .neq('user_id', viewerId as string)
         .gt('created_at', seenAt ?? '1970-01-01')
         .order('created_at', { ascending: false })
         .limit(1)
