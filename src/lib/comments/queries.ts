@@ -58,11 +58,14 @@ export function useMemberActivity(userId: string, rangeDays: number | null) {
       let query = supabase
         .from('comments')
         .select(
-          // parent: who they were replying to, if anyone -- comments!comments_parent_id_fkey
-          // names the FK explicitly since it's a self-join (comments -> comments) and
+          // parent: who they were replying to, if anyone -- comments!parent_id names the
+          // FK column explicitly since it's a self-join (comments -> comments) and
           // PostgREST can't otherwise tell "the row parent_id points to" from "rows whose
-          // parent_id points to this one."
-          'id, body, book_id, chapter_id, created_at, parent_id, books(title, group_id, groups(name)), chapters(label), parent:comments!comments_parent_id_fkey(user_id, profiles(display_name))',
+          // parent_id points to this one." (Hinting by column, not by constraint name:
+          // PostgREST doesn't resolve the comments_parent_id_fkey name hint for this
+          // self-join.) The nested profiles!comments_user_id_fkey hint is needed for the
+          // same reason as in useComments: reactions also links comments to profiles.
+          'id, body, book_id, chapter_id, created_at, parent_id, books(title, group_id, groups(name)), chapters(label), parent:comments!parent_id(user_id, profiles!comments_user_id_fkey(display_name))',
         )
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
