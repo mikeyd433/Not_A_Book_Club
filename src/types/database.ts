@@ -12,7 +12,7 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  public: {
+  nabc: {
     Tables: {
       achievements: {
         Row: {
@@ -989,8 +989,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      _ddl_probe: { Args: never; Returns: number }
-      _ddl_probe2: { Args: never; Returns: string }
       achievements_feed: {
         Args: never
         Returns: {
@@ -1113,7 +1111,6 @@ export type Database = {
       flag_comment: { Args: { p_comment_id: string }; Returns: undefined }
       flag_post: { Args: { p_post_id: string }; Returns: undefined }
       generate_invite_code: { Args: never; Returns: string }
-      get_app_secret: { Args: { p_name: string }; Returns: string }
       has_full_access: {
         Args: { p_book_id: string; p_user_id: string }
         Returns: boolean
@@ -1207,7 +1204,10 @@ export type Database = {
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+// NOTE: hand-edited after generation — DefaultSchema is "nabc" (not
+// "public"), since NABC lives in its own schema of the shared database
+// (see migrations 0059/0060). Re-apply this after regenerating.
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "nabc">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
@@ -1323,7 +1323,7 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  public: {
+  nabc: {
     Enums: {},
   },
 } as const

@@ -30,6 +30,14 @@ if it ever needs rotating, `select vault.update_secret(id, new_value,
 'giphy_api_key')` using the id from `select id from vault.secrets where
 name = 'giphy_api_key'`.
 
+## Shared database
+
+This Supabase project is the shared ("joined") database for every app meant
+for other people — one login across apps. `public` = shared (`profiles`,
+signup trigger, `get_app_secret`); NABC lives in the `nabc` schema; Block
+Party in `block_party`. See SPEC.md's shared-database convention bullet
+before writing migrations.
+
 ## Where this deploys
 
 This repo is fetched and built by `mikeyd433/dabingabongo`'s `build.sh` and

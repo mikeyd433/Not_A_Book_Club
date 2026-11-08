@@ -62,6 +62,7 @@ Deno.serve(async (req: Request) => {
   webpush.setVapidDetails('mailto:admin@dabingabongo.com', vapidPublic, vapidPrivate)
 
   const { data: subscriptions, error: subError } = await supabase
+    .schema('nabc')
     .from('push_subscriptions')
     .select('id, endpoint, p256dh, auth')
     .eq('user_id', user_id)
@@ -85,7 +86,7 @@ Deno.serve(async (req: Request) => {
         // dispatches don't keep retrying a dead endpoint.
         const statusCode = (err as { statusCode?: number })?.statusCode
         if (statusCode === 404 || statusCode === 410) {
-          await supabase.from('push_subscriptions').delete().eq('id', sub.id)
+          await supabase.schema('nabc').from('push_subscriptions').delete().eq('id', sub.id)
         }
         throw err
       }

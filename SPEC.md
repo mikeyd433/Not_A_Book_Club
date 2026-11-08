@@ -315,6 +315,25 @@ Missed this once (`0014`), caught it via `get_advisors` and fixed in
   `profiles(display_name)`) must point at `public.profiles`, not
   `auth.users` — PostgREST can't infer a join between two tables that both
   merely reference a third. See `0008_fk_to_profiles.sql`.
+- **Shared ("joined") database, one schema per app** (migrations `0059`,
+  `0060`). This Supabase project is the shared database for every app meant
+  to be shared with other people (NABC, Block Party, future ones), so one
+  Supabase Auth account works across all of them. `public` holds only
+  what's shared: `profiles`, `handle_new_user` (signup trigger) and
+  `get_app_secret`. NABC's tables and functions live in the **`nabc`**
+  schema; Block Party gets **`block_party`**. The frontend client is pinned
+  to `nabc` (`createClient(..., { db: { schema: 'nabc' } })`), so
+  `.from()`/`.rpc()` calls stay unqualified. `nabc.profiles` is a
+  `security_invoker` view over `public.profiles` so the app can read/update
+  profiles and keep `profiles(display_name)` embeds working — it's
+  `select *`, so re-create it after adding a column to `public.profiles`.
+  New NABC migrations go in `nabc.` (functions: `set search_path = nabc,
+  public`). Edge Functions using the service-role client must call
+  `.schema('nabc')` for NABC tables. Every app schema must be listed in
+  Dashboard → Project Settings → Data API → Exposed schemas, or PostgREST
+  won't serve it. `src/types/database.ts`'s `DefaultSchema` is hand-edited
+  to `"nabc"` — re-apply after regenerating (generate with the `nabc`
+  schema).
 - RLS verification for anything security-sensitive is done by seeding
   throwaway `auth.users`/profiles/groups directly via SQL (`execute_sql`),
   impersonating each one with `set local role authenticated; set local
@@ -519,6 +538,9 @@ Include a `group_id` on all group-scoped tables from day one. The app ships with
 
 See `supabase/migrations/` for the authoritative, current schema — this is
 a summary, and migrations are the source of truth if it ever drifts.
+
+All tables below are in the `nabc` schema except `profiles`, which is
+shared across apps in `public` (see the shared-database convention above).
 
 | Table | Notes |
 |---|---|

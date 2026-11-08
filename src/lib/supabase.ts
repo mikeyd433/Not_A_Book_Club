@@ -9,7 +9,12 @@ if (!isSupabaseConfigured && import.meta.env.DEV) {
   )
 }
 
-export const supabase = createClient<Database>(
+// The Supabase project is a shared database for several apps (one login
+// across all of them). NABC's tables and RPCs live in the `nabc` schema;
+// `public` holds only what's shared (profiles — exposed to this client as
+// the nabc.profiles view). See migrations 0059/0060 and SPEC.md.
+export const supabase = createClient<Database, 'nabc'>(
   SUPABASE_URL || 'http://localhost:54321',
   SUPABASE_ANON_KEY || 'public-anon-key',
+  { db: { schema: 'nabc' } },
 )

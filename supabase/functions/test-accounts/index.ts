@@ -38,6 +38,9 @@ Deno.serve(async (req: Request) => {
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   const admin = createClient(supabaseUrl, serviceRoleKey)
+  // NABC's tables live in the nabc schema of the shared database; profiles
+  // (and auth) stay shared in public, so those calls keep using `admin`.
+  const nabc = admin.schema('nabc')
 
   const {
     data: { user: caller },
@@ -47,7 +50,7 @@ Deno.serve(async (req: Request) => {
     return new Response('Unauthorized', { status: 401, headers: corsHeaders })
   }
 
-  const { data: callerMembership, error: membershipError } = await admin
+  const { data: callerMembership, error: membershipError } = await nabc
     .from('group_members')
     .select('group_id')
     .eq('user_id', caller.id)
@@ -92,7 +95,7 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const { error: memberError } = await admin
+    const { error: memberError } = await nabc
       .from('group_members')
       .insert({ group_id: groupId, user_id: signUp.user.id, role: 'member' })
     if (memberError) {
@@ -142,7 +145,7 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { data: targetMembership } = await admin
+    const { data: targetMembership } = await nabc
       .from('group_members')
       .select('group_id')
       .eq('user_id', userId)
@@ -161,9 +164,9 @@ Deno.serve(async (req: Request) => {
     // the one other NO ACTION reference a test account could plausibly
     // hold) before handing off to the Admin API, which cascades the rest
     // (group_members, shelf_entries, reactions, ratings, etc.) itself.
-    await admin.from('comments').delete().eq('user_id', userId)
-    await admin.from('chapter_edits').delete().eq('user_id', userId)
-    await admin.from('books').update({ added_by: null }).eq('added_by', userId)
+    await nabc.from('comments').delete().eq('user_id', userId)
+    await nabc.from('chapter_edits').delete().eq('user_id', userId)
+    await nabc.from('books').update({ added_by: null }).eq('added_by', userId)
 
     const { error: deleteError } = await admin.auth.admin.deleteUser(userId)
     if (deleteError) {
@@ -186,7 +189,7 @@ Deno.serve(async (req: Request) => {
     const [{ data: testProfiles, error: profilesError }, { data: groupMembers, error: groupError }] =
       await Promise.all([
         admin.from('profiles').select('id').eq('is_test_account', true),
-        admin.from('group_members').select('user_id').eq('group_id', groupId),
+        nabc.from('group_members').select('user_id').eq('group_id', groupId),
       ])
     if (profilesError || groupError) {
       return new Response('Failed to look up test accounts', {
@@ -212,10 +215,10 @@ Deno.serve(async (req: Request) => {
     // comment isn't attached to anything of theirs that gets deleted here,
     // so it needs clearing separately.
     const [comments, reactions, ratings, chapterEdits] = await Promise.all([
-      admin.from('comments').delete().in('user_id', testIds).select('id'),
-      admin.from('reactions').delete().in('user_id', testIds).select('user_id'),
-      admin.from('ratings').delete().in('user_id', testIds).select('user_id'),
-      admin.from('chapter_edits').delete().in('user_id', testIds).select('user_id'),
+      nabc.from('comments').delete().in('user_id', testIds).select('id'),
+      nabc.from('reactions').delete().in('user_id', testIds).select('user_id'),
+      nabc.from('ratings').delete().in('user_id', testIds).select('user_id'),
+      nabc.from('chapter_edits').delete().in('user_id', testIds).select('user_id'),
     ])
 
     return new Response(
